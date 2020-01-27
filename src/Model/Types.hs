@@ -10,7 +10,7 @@ module Model.Types
 import Data.Time ( Day  )
 import Data.Text ( Text )
 
-type JournalSet = [Issue]
+type JournalSet = (Text, [Issue])
 
 data Issue = Issue {
       date    :: Day

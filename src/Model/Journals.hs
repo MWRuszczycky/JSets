@@ -2,10 +2,11 @@
 
 module Model.Journals
     ( -- Working with journal sets
-      journalSets
+      issueSets
     , journalSetsByYear
     , splitByFreq
     , shuffleSets
+    , dateOfSet
       -- Working with journal issues
     , addIssues
     , issueAtDate
@@ -19,6 +20,7 @@ module Model.Journals
 import qualified Model.Types     as T
 import qualified Model.Dates     as D
 import qualified Model.Core      as C
+import qualified Data.Text       as Tx
 import qualified Data.Time       as Tm
 import           Data.Time              ( Day )
 
@@ -31,14 +33,16 @@ journalSetsByYear :: Int -> [T.Issue] -> [T.JournalSet]
 -- the first 48 weekly issues. The 25-th set accounts for 49-th and
 -- 50-th weekly issues. The 26-th set is all straglers that may or
 -- may not be published in the specified year.
-journalSetsByYear y refs = journalSets ws0 ms0 ++ [concat ws2, concat ws3]
+journalSetsByYear y refs = [ (key y n , is) | (n,is) <- zip [1..] iss ]
     where (ws,ms)   = splitByFreq refs
           (ws0,ws1) = unzip . map (splitAt 48 . issuesInYear y) $ ws
           (ws2,ws3) = unzip . map (splitAt 2) $ ws1
           ms0       = map (issuesInYear y) ms
+          iss       = issueSets ws0 ms0 ++ [concat ws2, concat ws3]
+          key y n   = Tx.intercalate "-" . map (Tx.pack . show) $ [y, n]
 
-journalSets :: [[T.Issue]] -> [[T.Issue]] -> [T.JournalSet]
-journalSets ws ms = [ w ++ m | (w, m) <- zip sws sms ]
+issueSets :: [[T.Issue]] -> [[T.Issue]] -> [[T.Issue]]
+issueSets ws ms = [ w ++ m | (w, m) <- zip sws sms ]
     where sws   = C.chunksOf (2 * length ws) . shuffleSets 2 $ ws
           sms0  = shuffleSets 1 ms
           sms1  = C.takeEveryAt q (q+r) sms0
@@ -55,6 +59,9 @@ splitByFreq = foldr go ([],[])
     where go x (ws,ms) = case T.freq . T.journal $ x of
                               T.Monthly -> (ws, x:ms)
                               _         -> (x:ws, ms)
+
+dateOfSet :: T.JournalSet -> Day
+dateOfSet = maximum . map T.date . snd
 
 -- =============================================================== --
 -- Working with journal issues

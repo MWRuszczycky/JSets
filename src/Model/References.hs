@@ -27,10 +27,10 @@ issueRefs :: [T.Issue]
 issueRefs = [ acieRef
             , biochemistryRef
             , cellChemBiolRef
-            , natChemRef
             , jacsRef
             , natureRef
             , natChemRef
+            , natChemBiolRef
             , pnasRef
             , scienceRef
             ]
@@ -141,6 +141,23 @@ natChemRef = T.Issue {
     , T.volNo   = 2
     , T.issNo   = 1
     , T.journal = natChem
+    }
+
+natChemBiol :: T.Journal
+natChemBiol = T.Journal {
+      T.name   = "Nature Chemical Biology"
+    , T.abbr   = "Nat Chem Biol"
+    , T.freq   = T.Monthly
+    , T.resets = True
+    }
+
+natChemBiolRef :: T.Issue
+natChemBiolRef = T.Issue {
+      T.date    = Tm.fromGregorian 2010 1 1
+    , T.refNo   = 1
+    , T.volNo   = 6
+    , T.issNo   = 1
+    , T.journal = natChemBiol
     }
 
 pnas :: T.Journal
