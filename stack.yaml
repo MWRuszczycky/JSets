@@ -1,0 +1,8 @@
+# Using ghc-8.6.5
+resolver: lts-14.20
+
+nix:
+    packages: []
+
+packages:
+- .
