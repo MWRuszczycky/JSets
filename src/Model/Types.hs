@@ -4,10 +4,13 @@ module Model.Types
     ( Journal   (..)
     , Frequency (..)
     , Issue     (..)
+    , JournalSet
     ) where
 
 import Data.Time ( Day  )
 import Data.Text ( Text )
+
+type JournalSet = [Issue]
 
 data Issue = Issue {
       date    :: Day

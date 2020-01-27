@@ -25,7 +25,7 @@ import           Data.Time              ( Day )
 -- =============================================================== --
 -- Working with journal sets
 
-journalSetsByYear :: Int -> [T.Issue] -> [[T.Issue]]
+journalSetsByYear :: Int -> [T.Issue] -> [T.JournalSet]
 -- ^Compute 26 journal sets that cover all issues published in a
 -- given year. The first 24 sets account for all monthly issues and
 -- the first 48 weekly issues. The 25-th set accounts for 49-th and
@@ -37,7 +37,7 @@ journalSetsByYear y refs = journalSets ws0 ms0 ++ [concat ws2, concat ws3]
           (ws2,ws3) = unzip . map (splitAt 2) $ ws1
           ms0       = map (issuesInYear y) ms
 
-journalSets :: [[T.Issue]] -> [[T.Issue]] -> [[T.Issue]]
+journalSets :: [[T.Issue]] -> [[T.Issue]] -> [T.JournalSet]
 journalSets ws ms = [ w ++ m | (w, m) <- zip sws sms ]
     where sws   = C.chunksOf (2 * length ws) . shuffleSets 2 $ ws
           sms0  = shuffleSets 1 ms
