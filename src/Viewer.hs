@@ -7,10 +7,12 @@ module Viewer
 
 import qualified Data.Text   as Tx
 import qualified Model.Types as T
-import           Data.Text          (Text)
+import           Data.Text          ( Text      )
 
 viewJournalSet :: [T.Issue] -> Text
-viewJournalSet = Tx.unlines . map viewIssue
+viewJournalSet xs = Tx.unlines [hd, us]
+    where us = Tx.unlines . map viewIssue $ xs
+          hd = Tx.pack . show . maximum . map T.date $ xs
 
 viewIssue :: T.Issue -> Text
 viewIssue x = Tx.unwords us
