@@ -3,6 +3,7 @@
 module Model.Journals
     ( -- Working with journal sets
       journalSets
+    , journalSetsByYear
     , splitByFreq
     , shuffleSets
       -- Working with journal issues
@@ -23,6 +24,12 @@ import           Data.Time              ( Day )
 
 -- =============================================================== --
 -- Working with journal sets
+
+journalSetsByYear :: Int -> [T.Issue] -> [[T.Issue]]
+journalSetsByYear y refs = journalSets wss mss
+    where (ws,ms) = splitByFreq refs
+          wss     = map (issuesInYear y) ws
+          mss     = map (issuesInYear y) ms
 
 journalSets :: [[T.Issue]] -> [[T.Issue]] -> [[T.Issue]]
 journalSets ws ms = [ w ++ m | (w, m) <- zip sws sms ]
