@@ -13,4 +13,4 @@ controller :: IO ()
 controller = do
     putStrLn "\nWeekly Sets"
     let jsets = J.journalSetsByYear 2019 R.issueRefs
-    mapM_ ( \ j -> Tx.putStrLn (V.viewJournalSet j) >> putStrLn "" ) jsets
+    mapM_ ( \ j -> Tx.putStrLn (V.viewJournalSet j) ) jsets

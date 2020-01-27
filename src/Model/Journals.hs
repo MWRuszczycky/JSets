@@ -26,10 +26,16 @@ import           Data.Time              ( Day )
 -- Working with journal sets
 
 journalSetsByYear :: Int -> [T.Issue] -> [[T.Issue]]
-journalSetsByYear y refs = journalSets wss mss
-    where (ws,ms) = splitByFreq refs
-          wss     = map (issuesInYear y) ws
-          mss     = map (issuesInYear y) ms
+-- ^Compute 26 journal sets that cover all issues published in a
+-- given year. The first 24 sets account for all monthly issues and
+-- the first 48 weekly issues. The 25-th set accounts for 49-th and
+-- 50-th weekly issues. The 26-th set is all straglers that may or
+-- may not be published in the specified year.
+journalSetsByYear y refs = journalSets ws0 ms0 ++ [concat ws2, concat ws3]
+    where (ws,ms)   = splitByFreq refs
+          (ws0,ws1) = unzip . map (splitAt 48 . issuesInYear y) $ ws
+          (ws2,ws3) = unzip . map (splitAt 2) $ ws1
+          ms0       = map (issuesInYear y) ms
 
 journalSets :: [[T.Issue]] -> [[T.Issue]] -> [[T.Issue]]
 journalSets ws ms = [ w ++ m | (w, m) <- zip sws sms ]
@@ -81,12 +87,11 @@ issuesFromDate :: Day -> T.Issue -> [T.Issue]
 issuesFromDate d0 ref = iterate (addIssues 1) . issueAtDate d0 $ ref
 
 issuesInYear :: Int -> T.Issue -> [T.Issue]
--- ^All issues available by January 1 of the year to December 31.
--- Note that the issues published at the very end of the previous
--- year will be included as those available at January 1.
-issuesInYear y = issuesByDates d0 d1
-    where d0 = Tm.fromGregorian (fromIntegral y)  1  1
-          d1 = Tm.fromGregorian (fromIntegral y) 12 31
+-- ^All issues with publication dates in the specified year.
+issuesInYear y x = take 52 . filter ((== y) . D.getYear . T.date) $ xs
+    where d0 = Tm.fromGregorian (fromIntegral   y    ) 1  2
+          d1 = Tm.fromGregorian (fromIntegral $ y + 1) 1  1
+          xs = issuesByDates d0 d1 x
 
 addIssues :: Int -> T.Issue -> T.Issue
 addIssues n x

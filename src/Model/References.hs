@@ -14,6 +14,8 @@ module Model.References
     , natureRef
     , natChem
     , natChemRef
+    , pnas
+    , pnasRef
     , science
     , scienceRef
     ) where
@@ -22,12 +24,15 @@ import qualified Data.Time       as Tm
 import qualified Model.Types     as T
 
 issueRefs :: [T.Issue]
-issueRefs = [ cellChemBiolRef
+issueRefs = [ acieRef
+            , biochemistryRef
+            , cellChemBiolRef
             , natChemRef
             , jacsRef
-            , scienceRef
-            , biochemistryRef
             , natureRef
+            , natChemRef
+            , pnasRef
+            , scienceRef
             ]
 
 acie :: T.Journal
@@ -136,6 +141,23 @@ natChemRef = T.Issue {
     , T.volNo   = 2
     , T.issNo   = 1
     , T.journal = natChem
+    }
+
+pnas :: T.Journal
+pnas = T.Journal {
+      T.name   = "Proceeds of the National Academy of Sciences U.S.A."
+    , T.abbr   = "PNAS"
+    , T.freq   = T.Weekly
+    , T.resets = True
+    }
+
+pnasRef :: T.Issue
+pnasRef = T.Issue {
+      T.date    = Tm.fromGregorian 2015 1 6
+    , T.refNo   = 1
+    , T.volNo   = 112
+    , T.issNo   = 1
+    , T.journal = pnas
     }
 
 science :: T.Journal
