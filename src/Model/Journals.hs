@@ -3,10 +3,10 @@
 module Model.Journals
     ( -- Working with journal sets
       issueSets
-    , journalSetsByYear
+    , yearlyJSets
     , splitByFreq
     , shuffleSets
-    , dateOfSet
+    , dateOfJSet
     , issuesByKey
       -- Working with journal issues
     , addIssues
@@ -29,13 +29,13 @@ import           Data.Text              ( Text )
 -- =============================================================== --
 -- Working with journal sets
 
-journalSetsByYear :: Int -> [T.Issue] -> [T.JournalSet]
+yearlyJSets :: Int -> [T.Issue] -> [T.JournalSet]
 -- ^Compute 26 journal sets that cover all issues published in a
 -- given year. The first 24 sets account for all monthly issues and
 -- the first 48 weekly issues. The 25-th set accounts for 49-th and
 -- 50-th weekly issues. The 26-th set is all straglers that may or
 -- may not be published in the specified year.
-journalSetsByYear y refs = [ (key y n , is) | (n,is) <- zip [1..] iss ]
+yearlyJSets y refs = [ (key y n , is) | (n,is) <- zip [1..] iss ]
     where (ws,ms)   = splitByFreq refs
           (ws0,ws1) = unzip . map (splitAt 48 . issuesInYear y) $ ws
           (ws2,ws3) = unzip . map (splitAt 2) $ ws1
@@ -52,6 +52,16 @@ issueSets ws ms = [ w ++ m | (w, m) <- zip sws sms ]
           sms   = C.shuffleIn sms1 sms2
           (q,r) = quotRem (length ms) 2
 
+dateOfJSet :: T.JournalSet -> Day
+dateOfJSet = maximum . map T.date . snd
+
+issuesByKey :: Text -> [T.Issue] -> [T.Issue]
+-- ^Pull all issues in a list for a given journal key.
+issuesByKey key = filter ( (== key) . T.key . T.journal )
+
+---------------------------------------------------------------------
+-- Helper functions
+
 shuffleSets :: Int -> [[T.Issue]] -> [T.Issue]
 shuffleSets n = snd . foldr go (0,[])
     where go x (k,xs) = (k+n, C.shuffleInAt k n xs x)
@@ -61,13 +71,6 @@ splitByFreq = foldr go ([],[])
     where go x (ws,ms) = case T.freq . T.journal $ x of
                               T.Monthly -> (ws, x:ms)
                               _         -> (x:ws, ms)
-
-dateOfSet :: T.JournalSet -> Day
-dateOfSet = maximum . map T.date . snd
-
-issuesByKey :: Text -> [T.Issue] -> [T.Issue]
--- ^Pull all issues in a list for a given journal key.
-issuesByKey key = filter ( (== key) . T.key . T.journal )
 
 -- =============================================================== --
 -- Working with journal issues

@@ -13,7 +13,7 @@ import qualified Viewer           as V
 controller :: IO ()
 controller = do
     putStrLn "\nWeekly Sets"
-    let jsets = J.journalSetsByYear 2019 $ R.issueRefs
-        table = V.tabulateSets (map T.journal R.issueRefs) jsets
+    let jsets = J.yearlyJSets 2019 $ R.issueRefs
+        table = V.tabulateJSets (map T.journal R.issueRefs) jsets
     Tx.writeFile "dev/output.csv" table
-    mapM_ (Tx.putStrLn . V.viewSet) jsets
+    mapM_ (Tx.putStrLn . V.viewJSet) jsets
