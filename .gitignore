@@ -1,3 +1,4 @@
 .stack-work/
 Setup.hs
 stack.yaml.lock
+dev/

@@ -7,6 +7,7 @@ module Model.Journals
     , splitByFreq
     , shuffleSets
     , dateOfSet
+    , issuesByKey
       -- Working with journal issues
     , addIssues
     , issueAtDate
@@ -22,7 +23,8 @@ import qualified Model.Dates     as D
 import qualified Model.Core      as C
 import qualified Data.Text       as Tx
 import qualified Data.Time       as Tm
-import           Data.Time              ( Day )
+import           Data.Time              ( Day  )
+import           Data.Text              ( Text )
 
 -- =============================================================== --
 -- Working with journal sets
@@ -62,6 +64,10 @@ splitByFreq = foldr go ([],[])
 
 dateOfSet :: T.JournalSet -> Day
 dateOfSet = maximum . map T.date . snd
+
+issuesByKey :: Text -> [T.Issue] -> [T.Issue]
+-- ^Pull all issues in a list for a given journal key.
+issuesByKey key = filter ( (== key) . T.key . T.journal )
 
 -- =============================================================== --
 -- Working with journal issues

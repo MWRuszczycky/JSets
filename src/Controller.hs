@@ -15,5 +15,5 @@ controller = do
     putStrLn "\nWeekly Sets"
     let jsets = J.journalSetsByYear 2019 $ R.issueRefs
         table = V.tabulateSets (map T.journal R.issueRefs) jsets
-    Tx.writeFile "testoutput.csv" table
+    Tx.writeFile "dev/output.csv" table
     mapM_ (Tx.putStrLn . V.viewSet) jsets

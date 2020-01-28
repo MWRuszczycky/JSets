@@ -41,7 +41,7 @@ acie :: T.Journal
 -- day interval at the new year.
 acie = T.Journal {
       T.name   = "Angewandte Chemie International Edition"
-    , T.abbr   = "ACIE"
+    , T.key    = "ACIE"
     , T.freq   = T.Weekly
     , T.resets = True
     }
@@ -58,7 +58,7 @@ acieRef = T.Issue {
 biochemistry :: T.Journal
 biochemistry = T.Journal {
       T.name   = "Biochemistry"
-    , T.abbr   = "Biochemistry"
+    , T.key    = "Biochemistry"
     , T.freq   = T.WeeklyFirst
     , T.resets = True
     }
@@ -75,7 +75,7 @@ biochemistryRef = T.Issue {
 cellChemBiol :: T.Journal
 cellChemBiol = T.Journal {
       T.name   = "Cell Chemical biology"
-    , T.abbr   = "Cell Chem Biol"
+    , T.key    = "Cell Chem Biol"
     , T.freq   = T.Monthly
     , T.resets = True
     }
@@ -95,7 +95,7 @@ jacs :: T.Journal
 -- intervals. Thus, JACS is more predictable than ACIE.
 jacs = T.Journal {
       T.name   = "Journal of the American Chemical Society"
-    , T.abbr   = "JACS"
+    , T.key    = "JACS"
     , T.freq   = T.WeeklyFirst
     , T.resets = True
     }
@@ -112,7 +112,7 @@ jacsRef = T.Issue {
 nature :: T.Journal
 nature = T.Journal {
       T.name   = "Nature"
-    , T.abbr   = "Nature"
+    , T.key    = "Nature"
     , T.freq   = T.WeeklyLast
     , T.resets = False
     }
@@ -129,7 +129,7 @@ natureRef = T.Issue {
 natChem :: T.Journal
 natChem = T.Journal {
       T.name   = "Nature Chemistry"
-    , T.abbr   = "Nat Chem"
+    , T.key    = "Nat Chem"
     , T.freq   = T.Monthly
     , T.resets = True
     }
@@ -146,7 +146,7 @@ natChemRef = T.Issue {
 natChemBiol :: T.Journal
 natChemBiol = T.Journal {
       T.name   = "Nature Chemical Biology"
-    , T.abbr   = "Nat Chem Biol"
+    , T.key    = "Nat Chem Biol"
     , T.freq   = T.Monthly
     , T.resets = True
     }
@@ -163,7 +163,7 @@ natChemBiolRef = T.Issue {
 pnas :: T.Journal
 pnas = T.Journal {
       T.name   = "Proceeds of the National Academy of Sciences U.S.A."
-    , T.abbr   = "PNAS"
+    , T.key    = "PNAS"
     , T.freq   = T.Weekly
     , T.resets = True
     }
@@ -180,7 +180,7 @@ pnasRef = T.Issue {
 science :: T.Journal
 science = T.Journal {
       T.name   = "Science"
-    , T.abbr   = "Science"
+    , T.key    = "Science"
     , T.freq   = T.WeeklyLast
     , T.resets = False
     }
