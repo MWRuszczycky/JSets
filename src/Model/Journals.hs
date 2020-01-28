@@ -2,10 +2,8 @@
 
 module Model.Journals
     ( -- Working with journal sets
-      issueSets
-    , yearlyJSets
+      yearlyJournalSets
     , splitByFreq
-    , shuffleSets
     , dateOfJSet
     , issuesByKey
       -- Working with journal issues
@@ -29,28 +27,42 @@ import           Data.Text              ( Text )
 -- =============================================================== --
 -- Working with journal sets
 
-yearlyJSets :: Int -> [T.Issue] -> [T.JournalSet]
--- ^Compute 26 journal sets that cover all issues published in a
--- given year. The first 24 sets account for all monthly issues and
--- the first 48 weekly issues. The 25-th set accounts for 49-th and
--- 50-th weekly issues. The 26-th set is all straglers that may or
--- may not be published in the specified year.
-yearlyJSets y refs = [ (key y n , is) | (n,is) <- zip [1..] iss ]
-    where (ws,ms)   = splitByFreq refs
-          (ws0,ws1) = unzip . map (splitAt 48 . issuesInYear y) $ ws
-          (ws2,ws3) = unzip . map (splitAt 2) $ ws1
-          ms0       = map (issuesInYear y) ms
-          iss       = issueSets ws0 ms0 ++ [concat ws2, concat ws3]
-          key y n   = Tx.intercalate "-" . map (Tx.pack . show) $ [y, n]
+---------------------------------------------------------------------
+-- Creation of yearly journal sets
 
-issueSets :: [[T.Issue]] -> [[T.Issue]] -> [[T.Issue]]
-issueSets ws ms = [ w ++ m | (w, m) <- zip sws sms ]
-    where sws   = C.chunksOf (2 * length ws) . shuffleSets 2 $ ws
-          sms0  = shuffleSets 1 ms
-          sms1  = C.takeEveryAt q (q+r) sms0
-          sms2  = C.takeEveryAt (q+r) q . drop q $ sms0
-          sms   = C.shuffleIn sms1 sms2
-          (q,r) = quotRem (length ms) 2
+yearlyJournalSets :: Int -> [T.Issue] -> [T.JournalSet]
+---- ^Compute 26 journal sets that cover all issues published in a
+---- given year. The first 24 sets account for all monthly issues and
+---- the first 48 weekly issues. The 25-th set accounts for 49-th and
+---- 50-th weekly issues. The 26-th set is all straglers that may or
+---- may not be published in the specified year.
+yearlyJournalSets y refs = zip keys $ C.shuffleTogether weeklies monthlies
+    where (ws,ms)   = splitByFreq refs
+          weeklies  = weekly26InYear y ws
+          monthlies = monthly26InYear y ms
+          keys      = map ( \ n -> C.txt y <> "-" <> C.txt n ) [1..]
+
+weekly26InYear :: Int -> [T.Issue] -> [[T.Issue]]
+-- ^Compute 26 sets of weekly issues. The first 24 sets contain two
+-- issues from each journal. The first 25 sets contain 2 issues from
+-- each journal. The 26-th set contains 1 or 2 issues from each set
+-- depending on whether 51 or 52 issues are published that year.
+weekly26InYear y = foldr go start . map (C.chunksOf 2 . issuesInYear y)
+    where start     = replicate 26 []
+          go xss ws = C.shuffleTogether xss ws
+
+monthly26InYear :: Int -> [T.Issue] -> [[T.Issue]]
+-- ^Compute 26 sets of monthly issues. The first two sets contain no
+-- issues at all. The remaining 24 sets contain either one or two
+-- issues from each journal.
+monthly26InYear y refs = [] : [] : C.shuffleIn byqs byqrs
+    where ms    = C.collate 1 . map (issuesInYear y) $ refs
+          (q,r) = quotRem (length refs) 2
+          byqs  = C.takeEveryAt q (q+r) ms
+          byqrs = C.takeEveryAt (q+r) q . drop q $ ms
+
+---------------------------------------------------------------------
+-- Helper functions
 
 dateOfJSet :: T.JournalSet -> Day
 dateOfJSet = maximum . map T.date . snd
@@ -58,13 +70,6 @@ dateOfJSet = maximum . map T.date . snd
 issuesByKey :: Text -> [T.Issue] -> [T.Issue]
 -- ^Pull all issues in a list for a given journal key.
 issuesByKey key = filter ( (== key) . T.key . T.journal )
-
----------------------------------------------------------------------
--- Helper functions
-
-shuffleSets :: Int -> [[T.Issue]] -> [T.Issue]
-shuffleSets n = snd . foldr go (0,[])
-    where go x (k,xs) = (k+n, C.shuffleInAt k n xs x)
 
 splitByFreq :: [T.Issue] -> ([T.Issue], [T.Issue])
 splitByFreq = foldr go ([],[])
