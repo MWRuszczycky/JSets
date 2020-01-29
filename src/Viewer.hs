@@ -8,6 +8,7 @@ module Viewer
     ) where
 
 import qualified Data.Text      as Tx
+import qualified Data.Map       as Map
 import qualified Model.Types    as T
 import qualified Model.Journals as J
 import           Data.Text              ( Text      )
@@ -17,9 +18,9 @@ import           Data.Ord               ( comparing )
 -- =============================================================== --
 -- Converting journal sets to text strings
 
-tabulateJSets :: [T.Journal] -> [T.JournalSet] -> Text
+tabulateJSets :: [T.Journal] -> T.JournalSets -> Text
 tabulateJSets js jsets = hdr <> "\n" <> tbl
-        where tbl  = Tx.unlines . map (tabulateJSet keys) $ jsets
+        where tbl  = Tx.unlines . map (tabulateJSet keys) . Map.toList $ jsets
               hdr  = Tx.intercalate "," $ "No. & Date" : keys
               keys = map T.key js
 

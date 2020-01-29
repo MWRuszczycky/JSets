@@ -1,16 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Types
-    ( Journal   (..)
-    , Frequency (..)
-    , Issue     (..)
+    ( Journal       (..)
+    , Frequency     (..)
+    , Issue         (..)
     , JournalSet
+    , JournalSets
     ) where
 
-import Data.Time ( Day  )
-import Data.Text ( Text )
+import Data.Time       ( Day  )
+import Data.Text       ( Text )
+import Data.Map.Strict ( Map )
 
-type JournalSet = (Text, [Issue])
+type JournalSet  = (Text, [Issue])
+type JournalSets = Map Text [Issue]
 
 data Issue = Issue {
       date    :: Day

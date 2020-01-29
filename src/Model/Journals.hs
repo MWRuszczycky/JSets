@@ -2,7 +2,7 @@
 
 module Model.Journals
     ( -- Working with journal sets
-      yearlyJournalSets
+      yearly26Sets
     , splitByFreq
     , dateOfJSet
     , issuesByKey
@@ -21,6 +21,7 @@ import qualified Model.Dates     as D
 import qualified Model.Core      as C
 import qualified Data.Text       as Tx
 import qualified Data.Time       as Tm
+import qualified Data.Map.Strict as Map
 import           Data.Time              ( Day  )
 import           Data.Text              ( Text )
 
@@ -30,17 +31,17 @@ import           Data.Text              ( Text )
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
 
-yearlyJournalSets :: Int -> [T.Issue] -> [T.JournalSet]
+yearly26Sets :: Int -> [T.Issue] -> T.JournalSets
 ---- ^Compute 26 journal sets that cover all issues published in a
 ---- given year. The first 24 sets account for all monthly issues and
 ---- the first 48 weekly issues. The 25-th set accounts for 49-th and
 ---- 50-th weekly issues. The 26-th set is all straglers that may or
 ---- may not be published in the specified year.
-yearlyJournalSets y refs = zip keys $ C.shuffleTogether weeklies monthlies
-    where (ws,ms)   = splitByFreq refs
-          weeklies  = weekly26InYear y ws
-          monthlies = monthly26InYear y ms
-          keys      = map ( \ n -> C.txt y <> "-" <> C.txt n ) [1..]
+yearly26Sets y refs = Map.fromList . zip keys $ C.shuffleTogether wsets msets
+    where (ws,ms) = splitByFreq refs
+          wsets   = weekly26InYear y ws
+          msets   = monthly26InYear y ms
+          keys    = map ( \ n -> C.txt y <> "-" <> C.txt n ) [1..]
 
 weekly26InYear :: Int -> [T.Issue] -> [[T.Issue]]
 -- ^Compute 26 sets of weekly issues. The first 24 sets contain two
