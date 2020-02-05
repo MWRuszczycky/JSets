@@ -2,6 +2,8 @@
 
 module Model.References
     ( issueRefs
+    , isAvailable
+      -- Journals and references
     , acie
     , acieRef
     , biochemistry
@@ -22,6 +24,12 @@ module Model.References
 
 import qualified Data.Time       as Tm
 import qualified Model.Types     as T
+import           Data.Text              ( Text )
+import           Data.List              ( find )
+
+isAvailable :: Text -> Bool
+isAvailable key = maybe False (const True) go
+    where go = find ( (== key) . T.key . T.journal ) issueRefs
 
 issueRefs :: [T.Issue]
 issueRefs = [ acieRef

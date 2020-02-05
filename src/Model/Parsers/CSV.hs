@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Parsers.CSV
-    ( parseCsv
+    ( parseCSV
     ) where
 
 import qualified Data.Text            as Tx
@@ -10,8 +10,8 @@ import           Data.Text                   ( Text  )
 import           Data.Bifunctor              ( bimap )
 import           Control.Applicative         ( many  )
 
-parseCsv :: Text -> Either String [[Text]]
-parseCsv = bimap err id . At.parseOnly csv
+parseCSV :: Text -> Either String [[Text]]
+parseCSV = bimap err id . At.parseOnly csv
     where err = (++) "Cannot parse CSV: "
 
 csv :: At.Parser [[Text]]

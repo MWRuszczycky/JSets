@@ -12,18 +12,21 @@ module Model.Journals
     , issuesFromDate
     , issuesByDates
     , issuesInYear
+    , lookupIssue
     , nextWeekly
     , nextMonthly
     ) where
 
-import qualified Model.Types     as T
-import qualified Model.Dates     as D
-import qualified Model.Core      as C
-import qualified Data.Text       as Tx
-import qualified Data.Time       as Tm
-import qualified Data.Map.Strict as Map
-import           Data.Time              ( Day  )
-import           Data.Text              ( Text )
+import qualified Model.Types        as T
+import qualified Model.Dates        as D
+import qualified Model.Core         as C
+import qualified Model.References   as R
+import qualified Data.Text          as Tx
+import qualified Data.Time          as Tm
+import qualified Data.Map.Strict    as Map
+import           Data.Time                 ( Day  )
+import           Data.Text                 ( Text )
+import           Data.List                 ( find )
 
 -- =============================================================== --
 -- Working with journal sets
@@ -114,6 +117,14 @@ issuesInYear y x = take 52 . filter ((== y) . D.getYear . T.date) $ xs
     where d0 = Tm.fromGregorian (fromIntegral   y    ) 1  2
           d1 = Tm.fromGregorian (fromIntegral $ y + 1) 1  1
           xs = issuesByDates d0 d1 x
+
+lookupIssue :: Text -> (Int, Int) -> Maybe T.Issue
+-- ^Look up a journal issue by its journal key, volume and number.
+lookupIssue jKey (vNo,nNo) = find ((== jKey) . T.key . T.journal) R.issueRefs
+                             >>= find ((== nNo) . T.issNo)
+                                 . takeWhile ((== vNo) . T.volNo)
+                                 . dropWhile ((< vNo) . T.volNo)
+                                 . iterate (addIssues 1)
 
 addIssues :: Int -> T.Issue -> T.Issue
 addIssues n x
