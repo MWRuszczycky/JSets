@@ -11,6 +11,7 @@ import qualified Data.Text      as Tx
 import qualified Data.Map       as Map
 import qualified Model.Types    as T
 import qualified Model.Journals as J
+import qualified Model.Core     as C
 import           Data.Text              ( Text      )
 import           Data.List              ( sortBy    )
 import           Data.Ord               ( comparing )
@@ -29,13 +30,16 @@ tabulateJSet keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
     where volIss  = bracket '\"' '\"' . Tx.intercalate "\n" . map viewVolIss
           go k xs = (volIss . J.issuesByKey k . snd) jset : xs
           date    = Tx.pack . show . J.dateOfJSet $ jset
-          hdr     = bracket '\"' '\"' (fst jset <> "\n" <> date) <> ","
+          hdr     = bracket '\"' '\"' (viewJSetKey jset <> "\n" <> date) <> ","
 
 viewJSet :: T.JournalSet -> Text
-viewJSet jset = Tx.concat [fst jset, " | ", d, "\n"] <> Tx.unlines xs
+viewJSet jset = Tx.concat [viewJSetKey jset, " | ", d, "\n"] <> Tx.unlines xs
     where xs    = map viewIssue . sortBy (comparing jName) . snd $ jset
           jName = T.name . T.journal
           d     = Tx.pack . show . J.dateOfJSet $ jset
+
+viewJSetKey :: T.JournalSet -> Text
+viewJSetKey ((y,n),_) = C.txt y <> "-" <> C.txt n
 
 -- =============================================================== --
 -- Converting issues to text strings

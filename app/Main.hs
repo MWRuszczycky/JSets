@@ -2,7 +2,7 @@
 
 module Main where
 
-import Controller ( controller, parseTest )
+import Controller ( controller )
 
 main :: IO ()
-main = parseTest --controller
+main = controller

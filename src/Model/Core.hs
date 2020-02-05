@@ -1,5 +1,6 @@
 module Model.Core
     ( txt
+    , readMaybeTxt
     , chunksOf
     , collate
     , shuffleIn
@@ -8,10 +9,15 @@ module Model.Core
     , takeEveryAt
     ) where
 
-import Data.Text ( Text, pack )
+import qualified Data.Text as Tx
+import           Data.Text       ( Text      )
+import           Text.Read       ( readMaybe )
 
 txt :: Show a => a -> Text
-txt = pack . show
+txt = Tx.pack . show
+
+readMaybeTxt :: Read a => Text -> Maybe a
+readMaybeTxt = readMaybe . Tx.unpack
 
 chunksOf :: Int -> [a] -> [[a]]
 -- ^Break a list up into sublists of n elements each. Any extra

@@ -10,8 +10,9 @@ import qualified Model.Parsers.CSV    as CSV
 import qualified Model.References     as R
 import qualified Model.Journals       as J
 import qualified Data.Map.Strict      as Map
-import           Text.Read                   ( readMaybe  )
-import           Data.Text                   ( Text       )
+import           Data.Text                   ( Text         )
+import           Data.Maybe                  ( listToMaybe  )
+import           Model.Core                  ( readMaybeTxt )
 
 parseJournalSets :: Text -> Either String T.JournalSets
 parseJournalSets x = CSV.parseCSV x >>= toJournalSets
@@ -42,13 +43,12 @@ toJournalSet :: [Text] -> [Text] -> Either String T.JournalSet
 toJournalSet _  []     = Left "Missing key for journal set."
 toJournalSet js (x:xs) = (,) <$> parseKey x <*> toIssuesInSet js xs
 
-parseKey :: Text -> Either String Text
-parseKey x
-    | Tx.null key = Left "Missing key for journal set."
-    | otherwise   = pure key
-    where key = case Tx.lines x of
-                     (y:_) -> Tx.strip y
-                     _     -> Tx.empty
+parseKey :: Text -> Either String (Int, Int)
+parseKey t = maybe err pure yn
+    where err = Left $ "Invalid journal set key: " ++ Tx.unpack t
+          yn  = case fmap (Tx.splitOn "-") . listToMaybe . Tx.lines $ t of
+                     Just (y:n:_) -> (,) <$> readMaybeTxt y <*> readMaybeTxt n
+                     _            -> Nothing
 
 toIssuesInSet :: [Text] -> [Text] -> Either String [T.Issue]
 toIssuesInSet js xs = fmap concat . traverse toIssues . zip js $ ys
@@ -63,6 +63,6 @@ toIssues (j, t) = mapM toVolIssNo xs >>= mapM (go . J.lookupIssue j)
                                                         ]
 
 toVolIssNo :: Text -> Either String (Int, Int)
-toVolIssNo t = case traverse (readMaybe . Tx.unpack) . Tx.splitOn ":" $ t of
+toVolIssNo t = case traverse readMaybeTxt . Tx.splitOn ":" $ t of
                     Just (v:i:[]) -> pure (v,i)
                     _             -> Left "Cannot parse volume:issue"

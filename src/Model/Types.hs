@@ -12,8 +12,8 @@ import Data.Time       ( Day  )
 import Data.Text       ( Text )
 import Data.Map.Strict ( Map )
 
-type JournalSet  = (Text, [Issue])
-type JournalSets = Map Text [Issue]
+type JournalSet  = ((Int,Int), [Issue])
+type JournalSets = Map (Int,Int) [Issue]
 
 data Issue = Issue {
       date    :: Day

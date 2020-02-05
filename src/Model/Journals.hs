@@ -43,7 +43,7 @@ yearly26Sets y refs = Map.fromList . zip keys $ C.shuffleTogether wsets msets
     where (ws,ms) = splitByFreq refs
           wsets   = weekly26InYear y ws
           msets   = monthly26InYear y ms
-          keys    = map ( \ n -> C.txt y <> "-" <> C.txt n ) [1..]
+          keys    = [ (y,n) | n <- [1..] ]
 
 weekly26InYear :: Int -> [T.Issue] -> [[T.Issue]]
 -- ^Compute 26 sets of weekly issues. The first 24 sets contain two

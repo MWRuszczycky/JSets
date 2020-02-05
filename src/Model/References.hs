@@ -170,7 +170,7 @@ natChemBiolRef = T.Issue {
 
 pnas :: T.Journal
 pnas = T.Journal {
-      T.name   = "Proceeds of the National Academy of Sciences U.S.A."
+      T.name   = "Proceedings of the National Academy of Sciences U.S.A."
     , T.key    = "PNAS"
     , T.freq   = T.Weekly
     , T.resets = True
