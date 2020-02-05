@@ -12,8 +12,6 @@ import qualified Model.Journals       as J
 import qualified Data.Map.Strict      as Map
 import           Text.Read                   ( readMaybe  )
 import           Data.Text                   ( Text       )
-import           Data.Bifunctor              ( bimap      )
-import           Control.Monad               ( foldM      )
 
 parseJournalSets :: Text -> Either String T.JournalSets
 parseJournalSets x = CSV.parseCSV x >>= toJournalSets

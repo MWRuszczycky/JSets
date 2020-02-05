@@ -21,7 +21,6 @@ import qualified Model.Types        as T
 import qualified Model.Dates        as D
 import qualified Model.Core         as C
 import qualified Model.References   as R
-import qualified Data.Text          as Tx
 import qualified Data.Time          as Tm
 import qualified Data.Map.Strict    as Map
 import           Data.Time                 ( Day  )
