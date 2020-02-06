@@ -93,7 +93,7 @@ issueAtDate :: Day -> T.Issue -> T.Issue
 -- will not be current until January 2, 2016, and a monthly issue
 -- published in June 2018 will not be current until July 2018.
 issueAtDate d x = let go ~(y0:y1:ys) | T.date y1 >= d = y0
-                                      | otherwise      = go (y1:ys)
+                                     | otherwise      = go (y1:ys)
                    in  case T.freq . T.journal $ x of
                             T.Monthly -> go . iterate nextMonthly $ x
                             _         -> go . iterate nextWeekly  $ x
