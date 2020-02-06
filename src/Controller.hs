@@ -15,6 +15,6 @@ controller :: IO ()
 controller = do
     putStrLn "\nWeekly Sets"
     let jsets = J.yearly26Sets 2019 $ R.issueRefs
-        table = V.tabulateJSets (map T.journal R.issueRefs) jsets
+        table = V.jSetsToCSV (map T.journal R.issueRefs) jsets
     Tx.writeFile "dev/output.csv" table
     mapM_ (Tx.putStrLn . V.viewJSet) . Map.toList $ jsets
