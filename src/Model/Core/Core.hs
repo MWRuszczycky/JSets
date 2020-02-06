@@ -43,12 +43,11 @@ takeEveryAt :: Int -> Int -> [a] -> [[a]]
 -- ^Take a chunk of n elements after every m elements in the list.
 -- The first chunk taken is from element 0. The last chunk may have
 -- fewer than n elements if the end of the list is reached.
+takeEveryAt _ _ [] = []
 takeEveryAt n m xs
     | n < 1     = []
-    | otherwise = go True xs
-    where go _ [] = []
-          go k xs | k         = let (us,vs) = splitAt n xs in us : go False vs
-                  | otherwise = go True . drop m $ xs
+    | otherwise = (:) us . takeEveryAt n m . drop m $ vs
+    where (us,vs) = splitAt n xs
 
 ---------------------------------------------------------------------
 -- Combining lists
