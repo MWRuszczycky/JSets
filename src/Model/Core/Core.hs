@@ -1,23 +1,34 @@
 module Model.Core.Core
-    ( txt
+    ( -- Working with Text strings
+      txt
     , readMaybeTxt
+      -- List manipulation
     , chunksOf
+    , takeEveryAt
     , collate
     , shuffleIn
     , shuffleInAt
-    , shuffleTogether
-    , takeEveryAt
+    , zipLists
     ) where
 
 import qualified Data.Text as Tx
 import           Data.Text       ( Text      )
 import           Text.Read       ( readMaybe )
 
+-- =============================================================== --
+-- Working with Text strings
+
 txt :: Show a => a -> Text
 txt = Tx.pack . show
 
 readMaybeTxt :: Read a => Text -> Maybe a
 readMaybeTxt = readMaybe . Tx.unpack
+
+-- =============================================================== --
+-- List manipulation
+
+---------------------------------------------------------------------
+-- Breaking lists up
 
 chunksOf :: Int -> [a] -> [[a]]
 -- ^Break a list up into sublists of n elements each. Any extra
@@ -26,8 +37,20 @@ chunksOf _ [] = []
 chunksOf n xs = ys : chunksOf n zs
     where (ys, zs) = splitAt n xs
 
+takeEveryAt :: Int -> Int -> [a] -> [[a]]
+-- ^Take a chunk of n elements after every m elements in the list.
+-- The first chunk taken is from element 0. The last chunk may have
+-- fewer than n elements if the end of the list is reached.
+takeEveryAt n m xs = go True xs
+    where go _ [] = []
+          go k xs | k         = let (us,vs) = splitAt n xs in us : go False vs
+                  | otherwise = go True . drop m $ xs
+
+---------------------------------------------------------------------
+-- Combining lists
+
 collate :: Int -> [[a]] -> [a]
--- ^Combine lists with n element of each list after the other. Any
+-- ^Combine lists with n elements of each list after the other. Any
 -- overhang is deleted. For example,
 -- collate 2 [ "aaaa", "bbbb", "cccc" ]
 -- will return "aabbccaabbcc"
@@ -40,11 +63,6 @@ shuffleIn :: [a] -> [a] -> [a]
 shuffleIn []     _      = []
 shuffleIn _      []     = []
 shuffleIn (x:xs) (y:ys) = x : y : shuffleIn xs ys
-
-shuffleTogether :: [[a]] -> [[a]] -> [[a]]
-shuffleTogether [] _          = []
-shuffleTogether _  []         = []
-shuffleTogether (x:xs) (y:ys) = (x ++ y) : shuffleTogether xs ys
 
 shuffleInAt :: Int -> Int -> [a] -> [a] -> [a]
 -- ^Combine two lists with m elements from the second after every
@@ -60,11 +78,9 @@ shuffleInAt n m xs ys
     where (xs1,xs2) = splitAt n xs
           (ys1,ys2) = splitAt m ys
 
-takeEveryAt :: Int -> Int -> [a] -> [[a]]
--- ^Take a chunk of n elements after every m elements in the list.
--- The first chunk taken is from element 0. The last chunk may have
--- fewer than n elements if the end of the list is reached.
-takeEveryAt n m xs = go True xs
-    where go _ [] = []
-          go k xs | k         = let (us,vs) = splitAt n xs in us : go False vs
-                  | otherwise = go True . drop m $ xs
+zipLists :: [[a]] -> [[a]] -> [[a]]
+-- ^Take two lists of lists and zip them together concatenating the
+-- the paired lists. This is the list-analog of zip.
+zipLists [] _          = []
+zipLists _  []         = []
+zipLists (x:xs) (y:ys) = (x <> y) : zipLists xs ys

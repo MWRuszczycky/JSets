@@ -39,7 +39,7 @@ yearly26Sets :: Int -> [T.Issue] -> T.JournalSets
 ---- the first 48 weekly issues. The 25-th set accounts for 49-th and
 ---- 50-th weekly issues. The 26-th set is all straglers that may or
 ---- may not be published in the specified year.
-yearly26Sets y refs = Map.fromList . zip keys $ C.shuffleTogether wsets msets
+yearly26Sets y refs = Map.fromList . zip keys $ C.zipLists wsets msets
     where (ws,ms) = splitByFreq refs
           wsets   = weekly26InYear y ws
           msets   = monthly26InYear y ms
@@ -52,7 +52,7 @@ weekly26InYear :: Int -> [T.Issue] -> [[T.Issue]]
 -- depending on whether 51 or 52 issues are published that year.
 weekly26InYear y = foldr go start . map (C.chunksOf 2 . issuesInYear y)
     where start     = replicate 26 []
-          go xss ws = C.shuffleTogether xss ws
+          go xss ws = C.zipLists xss ws
 
 monthly26InYear :: Int -> [T.Issue] -> [[T.Issue]]
 -- ^Compute 26 sets of monthly issues. The first two sets contain no
