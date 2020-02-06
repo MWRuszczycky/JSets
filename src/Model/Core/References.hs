@@ -2,33 +2,9 @@
 
 module Model.Core.References
     ( -- Utilities
-      issueRefs
-    , isAvailable
-      -- Journals and references
-      -- Angewandte Chemie Int. Edition
-    , acie
-    , acieRef
-      -- ACS Biochemistry
-    , biochemistry
-    , biochemistryRef
-      -- Cell Chemical Biology
-    , cellChemBiol
-    , cellChemBiolRef
-      -- ACS Journal of the American Chemical Society
-    , jacs
-    , jacsRef
-      -- Nature
-    , nature
-    , natureRef
-      -- Nature Chemistry
-    , natChem
-    , natChemRef
-      -- Proceedings of the National Academy of Sciences, U.S.A.
-    , pnas
-    , pnasRef
-      -- Science
-    , science
-    , scienceRef
+      isAvailable
+    , refIssue
+    , issueRefs
     ) where
 
 import qualified Data.Time        as Tm
@@ -41,8 +17,11 @@ import           Data.List              ( find )
 
 isAvailable :: Text -> Bool
 -- ^Determine whether a given journal has a reference issue.
-isAvailable key = maybe False (const True) go
-    where go = find ( (== key) . T.key . T.journal ) issueRefs
+isAvailable = maybe False (const True) . refIssue
+
+refIssue :: Text -> Maybe T.Issue
+-- ^Find a reference issue by its journal key.
+refIssue key = find ( (== key) . T.key . T.journal ) issueRefs
 
 issueRefs :: [T.Issue]
 -- ^List of all available reference issues.
