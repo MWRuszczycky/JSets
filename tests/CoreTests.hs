@@ -13,6 +13,8 @@ spec :: IO ()
 spec = hspec $ do
     describe "chunksOf" $ do
         chunksOfSpec
+    describe "takeEveryAt" $ do
+        takeEveryAtSpec
     describe "shuffleIn" $ do
         shuffleInSpec
     describe "shuffleInAt" $ do
@@ -24,13 +26,45 @@ chunksOfSpec = do
     it "handles empty lists" $ do
         C.chunksOf 2 "" `shouldBe` []
     it "handles nonpositive chunks" $ do
-        C.chunksOf 0 xs1    `shouldBe` []
+        C.chunksOf 0    xs1 `shouldBe` []
         C.chunksOf (-2) xs1 `shouldBe` []
     it "correctly appends overhang" $ do
-        C.chunksOf 3 xs1 `shouldBe` [ "the", " ye", "llo", "w c", "at" ]
+        C.chunksOf 3  xs1 `shouldBe` [ "the", " ye", "llo", "w c", "at" ]
+        C.chunksOf 20 xs1 `shouldBe` [ xs1 ]
     it "works correctly on a list with no overhang" $ do
         C.chunksOf 1 xs1 `shouldBe` map (:[]) xs1
         C.chunksOf 7 xs1 `shouldBe` [ "the yel", "low cat" ]
+
+takeEveryAtSpec :: Spec
+takeEveryAtSpec = do
+    let xs1 = "the yellow cat is fat"
+    it "handles empty lists" $ do
+        C.takeEveryAt 1 2 "" `shouldBe` []
+    it "handles nonpositive everies" $ do
+        C.takeEveryAt 0    2 xs1 `shouldBe` []
+        C.takeEveryAt (-2) 2 xs1 `shouldBe` []
+    it "handles nonpositive ats" $ do
+        C.takeEveryAt 2 0    xs1 `shouldBe` C.chunksOf 2 xs1
+        C.takeEveryAt 3 0    xs1 `shouldBe` C.chunksOf 3 xs1
+        C.takeEveryAt 2 (-2) xs1 `shouldBe` C.chunksOf 2 xs1
+        C.takeEveryAt 3 (-2) xs1 `shouldBe` C.chunksOf 3 xs1
+    it "handles overhang in the every" $ do
+        C.takeEveryAt 6 3    xs1 `shouldBe` [ "the ye", "w cat ", "fat" ]
+        C.takeEveryAt 6 4    xs1 `shouldBe` [ "the ye", " cat i", "t"   ]
+    it "handles overhang in the at" $ do
+        C.takeEveryAt 6 6    xs1 `shouldBe` [ "the ye", "at is "   ]
+        C.takeEveryAt 7 5    xs1 `shouldBe` [ "the yel", "at is f" ]
+    it "takes underhang in the every" $ do
+        C.takeEveryAt 30 1   xs1 `shouldBe` [ xs1 ]
+        C.takeEveryAt 22 2   xs1 `shouldBe` [ xs1 ]
+    it "handles exact every-at" $ do
+        C.takeEveryAt 3  4 xs1 `shouldBe` [ "the", "low", " is"        ]
+        C.takeEveryAt 4  3 xs1 `shouldBe` [ "the ", "low ", " is "     ]
+        C.takeEveryAt 5  2 xs1 `shouldBe` [ "the y", "low c", " is f"  ]
+        C.takeEveryAt 21 2 xs1 `shouldBe` [ xs1                        ]
+        C.takeEveryAt 20 1 xs1 `shouldBe` [ "the yellow cat is fa"     ]
+        C.takeEveryAt 1  1 xs1 `shouldBe` [ "t", "e", "y", "l", "o", " "
+                                          , "a", " ", "s", "f", "t"    ]
 
 shuffleInSpec :: Spec
 shuffleInSpec = do
