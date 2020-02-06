@@ -21,6 +21,8 @@ spec = hspec $ do
         shuffleInSpec
     describe "shuffleInAt" $ do
         shuffleInAtSpec
+    describe "zipLists" $ do
+        zipListsSpec
 
 chunksOfSpec :: Spec
 chunksOfSpec = do
@@ -138,3 +140,21 @@ shuffleInAtSpec = do
         C.shuffleInAt 1 3 xs1 xs2 `shouldBe` "cdog"
         C.shuffleInAt 1 2 xs1 xs3 `shouldBe` "cmoanktey"
         C.shuffleInAt 2 1 xs3 xs2 `shouldBe` "modnkoeyg"
+
+zipListsSpec :: Spec
+zipListsSpec = do
+    it "handles empty lists" $ do
+        C.zipLists ["dog"] []   `shouldBe` []
+        C.zipLists [] ["cat"]   `shouldBe` []
+        C.zipLists [""] [""]    `shouldBe` [""]
+        C.zipLists [""] ["cat"] `shouldBe` ["cat"]
+        C.zipLists ["dog"] [""] `shouldBe` ["dog"]
+    let xs = ["dog", "cat", "fish"]
+        ys = ["monkey", "chicken"]
+        zs = ["horse", "turtle", "mongoose"]
+    it "handles overhang correctly" $ do
+        C.zipLists xs ys `shouldBe` ["dogmonkey", "catchicken"]
+        C.zipLists ys xs `shouldBe` ["monkeydog", "chickencat"]
+    it "handles exact lists correctly" $ do
+        C.zipLists xs zs `shouldBe` ["doghorse", "catturtle", "fishmongoose"]
+
