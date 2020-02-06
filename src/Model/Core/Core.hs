@@ -34,7 +34,9 @@ chunksOf :: Int -> [a] -> [[a]]
 -- ^Break a list up into sublists of n elements each. Any extra
 -- elements are appended so this works with infinite lists.
 chunksOf _ [] = []
-chunksOf n xs = ys : chunksOf n zs
+chunksOf n xs
+    | n < 1     = []
+    | otherwise = ys : chunksOf n zs
     where (ys, zs) = splitAt n xs
 
 takeEveryAt :: Int -> Int -> [a] -> [[a]]

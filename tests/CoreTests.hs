@@ -11,10 +11,26 @@ import Test.Hspec                       ( Spec (..)
 
 spec :: IO ()
 spec = hspec $ do
+    describe "chunksOf" $ do
+        chunksOfSpec
     describe "shuffleIn" $ do
         shuffleInSpec
     describe "shuffleInAt" $ do
         shuffleInAtSpec
+
+chunksOfSpec :: Spec
+chunksOfSpec = do
+    let xs1 = "the yellow cat"
+    it "handles empty lists" $ do
+        C.chunksOf 2 "" `shouldBe` []
+    it "handles nonpositive chunks" $ do
+        C.chunksOf 0 xs1    `shouldBe` []
+        C.chunksOf (-2) xs1 `shouldBe` []
+    it "correctly appends overhang" $ do
+        C.chunksOf 3 xs1 `shouldBe` [ "the", " ye", "llo", "w c", "at" ]
+    it "works correctly on a list with no overhang" $ do
+        C.chunksOf 1 xs1 `shouldBe` map (:[]) xs1
+        C.chunksOf 7 xs1 `shouldBe` [ "the yel", "low cat" ]
 
 shuffleInSpec :: Spec
 shuffleInSpec = do
