@@ -1,23 +1,32 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Core.References
-    ( issueRefs
+    ( -- Utilities
+      issueRefs
     , isAvailable
       -- Journals and references
+      -- Angewandte Chemie Int. Edition
     , acie
     , acieRef
+      -- ACS Biochemistry
     , biochemistry
     , biochemistryRef
+      -- Cell Chemical Biology
     , cellChemBiol
     , cellChemBiolRef
+      -- ACS Journal of the American Chemical Society
     , jacs
     , jacsRef
+      -- Nature
     , nature
     , natureRef
+      -- Nature Chemistry
     , natChem
     , natChemRef
+      -- Proceedings of the National Academy of Sciences, U.S.A.
     , pnas
     , pnasRef
+      -- Science
     , science
     , scienceRef
     ) where
@@ -27,11 +36,16 @@ import qualified Model.Core.Types as T
 import           Data.Text              ( Text )
 import           Data.List              ( find )
 
+-- =============================================================== --
+-- Utilities
+
 isAvailable :: Text -> Bool
+-- ^Determine whether a given journal has a reference issue.
 isAvailable key = maybe False (const True) go
     where go = find ( (== key) . T.key . T.journal ) issueRefs
 
 issueRefs :: [T.Issue]
+-- ^List of all available reference issues.
 issueRefs = [ acieRef
             , biochemistryRef
             , cellChemBiolRef
@@ -42,6 +56,12 @@ issueRefs = [ acieRef
             , pnasRef
             , scienceRef
             ]
+
+-- =============================================================== --
+-- Journals and associated reference issues
+
+---------------------------------------------------------------------
+-- Angewandte Chemie International Edition
 
 acie :: T.Journal
 -- ^ACIE publication dates are irregular; however, there are always
@@ -63,6 +83,9 @@ acieRef = T.Issue {
     , T.journal = acie
     }
 
+---------------------------------------------------------------------
+-- ACS Biochemistry
+
 biochemistry :: T.Journal
 biochemistry = T.Journal {
       T.name   = "Biochemistry"
@@ -80,6 +103,9 @@ biochemistryRef = T.Issue {
     , T.journal = biochemistry
     }
 
+---------------------------------------------------------------------
+-- Cell Chemical Biology
+
 cellChemBiol :: T.Journal
 cellChemBiol = T.Journal {
       T.name   = "Cell Chemical biology"
@@ -96,6 +122,9 @@ cellChemBiolRef = T.Issue {
     , T.issNo   = 1
     , T.journal = cellChemBiol
     }
+
+---------------------------------------------------------------------
+-- ACS Journal of the American Chemical Society
 
 jacs :: T.Journal
 -- ^JACS issues are irregular, but follow the weekly-first pattern
@@ -117,6 +146,9 @@ jacsRef = T.Issue {
     , T.journal = jacs
     }
 
+---------------------------------------------------------------------
+-- Nature
+
 nature :: T.Journal
 nature = T.Journal {
       T.name   = "Nature"
@@ -133,6 +165,9 @@ natureRef = T.Issue {
     , T.issNo   = 7277
     , T.journal = nature
     }
+
+---------------------------------------------------------------------
+-- Nature Chemistry
 
 natChem :: T.Journal
 natChem = T.Journal {
@@ -151,6 +186,9 @@ natChemRef = T.Issue {
     , T.journal = natChem
     }
 
+---------------------------------------------------------------------
+-- Nature Chemical Biology
+
 natChemBiol :: T.Journal
 natChemBiol = T.Journal {
       T.name   = "Nature Chemical Biology"
@@ -168,6 +206,9 @@ natChemBiolRef = T.Issue {
     , T.journal = natChemBiol
     }
 
+---------------------------------------------------------------------
+-- Proceedings of the National Academy of Sciences, U.S.A.
+
 pnas :: T.Journal
 pnas = T.Journal {
       T.name   = "Proceedings of the National Academy of Sciences U.S.A."
@@ -184,6 +225,9 @@ pnasRef = T.Issue {
     , T.issNo   = 1
     , T.journal = pnas
     }
+
+---------------------------------------------------------------------
+-- Science
 
 science :: T.Journal
 science = T.Journal {
