@@ -14,6 +14,7 @@ module Model.Core.Core
 import qualified Data.Text as Tx
 import           Data.Text       ( Text      )
 import           Text.Read       ( readMaybe )
+import           Data.List       ( foldl'    )
 
 -- =============================================================== --
 -- Working with Text strings
@@ -57,8 +58,8 @@ collate :: Int -> [[a]] -> [a]
 -- overhang is deleted. For example,
 -- collate 2 [ "aaaa", "bbbb", "cccc" ]
 -- will return "aabbccaabbcc"
-collate n = snd . foldr go (0,[])
-    where go x (k,xs) = (k+n, shuffleInAt k n xs x)
+collate n = snd . foldl' go (0,[])
+    where go (k,xs) x = (k+n, shuffleInAt k n xs x)
 
 shuffleIn :: [a] -> [a] -> [a]
 -- ^Combine two lists with each element one after the other. Any

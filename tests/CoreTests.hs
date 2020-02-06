@@ -15,6 +15,8 @@ spec = hspec $ do
         chunksOfSpec
     describe "takeEveryAt" $ do
         takeEveryAtSpec
+    describe "collate" $ do
+        collateSpec
     describe "shuffleIn" $ do
         shuffleInSpec
     describe "shuffleInAt" $ do
@@ -65,6 +67,32 @@ takeEveryAtSpec = do
         C.takeEveryAt 20 1 xs1 `shouldBe` [ "the yellow cat is fa"     ]
         C.takeEveryAt 1  1 xs1 `shouldBe` [ "t", "e", "y", "l", "o", " "
                                           , "a", " ", "s", "f", "t"    ]
+
+collateSpec :: Spec
+collateSpec = do
+    it "handles empty lists" $ do
+        C.collate 2 ["", "bbbb", "cccc"] `shouldBe` ""
+        C.collate 2 ([] :: [String])     `shouldBe` ""
+        C.collate 2 ["aaaa", "", "cccc"] `shouldBe` ""
+        C.collate 2 ["aaaa", "bbbb", ""] `shouldBe` ""
+    it "handles underhang by returning an empty list" $ do
+        C.collate 2 ["aaa", "bbb", "c"]  `shouldBe` ""
+    it "handles nonpositive inputs" $ do
+        C.collate 0    ["aaaa", "bbbb", "cccc"] `shouldBe` ""
+        C.collate (-1) ["aaaa", "bbbb", "cccc"] `shouldBe` ""
+        C.collate (-2) ["aaaa", "bbbb", "cccc"] `shouldBe` ""
+    it "correctly handles overhang" $ do
+        C.collate 3 ["aaaa", "bbbb", "cccc"]    `shouldBe` "aaabbbccc"
+        C.collate 3 ["aaaa", "bbbb", "ccccc"]   `shouldBe` "aaabbbccc"
+        C.collate 3 ["aaaa", "bbbb", "cccccc"]  `shouldBe` "aaabbbccc"
+        C.collate 3 ["aaaa", "bbbbb", "ccc"]    `shouldBe` "aaabbbccc"
+        C.collate 3 ["aaaa", "bbbbbb", "ccc"]   `shouldBe` "aaabbbccc"
+        C.collate 3 ["aaaa", "bbbbbbb", "ccc"]  `shouldBe` "aaabbbccc"
+        C.collate 2 ["aaaa", "bbbbbbb", "cccc"] `shouldBe` "aabbccaabbcc"
+        C.collate 1 ["aaaa", "bbbbbbb", "cccc"] `shouldBe` "abcabcabcabc"
+    it "correctly collates exact lists" $ do
+        C.collate 2 ["aaaa", "bbbb", "cccc"] `shouldBe` "aabbccaabbcc"
+        C.collate 1 ["aaaa", "bbbb", "cccc"] `shouldBe` "abcabcabcabc"
 
 shuffleInSpec :: Spec
 shuffleInSpec = do
