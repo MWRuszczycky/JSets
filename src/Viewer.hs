@@ -7,14 +7,14 @@ module Viewer
     , viewJSet
     ) where
 
-import qualified Data.Text      as Tx
-import qualified Data.Map       as Map
-import qualified Model.Types    as T
-import qualified Model.Journals as J
-import qualified Model.Core     as C
-import           Data.Text              ( Text      )
-import           Data.List              ( sortBy    )
-import           Data.Ord               ( comparing )
+import qualified Data.Text          as Tx
+import qualified Data.Map           as Map
+import qualified Model.Core.Core    as C
+import qualified Model.Core.Types   as T
+import qualified Model.Journals     as J
+import           Data.Text                  ( Text      )
+import           Data.List                  ( sortBy    )
+import           Data.Ord                   ( comparing )
 
 -- =============================================================== --
 -- Converting journal sets to text strings

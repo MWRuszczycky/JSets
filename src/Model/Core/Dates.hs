@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Dates
+module Model.Core.Dates
     ( today
     , getYear
     , getMonth

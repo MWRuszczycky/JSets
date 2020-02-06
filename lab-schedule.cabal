@@ -21,11 +21,11 @@ executable lab-schedule
 
 library lab-schedule-internal
   exposed-modules:      Controller
-                      , Model.Core
-                      , Model.Types
-                      , Model.Dates
+                      , Model.Core.Core
+                      , Model.Core.Types
+                      , Model.Core.Dates
+                      , Model.Core.References
                       , Model.Journals
-                      , Model.References
                       , Model.Parsers.CSV
                       , Model.Parsers.JournalSets
                       , Viewer

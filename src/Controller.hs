@@ -6,9 +6,9 @@ module Controller
 
 import qualified Data.Text.IO              as Tx
 import qualified Data.Map.Strict           as Map
-import qualified Model.Types               as T
+import qualified Model.Core.Types          as T
+import qualified Model.Core.References     as R
 import qualified Model.Journals            as J
-import qualified Model.References          as R
 import qualified Viewer                    as V
 
 controller :: IO ()

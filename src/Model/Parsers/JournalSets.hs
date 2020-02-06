@@ -4,15 +4,15 @@ module Model.Parsers.JournalSets
     ( parseJournalSets
     ) where
 
-import qualified Data.Text            as Tx
-import qualified Model.Types          as T
-import qualified Model.Parsers.CSV    as CSV
-import qualified Model.References     as R
-import qualified Model.Journals       as J
-import qualified Data.Map.Strict      as Map
-import           Data.Text                   ( Text         )
-import           Data.Maybe                  ( listToMaybe  )
-import           Model.Core                  ( readMaybeTxt )
+import qualified Data.Text             as Tx
+import qualified Model.Core.Types      as T
+import qualified Model.Core.References as R
+import qualified Model.Parsers.CSV     as CSV
+import qualified Model.Journals        as J
+import qualified Data.Map.Strict       as Map
+import           Data.Text                    ( Text         )
+import           Data.Maybe                   ( listToMaybe  )
+import           Model.Core.Core              ( readMaybeTxt )
 
 -- =============================================================== --
 -- Main parser

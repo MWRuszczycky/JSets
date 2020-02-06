@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.References
+module Model.Core.References
     ( issueRefs
     , isAvailable
       -- Journals and references
@@ -22,8 +22,8 @@ module Model.References
     , scienceRef
     ) where
 
-import qualified Data.Time       as Tm
-import qualified Model.Types     as T
+import qualified Data.Time        as Tm
+import qualified Model.Core.Types as T
 import           Data.Text              ( Text )
 import           Data.List              ( find )
 

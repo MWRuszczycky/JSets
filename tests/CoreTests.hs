@@ -2,12 +2,12 @@ module CoreTests
     ( spec
     ) where
 
-import qualified Model.Core as C
-import Test.Hspec                ( Spec (..)
-                                 , hspec
-                                 , it
-                                 , describe
-                                 , shouldBe )
+import qualified Model.Core.Core as C
+import Test.Hspec                       ( Spec (..)
+                                        , hspec
+                                        , it
+                                        , describe
+                                        , shouldBe )
 
 spec :: IO ()
 spec = hspec $ do

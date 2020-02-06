@@ -3,15 +3,15 @@ module JournalsTests
     ( spec
     ) where
 
-import qualified Data.Time        as Tm
-import qualified Model.Journals   as J
-import qualified Model.Types      as T
-import qualified Model.References as R
-import Test.Hspec                      ( Spec (..)
-                                       , hspec
-                                       , it
-                                       , describe
-                                       , shouldBe )
+import qualified Data.Time             as Tm
+import qualified Model.Core.Types      as T
+import qualified Model.Core.References as R
+import qualified Model.Journals        as J
+import Test.Hspec                            ( Spec (..)
+                                             , hspec
+                                             , it
+                                             , describe
+                                             , shouldBe )
 
 spec :: IO ()
 spec = hspec $ do

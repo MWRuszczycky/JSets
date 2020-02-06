@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Types
+module Model.Core.Types
     ( Journal       (..)
     , Frequency     (..)
     , Issue         (..)

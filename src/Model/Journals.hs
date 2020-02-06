@@ -17,15 +17,15 @@ module Model.Journals
     , nextMonthly
     ) where
 
-import qualified Model.Types        as T
-import qualified Model.Dates        as D
-import qualified Model.Core         as C
-import qualified Model.References   as R
-import qualified Data.Time          as Tm
-import qualified Data.Map.Strict    as Map
-import           Data.Time                 ( Day  )
-import           Data.Text                 ( Text )
-import           Data.List                 ( find )
+import qualified Model.Core.Types        as T
+import qualified Model.Core.Dates        as D
+import qualified Model.Core.Core         as C
+import qualified Model.Core.References   as R
+import qualified Data.Time               as Tm
+import qualified Data.Map.Strict         as Map
+import           Data.Time                      ( Day  )
+import           Data.Text                      ( Text )
+import           Data.List                      ( find )
 
 -- =============================================================== --
 -- Working with journal sets

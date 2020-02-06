@@ -1,4 +1,4 @@
-module Model.Core
+module Model.Core.Core
     ( txt
     , readMaybeTxt
     , chunksOf
