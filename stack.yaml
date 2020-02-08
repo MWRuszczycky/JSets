@@ -2,7 +2,7 @@
 resolver: lts-14.20
 
 nix:
-    packages: []
+    packages: [ zlib ]
 
 packages:
 - .
