@@ -26,6 +26,7 @@ data Issue = Issue {
 data Journal = Journal {
       key    :: Text      -- Unique abbreviated title of journal
     , name   :: Text      -- Long name of journal
+    , pubmed :: Text      -- Name of journal used by PubMed
     , freq   :: Frequency -- Issue frequency
     , resets :: Bool      -- Issue number resets to 1 each year
     } deriving ( Show, Eq )

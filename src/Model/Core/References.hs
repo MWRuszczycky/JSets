@@ -49,6 +49,7 @@ acie :: T.Journal
 acie = T.Journal {
       T.name   = "Angewandte Chemie International Edition"
     , T.key    = "ACIE"
+    , T.pubmed = "Angew Chem Int Ed Engl"
     , T.freq   = T.Weekly
     , T.resets = True
     }
@@ -69,6 +70,7 @@ biochemistry :: T.Journal
 biochemistry = T.Journal {
       T.name   = "Biochemistry"
     , T.key    = "Biochemistry"
+    , T.pubmed = "Biochemistry"
     , T.freq   = T.WeeklyFirst
     , T.resets = True
     }
@@ -89,6 +91,7 @@ cellChemBiol :: T.Journal
 cellChemBiol = T.Journal {
       T.name   = "Cell Chemical biology"
     , T.key    = "Cell Chem Biol"
+    , T.pubmed = "Cell Chem Biol"
     , T.freq   = T.Monthly
     , T.resets = True
     }
@@ -112,6 +115,7 @@ jacs :: T.Journal
 jacs = T.Journal {
       T.name   = "Journal of the American Chemical Society"
     , T.key    = "JACS"
+    , T.pubmed = "J Am Chem Soc"
     , T.freq   = T.WeeklyFirst
     , T.resets = True
     }
@@ -132,6 +136,7 @@ nature :: T.Journal
 nature = T.Journal {
       T.name   = "Nature"
     , T.key    = "Nature"
+    , T.pubmed = "Nature"
     , T.freq   = T.WeeklyLast
     , T.resets = False
     }
@@ -152,6 +157,7 @@ natChem :: T.Journal
 natChem = T.Journal {
       T.name   = "Nature Chemistry"
     , T.key    = "Nat Chem"
+    , T.pubmed = "Nat Chem"
     , T.freq   = T.Monthly
     , T.resets = True
     }
@@ -172,6 +178,7 @@ natChemBiol :: T.Journal
 natChemBiol = T.Journal {
       T.name   = "Nature Chemical Biology"
     , T.key    = "Nat Chem Biol"
+    , T.pubmed = "Nat Chem Biol"
     , T.freq   = T.Monthly
     , T.resets = True
     }
@@ -192,6 +199,7 @@ pnas :: T.Journal
 pnas = T.Journal {
       T.name   = "Proceedings of the National Academy of Sciences U.S.A."
     , T.key    = "PNAS"
+    , T.pubmed = "Proc Natl Acad Sci U S A"
     , T.freq   = T.Weekly
     , T.resets = True
     }
@@ -212,6 +220,7 @@ science :: T.Journal
 science = T.Journal {
       T.name   = "Science"
     , T.key    = "Science"
+    , T.pubmed = "Science"
     , T.freq   = T.WeeklyLast
     , T.resets = False
     }
