@@ -1,19 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Core.Types
-    ( Journal       (..)
+    ( Citation      (..)
+    , Journal       (..)
     , Frequency     (..)
     , Issue         (..)
     , JournalSet
     , JournalSets
+    , TableOfContents
     ) where
 
 import Data.Time       ( Day  )
 import Data.Text       ( Text )
 import Data.Map.Strict ( Map )
 
-type JournalSet  = ((Int,Int), [Issue])
-type JournalSets = Map (Int,Int) [Issue]
+type JournalSet      = ((Int,Int), [Issue])
+type JournalSets     = Map (Int,Int) [Issue]
+type TableOfContents = [Citation]
 
 data Issue = Issue {
       date    :: Day
@@ -37,3 +40,11 @@ data Frequency =
     | WeeklyFirst   -- Every 7 days dropping the first of the year
     | Monthly       -- Once every month
       deriving ( Show, Eq )
+
+data Citation = Citation {
+      title   :: Text
+    , authors :: Text
+    , issue   :: Issue
+    , pages   :: (Int,Int)
+    , doi     :: Text
+    } deriving ( Show, Eq )
