@@ -15,17 +15,27 @@ module Model.Journals
     , lookupIssue
     , nextWeekly
     , nextMonthly
+      -- Downloading table of contents
+    , downloadToC
     ) where
 
 import qualified Model.Core.Types        as T
 import qualified Model.Core.Dates        as D
 import qualified Model.Core.Core         as C
 import qualified Model.Core.References   as R
+import qualified Data.Text               as Tx
 import qualified Data.Time               as Tm
 import qualified Data.Map.Strict         as Map
-import           Data.Time                      ( Day  )
-import           Data.Text                      ( Text )
-import           Data.List                      ( find )
+import qualified Network.Wreq            as Wreq
+import qualified Data.ByteString         as BS
+import qualified Data.ByteString.Lazy    as BSL
+import           Data.Time                          ( Day               )
+import           Data.Text                          ( Text              )
+import           Data.List                          ( find              )
+import           Lens.Micro                         ( (^.), (.~), (&)   )
+import           Data.Text.Encoding                 ( decodeUtf8        )
+import           Data.ByteString.Lazy               ( toStrict          )
+
 
 -- =============================================================== --
 -- Working with journal sets
@@ -163,3 +173,42 @@ nextWeekly x1
           n2  = succ . T.issNo $ x1
           x2  = x1 { T.refNo = r2, T.issNo = n2 }
           n2y = if T.resets . T.journal $ x1 then 1 else n2
+
+-- =============================================================== --
+-- Downloading table of contents for journal issues
+
+---------------------------------------------------------------------
+-- IO code
+
+downloadToC :: T.Issue -> IO (Either String Text)
+downloadToC x = Wreq.getWith opts pubmedAddr >>= pure . readResponse
+    where pubmedAddr = "https://www.ncbi.nlm.nih.gov/pubmed"
+          opts       = tocQuery x
+
+---------------------------------------------------------------------
+-- Pure code
+
+tocQuery :: T.Issue -> Wreq.Options
+-- ^Build a table of contents query for PubMed for a given journal
+-- issue. See https://www.ncbi.nlm.nih.gov/books/NBK3862/ for more
+-- detail about how these queries are formed.
+tocQuery x = let j = T.pubmed . T.journal $ x
+                 y = C.txt . D.getYear . T.date $ x
+                 n = C.txt . T.issNo $ x
+             in  Wreq.defaults & Wreq.param "dispmax" .~ ["100"]
+                               & Wreq.param "format" .~ ["text"]
+                               & Wreq.param "term" .~ [ j <> "[journal]"
+                                                      , y <> "[year]"
+                                                      , n <> "[issue]"
+                                                      ]
+
+readResponse :: Wreq.Response BSL.ByteString -> Either String Text
+readResponse resp
+    | code == 200 = pure . decode . toStrict $ resp ^. Wreq.responseBody
+    | otherwise   = Left $ "Cannot access, error code: " ++ show code
+    where code = resp ^. Wreq.responseStatus . Wreq.statusCode
+
+decode :: BS.ByteString -> Text
+decode = Tx.map go . decodeUtf8
+    where go x | fromEnum x < 128 = x
+               | otherwise        = '?'
