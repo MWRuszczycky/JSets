@@ -12,6 +12,7 @@ module Viewer
     , viewVolIss
       -- Viewing table of contents
     , viewToC
+    , viewCitation
       -- Formatting helper functions
     , bracket
     ) where
@@ -87,7 +88,20 @@ viewVolIss x = Tx.intercalate ":" volIss
 -- Viewing table of contents
 
 viewToC :: T.TableOfContents -> Text
-viewToC = C.tshow
+viewToC = Tx.unlines . map viewCitation
+
+viewPages :: T.Citation -> Text
+viewPages x = C.tshow p1 <> "-" <> C.tshow p2
+    where (p1,p2) = T.pages x
+
+viewCitation :: T.Citation -> Text
+viewCitation x = Tx.unlines parts
+    where iss   = T.issue x
+          jrnl  = T.journal iss
+          parts = [ T.title x
+                  , T.authors x
+                  , Tx.unwords [ T.name jrnl,  viewVolIss iss, viewPages x ]
+                  ]
 
 -- =============================================================== --
 -- Helper functions
