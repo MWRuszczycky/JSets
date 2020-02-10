@@ -114,7 +114,8 @@ viewCitation x = Tx.unlines parts
 tocToMkd :: T.TableOfContents -> Text
 tocToMkd []       = Tx.empty
 tocToMkd xs@(x:_) = Tx.unlines . (hdr:) . map citationToMkd $ xs
-    where hdr = (<>) "## " . T.name . T.journal . T.issue $ x
+    where hdr = flip Tx.snoc '\n' . (<>) "## "
+                . T.name . T.journal . T.issue $ x
 
 citationToMkd :: T.Citation -> Text
 citationToMkd x = Tx.unlines parts
