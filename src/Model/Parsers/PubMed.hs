@@ -15,7 +15,7 @@ import           Data.Ord                    ( comparing  )
 
 parseToC :: T.Issue -> Text -> Either String T.TableOfContents
 parseToC iss = bimap err sortByPage . At.parseOnly (tableOfContents iss)
-    where err x = "Cannot parse toc: " ++ x
+    where err x = "Cannot parse PubMed table of contents: " ++ x
 
 tableOfContents :: T.Issue -> At.Parser T.TableOfContents
 tableOfContents iss = do

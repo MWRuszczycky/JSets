@@ -12,18 +12,28 @@ import qualified Model.Core.References     as R
 import qualified Model.Journals            as J
 import qualified CoreIO                    as CIO
 import qualified Viewer                    as V
-import           Data.Text                          ( Text   )
 import           Control.Monad.Except               ( liftIO )
+import           System.IO                          ( hFlush
+                                                    , stdout )
 
 controller :: T.ErrMonad ()
 controller = do
     let Just jset1 = Map.lookup (2019,1) . J.yearly26Sets 2019 $ R.issueRefs
-    jsetToMkd ((2019,1), jset1)
+    writeToC "dev/tocs.mkd" ((2019,1), jset1)
 
 -- ================================================================ --
 -- Commands
 
-jsetToMkd :: T.JournalSet -> T.ErrMonad ()
-jsetToMkd (_,xs) = mapM CIO.downloadToC xs >>= liftIO . Tx.writeFile fn . go
-    where fn = "dev/tocs.mkd"
-          go = Tx.unlines . map V.tocToMkd
+writeToC :: FilePath -> T.JournalSet -> T.ErrMonad ()
+writeToC fp (_,xs) = do
+    pubmedData <- mapM downloadIssueToC xs
+    liftIO . Tx.writeFile fp . Tx.unlines . map V.tocToMkd $ pubmedData
+    liftIO . putStrLn $ "Tables of contents written to " <> fp
+
+downloadIssueToC ::  T.Issue -> T.ErrMonad T.TableOfContents
+downloadIssueToC x = do
+    liftIO . Tx.putStr $ "Downloading toc for " <> V.viewIssue x <> "..."
+    liftIO . hFlush $ stdout
+    toc <- CIO.downloadToC x
+    liftIO . Tx.putStrLn $ "OK"
+    pure toc
