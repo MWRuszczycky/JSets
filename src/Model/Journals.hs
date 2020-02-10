@@ -15,9 +15,9 @@ module Model.Journals
     , lookupIssue
     , nextWeekly
     , nextMonthly
-      -- Downloading table of contents
-    , downloadToC
-    , downloadToCTxt
+      -- Working with downloaded table of contents
+    , tocQuery
+    , readResponse
     ) where
 
 import qualified Model.Core.Types        as T
@@ -36,7 +36,6 @@ import           Data.List                          ( find              )
 import           Lens.Micro                         ( (^.), (.~), (&)   )
 import           Data.Text.Encoding                 ( decodeUtf8        )
 import           Data.ByteString.Lazy               ( toStrict          )
-import           Model.Parsers.PubMed               ( parseToC          )
 
 
 -- =============================================================== --
@@ -177,27 +176,7 @@ nextWeekly x1
           n2y = if T.resets . T.journal $ x1 then 1 else n2
 
 -- =============================================================== --
--- Downloading table of contents for journal issues
-
----------------------------------------------------------------------
--- IO code
-
-type WreqResponse = Wreq.Response BSL.ByteString
-
-downloadToC :: T.Issue -> IO (Either String T.TableOfContents)
-downloadToC x = do
-    result <- downloadToCTxt x
-    case result of
-         Left err  -> pure . Left $ "Cannot download ToC: " <> err
-         Right toc -> pure . parseToC x $ toc
-
-downloadToCTxt :: T.Issue -> IO (Either String Text)
-downloadToCTxt x = Wreq.getWith opts pubmedAddr >>= pure . readResponse
-    where pubmedAddr = "https://www.ncbi.nlm.nih.gov/pubmed"
-          opts       = tocQuery x
-
----------------------------------------------------------------------
--- Pure code
+-- Working with downloaded table of contents for journal issues
 
 tocQuery :: T.Issue -> Wreq.Options
 -- ^Build a table of contents query for PubMed for a given journal
@@ -215,14 +194,14 @@ tocQuery x = let j = "\"" <> (T.pubmed . T.journal $ x) <> "\""
                                                       , t <> "[pt]"
                                                       ]
 
-readResponse :: WreqResponse -> Either String Text
+readResponse :: Wreq.Response BSL.ByteString -> Either String Text
 readResponse resp
-    | code == 200 = pure . decode . toStrict $ resp ^. Wreq.responseBody
+    | code == 200 = pure . decodePubMed . toStrict $ resp ^. Wreq.responseBody
     | otherwise   = Left $ "Cannot access, error code: " ++ show code
     where code = resp ^. Wreq.responseStatus . Wreq.statusCode
 
-decode :: BS.ByteString -> Text
-decode = Tx.map go . decodeUtf8
+decodePubMed :: BS.ByteString -> Text
+decodePubMed = Tx.map go . decodeUtf8
     where go x | x == '['         = toEnum 0x27e6
                | x == ']'         = toEnum 0x27e7
                | fromEnum x < 128 = x
