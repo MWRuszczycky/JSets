@@ -196,8 +196,8 @@ tocQuery :: T.Issue -> Wreq.Options
 -- issue. See https://www.ncbi.nlm.nih.gov/books/NBK3862/ for more
 -- detail about how these queries are formed.
 tocQuery x = let j = T.pubmed . T.journal $ x
-                 y = C.txt . D.getYear . T.date $ x
-                 n = C.txt . T.issNo $ x
+                 y = C.tshow . D.getYear . T.date $ x
+                 n = C.tshow . T.issNo $ x
              in  Wreq.defaults & Wreq.param "dispmax" .~ ["100"]
                                & Wreq.param "format" .~ ["text"]
                                & Wreq.param "term" .~ [ j <> "[journal]"

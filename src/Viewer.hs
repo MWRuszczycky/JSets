@@ -49,7 +49,7 @@ jSetToCSV keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
     where go k xs = (volIss . J.issuesByKey k . snd) jset : xs
           volIss  = bracket '\"' '\"' . Tx.intercalate "\n" . map viewVolIss
           hdr     = bracket '\"' '\"' (viewJSetKey jset <> "\n" <> date) <> ","
-          date    = C.txt . J.dateOfJSet $ jset
+          date    = C.tshow . J.dateOfJSet $ jset
 
 -- =============================================================== --
 -- Converting journal sets to text
@@ -59,11 +59,11 @@ viewJSet :: T.JournalSet -> Text
 viewJSet jset = Tx.concat [viewJSetKey jset, " | ", d, "\n"] <> Tx.unlines xs
     where xs    = map viewIssue . sortBy (comparing jName) . snd $ jset
           jName = T.name . T.journal
-          d     = C.txt . J.dateOfJSet $ jset
+          d     = C.tshow . J.dateOfJSet $ jset
 
 viewJSetKey :: T.JournalSet -> Text
 -- ^Convert a journal set key to text formatted as year-number.
-viewJSetKey ((y,n),_) = C.txt y <> "-" <> C.txt n
+viewJSetKey ((y,n),_) = C.tshow y <> "-" <> C.tshow n
 
 -- =============================================================== --
 -- Converting issues to text strings
@@ -72,8 +72,8 @@ viewIssue :: T.Issue -> Text
 -- ^Convert a journal issue to easily readable, formatted text.
 viewIssue x = Tx.unwords us
     where us = [ T.key . T.journal        $ x
-               , C.txt . T.volNo $ x
-               , C.txt . T.issNo $ x
+               , C.tshow . T.volNo $ x
+               , C.tshow . T.issNo $ x
                , Tx.pack $ "(" ++ show (T.date x) ++ ")"
                ]
 
@@ -81,13 +81,13 @@ viewVolIss :: T.Issue -> Text
 -- ^Construct a vol:iss text string for the volume and issue of a
 -- journal issue.
 viewVolIss x = Tx.intercalate ":" volIss
-    where volIss = map C.txt [ T.volNo x, T.issNo x ]
+    where volIss = map C.tshow [ T.volNo x, T.issNo x ]
 
 -- =============================================================== --
 -- Viewing table of contents
 
 viewToC :: T.TableOfContents -> Text
-viewToC = C.txt
+viewToC = C.tshow
 
 -- =============================================================== --
 -- Helper functions

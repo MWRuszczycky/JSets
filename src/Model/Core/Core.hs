@@ -1,6 +1,6 @@
 module Model.Core.Core
     ( -- Working with Text strings
-      txt
+      tshow
     , readMaybeTxt
       -- List manipulation
     , chunksOf
@@ -19,8 +19,8 @@ import           Data.List       ( foldl'    )
 -- =============================================================== --
 -- Working with Text strings
 
-txt :: Show a => a -> Text
-txt = Tx.pack . show
+tshow :: Show a => a -> Text
+tshow = Tx.pack . show
 
 readMaybeTxt :: Read a => Text -> Maybe a
 readMaybeTxt = readMaybe . Tx.unpack
