@@ -8,11 +8,13 @@ import qualified Data.Text            as Tx
 import qualified Data.Attoparsec.Text as At
 import           Data.Text                   ( Text       )
 import           Data.Char                   ( isSpace    )
+import           Data.List                   ( sortBy     )
 import           Data.Bifunctor              ( bimap      )
 import           Control.Applicative         ( many, some )
+import           Data.Ord                    ( comparing  )
 
 parseToC :: T.Issue -> Text -> Either String T.TableOfContents
-parseToC iss = bimap err id . At.parseOnly (tableOfContents iss)
+parseToC iss = bimap err sortByPage . At.parseOnly (tableOfContents iss)
     where err x = "Cannot parse toc: " ++ x
 
 tableOfContents :: T.Issue -> At.Parser T.TableOfContents
@@ -40,6 +42,10 @@ stripNewLines = Tx.unwords . Tx.words
 
 matchesTitle :: T.Issue -> Text -> Bool
 matchesTitle iss x = stripNewLines x == (T.pubmed . T.journal) iss
+
+sortByPage :: [T.Citation] -> [T.Citation]
+sortByPage = sortBy (comparing pageNumbers)
+    where pageNumbers = fst . T.pages
 
 ---------------------------------------------------------------------
 -- Parsers
@@ -87,10 +93,12 @@ issueData = do
 pageNumbers :: At.Parser (Int,Int)
 pageNumbers = do
     p1 <- read <$> some At.digit
-    At.char '-'
-    p2 <- read <$> some At.digit
-    dotSep
-    pure (p1, p2)
+    x  <- At.choice [ At.char '-', At.char '.' ]
+    if x == '.'
+       then At.skipSpace *> pure (p1, p1)
+       else do p2 <- read <$> some At.digit
+               dotSep
+               pure (p1, p2)
 
 doiUrl :: At.Parser Tx.Text
 doiUrl = do

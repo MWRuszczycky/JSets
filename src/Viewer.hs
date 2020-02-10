@@ -13,6 +13,8 @@ module Viewer
       -- Viewing table of contents
     , viewToC
     , viewCitation
+    , tocToMkd
+    , citationToMkd
       -- Formatting helper functions
     , bracket
     ) where
@@ -87,6 +89,9 @@ viewVolIss x = Tx.intercalate ":" volIss
 -- =============================================================== --
 -- Viewing table of contents
 
+---------------------------------------------------------------------
+-- General viewing
+
 viewToC :: T.TableOfContents -> Text
 viewToC = Tx.unlines . map viewCitation
 
@@ -103,9 +108,49 @@ viewCitation x = Tx.unlines parts
                   , Tx.unwords [ T.name jrnl,  viewVolIss iss, viewPages x ]
                   ]
 
+---------------------------------------------------------------------
+-- Conversion to Markdown
+
+tocToMkd :: T.TableOfContents -> Text
+tocToMkd []       = Tx.empty
+tocToMkd xs@(x:_) = Tx.unlines . (hdr:) . map citationToMkd $ xs
+    where hdr = (<>) "## " . T.name . T.journal . T.issue $ x
+
+citationToMkd :: T.Citation -> Text
+citationToMkd x = Tx.unlines parts
+    where iss   = T.issue x
+          jrnl  = T.journal iss
+          parts = [ mkdBd ( mkdLink (T.title x) (T.doi x) ) <> "\\"
+                  , T.authors x <> "\\"
+                  , Tx.unwords [ mkdIt $ T.name jrnl
+                               , viewVolIss iss
+                               , viewPages x
+                               ]
+                  ]
+
 -- =============================================================== --
 -- Helper functions
+
+---------------------------------------------------------------------
+-- General formatting
 
 bracket :: Char -> Char -> Text -> Text
 -- ^Place characters at the front and back of a text string.
 bracket x y = flip Tx.snoc y . Tx.cons x
+
+---------------------------------------------------------------------
+-- Markdown formatting
+
+mkdBd :: Text -> Text
+-- ^Make text bold in Markdown.
+mkdBd x = "**" <> x <> "**"
+
+mkdIt :: Text -> Text
+-- ^Make text itallic in Markdown.
+mkdIt = bracket '*' '*'
+
+mkdLink :: Text -> Text -> Text
+-- ^Add a url link in Markdown.
+mkdLink content url = contentMkd <> link
+    where contentMkd = bracket '[' ']' content
+          link       = bracket '(' ')' url

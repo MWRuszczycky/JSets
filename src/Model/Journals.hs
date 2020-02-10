@@ -17,6 +17,7 @@ module Model.Journals
     , nextMonthly
       -- Downloading table of contents
     , downloadToC
+    , downloadToCTxt
     ) where
 
 import qualified Model.Core.Types        as T
@@ -184,7 +185,14 @@ nextWeekly x1
 type WreqResponse = Wreq.Response BSL.ByteString
 
 downloadToC :: T.Issue -> IO (Either String T.TableOfContents)
-downloadToC x = Wreq.getWith opts pubmedAddr >>= pure . readResponse x
+downloadToC x = do
+    result <- downloadToCTxt x
+    case result of
+         Left err  -> pure . Left $ "Cannot download ToC: " <> err
+         Right toc -> pure . parseToC x $ toc
+
+downloadToCTxt :: T.Issue -> IO (Either String Text)
+downloadToCTxt x = Wreq.getWith opts pubmedAddr >>= pure . readResponse
     where pubmedAddr = "https://www.ncbi.nlm.nih.gov/pubmed"
           opts       = tocQuery x
 
@@ -195,19 +203,21 @@ tocQuery :: T.Issue -> Wreq.Options
 -- ^Build a table of contents query for PubMed for a given journal
 -- issue. See https://www.ncbi.nlm.nih.gov/books/NBK3862/ for more
 -- detail about how these queries are formed.
-tocQuery x = let j = T.pubmed . T.journal $ x
+tocQuery x = let j = "\"" <> (T.pubmed . T.journal $ x) <> "\""
                  y = C.tshow . D.getYear . T.date $ x
                  n = C.tshow . T.issNo $ x
+                 t = "journal article"
              in  Wreq.defaults & Wreq.param "dispmax" .~ ["100"]
                                & Wreq.param "format" .~ ["text"]
                                & Wreq.param "term" .~ [ j <> "[journal]"
-                                                      , y <> "[year]"
+                                                      , y <> "[ppdat]"
                                                       , n <> "[issue]"
+                                                      , t <> "[pt]"
                                                       ]
 
-readResponse :: T.Issue -> WreqResponse -> Either String T.TableOfContents
-readResponse x resp
-    | code == 200 = parseToC x .  decode . toStrict $ resp ^. Wreq.responseBody
+readResponse :: WreqResponse -> Either String Text
+readResponse resp
+    | code == 200 = pure . decode . toStrict $ resp ^. Wreq.responseBody
     | otherwise   = Left $ "Cannot access, error code: " ++ show code
     where code = resp ^. Wreq.responseStatus . Wreq.statusCode
 
