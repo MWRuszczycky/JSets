@@ -18,6 +18,7 @@ executable lab-schedule
   ghc-options:          -O2 -threaded -W
   build-depends:        base >= 4.7 && < 5
                       , lab-schedule-internal
+                      , mtl
 
 library lab-schedule-internal
   exposed-modules:      Controller
@@ -39,6 +40,7 @@ library lab-schedule-internal
                       , bytestring
                       , containers
                       , microlens
+                      , mtl
                       , text
                       , time
                       , wreq
