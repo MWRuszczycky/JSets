@@ -6,8 +6,8 @@ module Model.Parsers.PubMed
 import qualified Model.Core.Types     as T
 import qualified Data.Text            as Tx
 import qualified Data.Attoparsec.Text as At
+import qualified Data.Char            as Ch
 import           Data.Text                   ( Text       )
-import           Data.Char                   ( isSpace    )
 import           Data.List                   ( sortBy     )
 import           Data.Bifunctor              ( bimap      )
 import           Control.Applicative         ( many, some )
@@ -41,7 +41,7 @@ stripNewLines :: Tx.Text -> Tx.Text
 stripNewLines = Tx.unwords . Tx.words
 
 matchesTitle :: T.Issue -> Text -> Bool
-matchesTitle iss x = stripNewLines x == (T.pubmed . T.journal) iss
+matchesTitle iss = (==) $ (T.pubmed . T.journal) iss
 
 sortByPage :: [T.Citation] -> [T.Citation]
 sortByPage = sortBy (comparing pageNumbers)
@@ -54,48 +54,49 @@ citation :: T.Issue -> At.Parser T.Citation
 citation iss = do
     At.skipSpace
     some At.digit *> At.char ':' *> At.skipSpace
-    authors    <- stripNewLines <$> authorList
-    theTitle   <- stripNewLines <$> title iss
+    (authors, title) <- authorsAndTitle iss
     issueData
-    pages      <- pageNumbers
-    doi        <- doiUrl
+    pages            <- pageNumbers
+    doi              <- doiUrl
     pubmedData
-    pure $ T.Citation { T.title   = theTitle
+    pure $ T.Citation { T.title   = title
                       , T.authors = authors
                       , T.issue   = iss
                       , T.pages   = pages
                       , T.doi     = doi
                       }
 
-authorList :: At.Parser Text
-authorList = At.takeTill (== '.') <* dotSep
+authorsAndTitle :: T.Issue -> At.Parser (Text, Text)
+authorsAndTitle iss = go <$> frontMatter iss
+    where go []     = ( "No authors listed", "No title" )
+          go (x:[]) = ( "No authors listed", stripNewLines x )
+          go (x:xs) = ( x, Tx.unwords $ xs )
 
-title :: T.Issue -> At.Parser Text
-title iss = do
-    x <- At.takeTill (== '.') <* dotSep
+frontMatter :: T.Issue -> At.Parser [Text]
+frontMatter iss = do
+    x <- stripNewLines <$> At.takeTill (At.inClass ".?!")
+    p <- At.satisfy  (At.inClass ".?!") <* At.skipSpace
     if matchesTitle iss x
-       then pure Tx.empty
-       else do rest <- title iss
-               if Tx.null rest
-                  then pure x
-                  else pure $ x <> ". " <> rest
+       then pure []
+       else (Tx.snoc x p :) <$> frontMatter iss
 
 issueData :: At.Parser ()
 issueData = do
     some At.digit  *> At.skipSpace              -- year
     some At.letter *> At.skipSpace              -- month
-    some At.digit  <* At.char ';'               -- day
+    many At.digit  <* At.char ';'               -- day
     some At.digit                               -- volume number
     At.char '(' *> some At.digit <* At.char ')' -- issue number
-    At.char ':'
     pure ()
 
 pageNumber :: At.Parser T.PageNumber
-pageNumber = T.PageNumber <$> many At.letter <*> (read <$> some At.digit)
+pageNumber = T.PageNumber <$> prefix <*> digits
+    where prefix = Tx.unpack <$> At.takeTill Ch.isDigit
+          digits = read <$> some At.digit
 
 pageNumbers :: At.Parser (T.PageNumber, T.PageNumber)
 pageNumbers = do
-    p1 <- pageNumber
+    p1 <- At.option (T.PageNumber "Online" 0) (At.char ':' *> pageNumber)
     x  <- At.choice [ At.char '-', At.char '.' ]
     if x == '.'
        then At.skipSpace *> pure (p1, p1)
@@ -105,9 +106,9 @@ pageNumbers = do
 
 doiUrl :: At.Parser Tx.Text
 doiUrl = do
-    At.string "doi:"
+    At.manyTill At.anyChar $ At.string "doi:"
     At.skipSpace
-    doi <- Tx.init <$> At.takeTill isSpace
+    doi <- Tx.init <$> At.takeTill Ch.isSpace
     pure $ "https://www.doi.org/" <> doi
 
 pubmedData :: At.Parser ()

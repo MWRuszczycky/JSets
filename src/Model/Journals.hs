@@ -223,5 +223,7 @@ readResponse resp
 
 decode :: BS.ByteString -> Text
 decode = Tx.map go . decodeUtf8
-    where go x | fromEnum x < 128 = x
-               | otherwise        = '?'
+    where go x | x == '['         = toEnum 0x27e6
+               | x == ']'         = toEnum 0x27e7
+               | fromEnum x < 128 = x
+               | otherwise        = toEnum 0xfffd
