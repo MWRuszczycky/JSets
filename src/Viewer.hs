@@ -10,6 +10,8 @@ module Viewer
       -- Converting issues to text strings
     , viewIssue
     , viewVolIss
+      -- Viewing table of contents
+    , viewToC
       -- Formatting helper functions
     , bracket
     ) where
@@ -80,6 +82,12 @@ viewVolIss :: T.Issue -> Text
 -- journal issue.
 viewVolIss x = Tx.intercalate ":" volIss
     where volIss = map C.txt [ T.volNo x, T.issNo x ]
+
+-- =============================================================== --
+-- Viewing table of contents
+
+viewToC :: T.TableOfContents -> Text
+viewToC = C.txt
 
 -- =============================================================== --
 -- Helper functions

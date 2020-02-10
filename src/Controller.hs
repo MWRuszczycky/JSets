@@ -11,11 +11,12 @@ import qualified Model.Core.References     as R
 import qualified Model.Journals            as J
 import qualified Viewer                    as V
 
+import qualified Model.Parsers.PubMed      as P
+
 controller :: IO ()
 controller = do
-    case J.lookupIssue "JACS" (140,49) of
-         Nothing -> Tx.putStrLn "Invalid issue"
-         Just x  -> do result <- J.downloadToC x
-                       case result of
-                            Left err  -> putStrLn $ "Failed to get ToC: " ++ err
-                            Right toc -> Tx.writeFile "dev/toc.html" toc
+    let Just iss = J.lookupIssue "JACS" (140,49)
+    testFile <- Tx.readFile "dev/toc.html"
+    case P.parseToC iss testFile of
+         Left err  -> putStrLn $ "Fail: " <> err
+         Right toc -> Tx.putStrLn . V.viewToC $ toc

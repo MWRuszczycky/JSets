@@ -35,6 +35,7 @@ import           Data.List                          ( find              )
 import           Lens.Micro                         ( (^.), (.~), (&)   )
 import           Data.Text.Encoding                 ( decodeUtf8        )
 import           Data.ByteString.Lazy               ( toStrict          )
+import           Model.Parsers.PubMed               ( parseToC          )
 
 
 -- =============================================================== --
@@ -180,8 +181,10 @@ nextWeekly x1
 ---------------------------------------------------------------------
 -- IO code
 
-downloadToC :: T.Issue -> IO (Either String Text)
-downloadToC x = Wreq.getWith opts pubmedAddr >>= pure . readResponse
+type WreqResponse = Wreq.Response BSL.ByteString
+
+downloadToC :: T.Issue -> IO (Either String T.TableOfContents)
+downloadToC x = Wreq.getWith opts pubmedAddr >>= pure . readResponse x
     where pubmedAddr = "https://www.ncbi.nlm.nih.gov/pubmed"
           opts       = tocQuery x
 
@@ -202,9 +205,9 @@ tocQuery x = let j = T.pubmed . T.journal $ x
                                                       , n <> "[issue]"
                                                       ]
 
-readResponse :: Wreq.Response BSL.ByteString -> Either String Text
-readResponse resp
-    | code == 200 = pure . decode . toStrict $ resp ^. Wreq.responseBody
+readResponse :: T.Issue -> WreqResponse -> Either String T.TableOfContents
+readResponse x resp
+    | code == 200 = parseToC x .  decode . toStrict $ resp ^. Wreq.responseBody
     | otherwise   = Left $ "Cannot access, error code: " ++ show code
     where code = resp ^. Wreq.responseStatus . Wreq.statusCode
 
