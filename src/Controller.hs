@@ -20,8 +20,8 @@ controller = do
     --let Just jset1 = Map.lookup (2019,1) . J.yearly26Sets 2019 $ R.issueRefs
     --sequence_ . zipWith savePubmed [1..] $ jset1
 
-    let Just iss = J.lookupIssue "Nature" (2019,7738)
-    result <- P.parseToC iss <$> Tx.readFile "dev/pubmed8.txt"
+    let Just iss = J.lookupIssue "JACS" (141,1)
+    result <- P.parseToC iss <$> Tx.readFile "dev/pubmed5.txt"
     case result of
          Left err -> putStrLn err
          Right toc -> Tx.putStrLn . V.viewToC $ toc

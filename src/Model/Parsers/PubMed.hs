@@ -90,13 +90,16 @@ issueData = do
     At.char ':'
     pure ()
 
-pageNumbers :: At.Parser (Int,Int)
+pageNumber :: At.Parser T.PageNumber
+pageNumber = T.PageNumber <$> many At.letter <*> (read <$> some At.digit)
+
+pageNumbers :: At.Parser (T.PageNumber, T.PageNumber)
 pageNumbers = do
-    p1 <- read <$> some At.digit
+    p1 <- pageNumber
     x  <- At.choice [ At.char '-', At.char '.' ]
     if x == '.'
        then At.skipSpace *> pure (p1, p1)
-       else do p2 <- read <$> some At.digit
+       else do p2 <- pageNumber
                dotSep
                pure (p1, p2)
 

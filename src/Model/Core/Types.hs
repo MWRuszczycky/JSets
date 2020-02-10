@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Core.Types
-    ( Citation      (..)
+    ( PageNumber    (..)
+    , Citation      (..)
     , Journal       (..)
     , Frequency     (..)
     , Issue         (..)
@@ -17,6 +18,19 @@ import Data.Map.Strict ( Map )
 type JournalSet      = ((Int,Int), [Issue])
 type JournalSets     = Map (Int,Int) [Issue]
 type TableOfContents = [Citation]
+
+data PageNumber = PageNumber String Int deriving ( Eq )
+
+instance Show PageNumber where
+    show (PageNumber p d) = p <> show d
+
+instance Ord PageNumber where
+    compare (PageNumber p1 d1) (PageNumber p2 d2)
+        | null p1 && null p2 = compare d1 d2
+        | null p1            = LT
+        | null p2            = GT
+        | p1 == p2           = compare d1 d2
+        | otherwise          = compare p1 p2
 
 data Issue = Issue {
       date    :: Day
@@ -45,6 +59,6 @@ data Citation = Citation {
       title   :: Text
     , authors :: Text
     , issue   :: Issue
-    , pages   :: (Int,Int)
+    , pages   :: (PageNumber,PageNumber)
     , doi     :: Text
     } deriving ( Show, Eq )
