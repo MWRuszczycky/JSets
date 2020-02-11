@@ -8,17 +8,13 @@ module Controller
 
 import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
-import qualified Data.Map.Strict           as Map
 import qualified System.Console.GetOpt     as Opt
 import qualified Model.Core.Types          as T
-import qualified Model.Core.References     as R
-import qualified Model.Journals            as J
-import qualified CoreIO                    as CIO
-import qualified Model.Formatting          as F
-import           Control.Monad.Except               ( liftIO, throwError  )
 import           Data.List                          ( foldl', intercalate )
 import           Data.Default                       ( def                 )
-import           System.IO                          ( hFlush, stdout      )
+
+-- =============================================================== --
+-- Main control point and routers
 
 controller :: T.Setup -> T.ErrMonad Tx.Text
 controller _ = pure "Nothing to do"
@@ -28,23 +24,6 @@ controller _ = pure "Nothing to do"
 finish :: Either String Tx.Text -> IO ()
 finish (Left err)  = putStrLn $ err <> "Try option '-h' or '--help' for usage."
 finish (Right msg) = Tx.putStrLn msg
-
--- =============================================================== --
--- Commands
-
-writeToC :: FilePath -> T.JournalSet -> T.ErrMonad ()
-writeToC fp (_,xs) = do
-    pubmedData <- mapM downloadIssueToC xs
-    liftIO . Tx.writeFile fp . Tx.unlines . map F.tocToMkd $ pubmedData
-    liftIO . putStrLn $ "Tables of contents written to " <> fp
-
-downloadIssueToC ::  T.Issue -> T.ErrMonad T.TableOfContents
-downloadIssueToC x = do
-    liftIO . Tx.putStr $ "Downloading toc for " <> F.issueToTxt x <> "..."
-    liftIO . hFlush $ stdout
-    toc <- CIO.downloadToC x
-    liftIO . Tx.putStrLn $ "OK"
-    pure toc
 
 -- =============================================================== --
 -- Options

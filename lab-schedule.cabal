@@ -22,8 +22,8 @@ executable lab-schedule
                       , text
 
 library lab-schedule-internal
-  exposed-modules:      Controller
-                      , CoreIO
+  exposed-modules:      Commands
+                      , Controller
                       , Model.Core.Core
                       , Model.Core.Types
                       , Model.Core.Dates
