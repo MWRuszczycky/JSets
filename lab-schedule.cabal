@@ -19,6 +19,7 @@ executable lab-schedule
   build-depends:        base >= 4.7 && < 5
                       , lab-schedule-internal
                       , mtl
+                      , text
 
 library lab-schedule-internal
   exposed-modules:      Controller
@@ -39,6 +40,7 @@ library lab-schedule-internal
                       , attoparsec
                       , bytestring
                       , containers
+                      , data-default
                       , microlens
                       , mtl
                       , text

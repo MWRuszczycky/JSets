@@ -4,6 +4,7 @@ module Model.Core.Types
     ( --State
       ErrString
     , ErrMonad
+    , Setup         (..)
       -- Journal sets
     , JournalSet
     , JournalSets
@@ -18,10 +19,11 @@ module Model.Core.Types
     , PageNumber    (..)
     ) where
 
-import Data.Time            ( Day       )
-import Data.Text            ( Text      )
-import Data.Map.Strict      ( Map       )
-import Control.Monad.Except ( ExceptT   )
+import Data.Time            ( Day            )
+import Data.Text            ( Text           )
+import Data.Default         ( Default (..)   )
+import Data.Map.Strict      ( Map            )
+import Control.Monad.Except ( ExceptT        )
 
 -- =============================================================== --
 -- State
@@ -29,6 +31,25 @@ import Control.Monad.Except ( ExceptT   )
 type ErrString = String
 
 type ErrMonad  = ExceptT ErrString IO
+
+---------------------------------------------------------------------
+-- Program setup
+
+data Setup = Setup {
+      suCommands  :: [String]
+    , suOutputDir :: Maybe FilePath
+    , suJsetYear  :: Maybe String
+    , suJsetKey   :: Maybe String
+    , suHelp      :: Bool
+    } deriving ( Show )
+
+instance Default Setup where
+    def = Setup { suCommands  = []
+                , suOutputDir = Nothing
+                , suJsetYear  = Nothing
+                , suJsetKey   = Nothing
+                , suHelp      = False
+                }
 
 -- =============================================================== --
 -- Journal sets
