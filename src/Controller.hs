@@ -11,7 +11,7 @@ import qualified Model.Core.Types          as T
 import qualified Model.Core.References     as R
 import qualified Model.Journals            as J
 import qualified CoreIO                    as CIO
-import qualified Viewer                    as V
+import qualified Model.Formatting          as F
 import           Control.Monad.Except               ( liftIO )
 import           System.IO                          ( hFlush
                                                     , stdout )
@@ -27,12 +27,12 @@ controller = do
 writeToC :: FilePath -> T.JournalSet -> T.ErrMonad ()
 writeToC fp (_,xs) = do
     pubmedData <- mapM downloadIssueToC xs
-    liftIO . Tx.writeFile fp . Tx.unlines . map V.tocToMkd $ pubmedData
+    liftIO . Tx.writeFile fp . Tx.unlines . map F.tocToMkd $ pubmedData
     liftIO . putStrLn $ "Tables of contents written to " <> fp
 
 downloadIssueToC ::  T.Issue -> T.ErrMonad T.TableOfContents
 downloadIssueToC x = do
-    liftIO . Tx.putStr $ "Downloading toc for " <> V.viewIssue x <> "..."
+    liftIO . Tx.putStr $ "Downloading toc for " <> F.issueToTxt x <> "..."
     liftIO . hFlush $ stdout
     toc <- CIO.downloadToC x
     liftIO . Tx.putStrLn $ "OK"

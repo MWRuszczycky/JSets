@@ -1,18 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Viewer
+module Model.Formatting
     ( -- Converting journal sets to CSV
-      jSetsToCSV
-    , jSetToCSV
+      jsetsToCSV
+    , jsetToCSV
       -- Converting journal sets to text
-    , viewJSet
-    , viewJSetKey
+    , jsetToTxt
+    , jsetKeyToTxt
       -- Converting issues to text strings
-    , viewIssue
-    , viewVolIss
+    , issueToTxt
+    , volIssToTxt
       -- Viewing table of contents
-    , viewToC
-    , viewCitation
+    , tocToTxt
+    , citationToTxt
     , tocToMkd
     , citationToMkd
       -- Formatting helper functions
@@ -31,59 +31,59 @@ import           Data.Ord                   ( comparing )
 -- =============================================================== --
 -- Converting journal sets to CSV
 
-jSetsToCSV :: [T.Journal] -> T.JournalSets -> Text
+jsetsToCSV :: [T.Journal] -> T.JournalSets -> Text
 -- ^Convert a list of journal sets to CSV. Every element is enclosed
 -- in double quotes. The first line is the list of journals. Every
 -- subsequent line is a journal set with issues for a given journal
 -- separated by new line characters.
-jSetsToCSV js jsets = hdr <> "\n" <> tbl
-        where tbl  = Tx.unlines . map (jSetToCSV keys) . Map.toList $ jsets
+jsetsToCSV js jsets = hdr <> "\n" <> tbl
+        where tbl  = Tx.unlines . map (jsetToCSV keys) . Map.toList $ jsets
               hdr  = Tx.intercalate "," $ "No. & Date" : keys
               keys = map T.key js
 
-jSetToCSV :: [Text] -> T.JournalSet -> Text
+jsetToCSV :: [Text] -> T.JournalSet -> Text
 -- ^Convert a journal set to a single line of CSV. The first argument
 -- is the list of journals in the order they will be tabulated. The
 -- second argument is the journal set. The first cell will be the
 -- key associated with the journal set. Subsequent cells will list
 -- the issues for the corresponding journal separated by newline
 -- characters. All elements are enclosed in double quotes.
-jSetToCSV keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
+jsetToCSV keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
     where go k xs = (volIss . J.issuesByKey k . snd) jset : xs
-          volIss  = bracket '\"' '\"' . Tx.intercalate "\n" . map viewVolIss
-          hdr     = bracket '\"' '\"' (viewJSetKey jset <> "\n" <> date) <> ","
+          volIss  = bracket '\"' '\"' . Tx.intercalate "\n" . map volIssToTxt
+          hdr     = bracket '\"' '\"' (jsetKeyToTxt jset <> "\n" <> date) <> ","
           date    = C.tshow . J.dateOfJSet $ jset
 
 -- =============================================================== --
 -- Converting journal sets to text
 
-viewJSet :: T.JournalSet -> Text
+jsetToTxt :: T.JournalSet -> Text
 -- ^Convert a journal set to easily readable, formatted text.
-viewJSet jset = Tx.concat [viewJSetKey jset, " | ", d, "\n"] <> Tx.unlines xs
-    where xs    = map viewIssue . sortBy (comparing jName) . snd $ jset
+jsetToTxt jset = Tx.concat [jsetKeyToTxt jset, " | ", d, "\n"] <> Tx.unlines xs
+    where xs    = map issueToTxt . sortBy (comparing jName) . snd $ jset
           jName = T.name . T.journal
           d     = C.tshow . J.dateOfJSet $ jset
 
-viewJSetKey :: T.JournalSet -> Text
+jsetKeyToTxt :: T.JournalSet -> Text
 -- ^Convert a journal set key to text formatted as year-number.
-viewJSetKey ((y,n),_) = C.tshow y <> "-" <> C.tshow n
+jsetKeyToTxt ((y,n),_) = C.tshow y <> "-" <> C.tshow n
 
 -- =============================================================== --
 -- Converting issues to text strings
 
-viewIssue :: T.Issue -> Text
+issueToTxt :: T.Issue -> Text
 -- ^Convert a journal issue to easily readable, formatted text.
-viewIssue x = Tx.unwords us
+issueToTxt x = Tx.unwords us
     where us = [ T.key . T.journal        $ x
                , C.tshow . T.volNo $ x
                , C.tshow . T.issNo $ x
                , Tx.pack $ "(" ++ show (T.date x) ++ ")"
                ]
 
-viewVolIss :: T.Issue -> Text
+volIssToTxt :: T.Issue -> Text
 -- ^Construct a vol:iss text string for the volume and issue of a
 -- journal issue.
-viewVolIss x = Tx.intercalate ":" volIss
+volIssToTxt x = Tx.intercalate ":" volIss
     where volIss = map C.tshow [ T.volNo x, T.issNo x ]
 
 -- =============================================================== --
@@ -92,20 +92,20 @@ viewVolIss x = Tx.intercalate ":" volIss
 ---------------------------------------------------------------------
 -- General viewing
 
-viewToC :: T.TableOfContents -> Text
-viewToC = Tx.unlines . map viewCitation
+tocToTxt :: T.TableOfContents -> Text
+tocToTxt = Tx.unlines . map citationToTxt
 
-viewPages :: T.Citation -> Text
-viewPages x = C.tshow p1 <> "-" <> C.tshow p2
+pagesToTxt :: T.Citation -> Text
+pagesToTxt x = C.tshow p1 <> "-" <> C.tshow p2
     where (p1,p2) = T.pages x
 
-viewCitation :: T.Citation -> Text
-viewCitation x = Tx.unlines parts
+citationToTxt :: T.Citation -> Text
+citationToTxt x = Tx.unlines parts
     where iss   = T.issue x
           jrnl  = T.journal iss
           parts = [ T.title x
                   , T.authors x
-                  , Tx.unwords [ T.name jrnl,  viewVolIss iss, viewPages x ]
+                  , Tx.unwords [ T.name jrnl,  volIssToTxt iss, pagesToTxt x ]
                   ]
 
 ---------------------------------------------------------------------
@@ -124,8 +124,8 @@ citationToMkd x = Tx.unlines parts
           parts = [ mkdBd ( mkdLink (T.title x) (T.doi x) ) <> "\\"
                   , T.authors x <> "\\"
                   , Tx.unwords [ mkdIt $ T.name jrnl
-                               , viewVolIss iss
-                               , viewPages x
+                               , volIssToTxt iss
+                               , pagesToTxt x
                                ]
                   ]
 
