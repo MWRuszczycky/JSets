@@ -5,6 +5,7 @@ module Model.Core.Types
       ErrString
     , ErrMonad
     , Setup         (..)
+    , RunMode       (..)
       -- Journal sets
     , JournalSet
     , JournalSets
@@ -38,18 +39,26 @@ type ErrMonad  = ExceptT ErrString IO
 data Setup = Setup {
       suCommands  :: [String]
     , suOutputDir :: Maybe FilePath
+    , suJsetsFile :: Maybe FilePath
     , suJsetYear  :: Maybe String
     , suJsetKey   :: Maybe String
-    , suHelp      :: Bool
+    , runMode     :: RunMode
     } deriving ( Show )
 
 instance Default Setup where
     def = Setup { suCommands  = []
                 , suOutputDir = Nothing
+                , suJsetsFile = Nothing
                 , suJsetYear  = Nothing
                 , suJsetKey   = Nothing
-                , suHelp      = False
+                , runMode     = NoMode
                 }
+
+data RunMode =
+      NoMode
+    | HelpMode
+    | ToCMode
+      deriving ( Show, Eq )
 
 -- =============================================================== --
 -- Journal sets

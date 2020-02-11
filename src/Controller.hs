@@ -17,7 +17,11 @@ import           Data.Default                       ( def                 )
 -- Main control point and routers
 
 controller :: T.Setup -> T.ErrMonad Tx.Text
-controller _ = pure "Nothing to do"
+controller su = case T.runMode su of
+                     T.HelpMode -> pure "Display help"
+                     T.ToCMode  -> pure "ToC mode"
+                     T.NoMode   -> pure "Nothing to do"
+
     --let Just jset1 = Map.lookup (2019,1) . J.yearly26Sets 2019 $ R.issueRefs
     --writeToC "dev/tocs.mkd" ((2019,1), jset1)
 
@@ -35,12 +39,16 @@ options =
       "Set the output-directory to DIR."
 
     , Opt.Option "h" [ "help", "info", "information" ]
-      ( Opt.NoArg ( \ s -> s { T.suHelp = True } ) )
+      ( Opt.NoArg ( \ s -> s { T.runMode = T.HelpMode } ) )
       "Display help information."
 
     , Opt.Option "s" [ "jset", "journal-set" ]
       ( Opt.ReqArg ( \ arg s -> s { T.suJsetKey = Just arg } ) "KEY" )
       "Set the journal set key to KEY"
+
+    , Opt.Option "x" [ "jsets", "journal-sets" ]
+      ( Opt.ReqArg ( \ arg s -> s { T.suJsetsFile = Just arg } ) "PATH" )
+      "Set filepath for the journal sets to PATH."
 
     , Opt.Option "y" [ "year" ]
       ( Opt.ReqArg ( \ arg s -> s { T.suJsetYear = Just arg } ) "YEAR" )
