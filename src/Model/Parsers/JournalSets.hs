@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Parsers.JournalSets
-    ( parseJournalSets
+    ( parseJsets
     ) where
 
 import qualified Data.Text             as Tx
@@ -17,11 +17,11 @@ import           Model.Core.Core              ( readMaybeTxt )
 -- =============================================================== --
 -- Main parser
 
-parseJournalSets :: Text -> Either String T.JournalSets
+parseJsets :: Text -> Either String T.JournalSets
 -- ^Parse a properly formatted csv file to JournalSets.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
-parseJournalSets x = CSV.parseCSV x >>= toJournalSets
+parseJsets x = CSV.parseCSV x >>= toJournalSets
 
 toJournalSets :: [[Text]] -> Either String T.JournalSets
 -- ^Convert a parsed CSV file to Journal Sets.

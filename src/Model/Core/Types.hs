@@ -37,25 +37,26 @@ type ErrMonad  = ExceptT ErrString IO
 -- Program setup
 
 data Setup = Setup {
-      suCommands  :: [String]
+      suCmds      :: [String]
     , suOutputDir :: Maybe FilePath
     , suJsetsFile :: Maybe FilePath
-    , suJsetYear  :: Maybe String
+    , suJsetsYear :: Maybe String
     , suJsetKey   :: Maybe String
     , runMode     :: RunMode
     } deriving ( Show )
 
 instance Default Setup where
-    def = Setup { suCommands  = []
+    def = Setup { suCmds      = []
                 , suOutputDir = Nothing
                 , suJsetsFile = Nothing
-                , suJsetYear  = Nothing
+                , suJsetsYear = Nothing
                 , suJsetKey   = Nothing
                 , runMode     = NoMode
                 }
 
 data RunMode =
       NoMode
+    | ErrMode ErrString
     | HelpMode
     | ToCMode
       deriving ( Show, Eq )
