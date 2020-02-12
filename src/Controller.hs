@@ -14,16 +14,18 @@ import qualified Commands                  as C
 import           Data.List                          ( foldl', intercalate )
 import           Data.Default                       ( def                 )
 import           Control.Monad.Except               ( throwError          )
+import           Control.Monad.Reader               ( reader              )
 
 -- =============================================================== --
 -- Main control point and routers
 
-controller :: T.Config -> T.ErrMonad Tx.Text
-controller c = case T.runMode c of
-                    T.NoMode      -> pure "Nothing to do"
-                    T.HelpMode    -> pure "Display help"
-                    T.ToCMode     -> C.writeTocsToMkd c
-                    T.ErrMode err -> throwError err
+controller :: T.AppMonad Tx.Text
+controller = reader T.runMode >>= go
+    where go rm = case rm of
+                       T.NoMode      -> pure "Nothing to do"
+                       T.HelpMode    -> pure "Display help"
+                       T.ToCMode     -> C.writeTocsToMkd
+                       T.ErrMode err -> throwError err
 
 finish :: Either String Tx.Text -> IO ()
 finish (Right msg) = Tx.putStrLn msg

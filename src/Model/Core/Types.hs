@@ -4,6 +4,7 @@ module Model.Core.Types
     ( --State
       ErrString
     , ErrMonad
+    , AppMonad
     , Config        (..)
     , RunMode       (..)
       -- Journal sets
@@ -25,6 +26,7 @@ import Data.Text            ( Text           )
 import Data.Default         ( Default (..)   )
 import Data.Map.Strict      ( Map            )
 import Control.Monad.Except ( ExceptT        )
+import Control.Monad.Reader ( ReaderT        )
 
 -- =============================================================== --
 -- State
@@ -32,6 +34,9 @@ import Control.Monad.Except ( ExceptT        )
 type ErrString = String
 
 type ErrMonad  = ExceptT ErrString IO
+
+-- |AppMonad a = IO ( Either ErrString ( Reader Config a ) )
+type AppMonad  = ReaderT Config ErrMonad
 
 ---------------------------------------------------------------------
 -- Program setup

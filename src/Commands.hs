@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commands
-    ( downloadToC
-    , downloadToCTxt
+    ( downloadPubMedToc
     , writeTocsToMkd
     ) where
 
@@ -18,8 +17,10 @@ import qualified Model.Core.References     as R
 import           Data.Text                          ( Text           )
 import           Text.Read                          ( readMaybe      )
 import           System.IO                          ( hFlush, stdout )
+import           Control.Monad.Reader               ( asks, ask      )
 import           Control.Monad.Except               ( ExceptT (..)
                                                     , liftIO
+                                                    , lift
                                                     , throwError
                                                     , liftEither     )
 
@@ -29,58 +30,59 @@ import           Control.Monad.Except               ( ExceptT (..)
 ---------------------------------------------------------------------
 -- Acquiring journal sets
 
-findJsets :: T.Config -> T.ErrMonad T.JournalSets
-findJsets c = case (T.cJsetsFile c, T.cJsetsYear c) of
-                   (Just fp, _      ) -> jsetsFromFile fp
-                   (Nothing, Just y ) -> jsetsFromYear y
-                   (Nothing, Nothing) -> throwError "Cannot find journal sets."
+getJsets :: T.AppMonad T.JournalSets
+getJsets = ask >>= go
+    where err  = "Cannot find journal sets."
+          go c = case (T.cJsetsFile c, T.cJsetsYear c) of
+                      (Just fp, _      ) -> jsetsFromFile fp
+                      (Nothing, Just y ) -> jsetsFromYear y
+                      (Nothing, Nothing) -> throwError err
 
-jsetsFromFile :: FilePath -> T.ErrMonad T.JournalSets
-jsetsFromFile fp = ExceptT $ P.parseJsets <$> Tx.readFile fp
+jsetsFromFile :: FilePath -> T.AppMonad T.JournalSets
+jsetsFromFile fp = lift . ExceptT $ P.parseJsets <$> Tx.readFile fp
 
-jsetsFromYear :: String -> T.ErrMonad T.JournalSets
+jsetsFromYear :: String -> T.AppMonad T.JournalSets
 jsetsFromYear = maybe err go . readMaybe
     where err  = throwError "Invalid year."
           go y = pure . J.yearly26Sets y $ R.issueRefs
 
-getJset :: T.Config -> T.ErrMonad T.JournalSet
-getJset c = do
+getJset :: T.AppMonad T.JournalSet
+getJset = do
     let err = "Cannot find requested journal set."
-    jsets <- findJsets c
-    key   <- getJsetNumber c
+    jsets <- getJsets
+    key   <- getJsetNumber
     jset  <- maybe (throwError err) pure . Map.lookup key $ jsets
     pure (key, jset)
 
-getJsetNumber :: T.Config -> T.ErrMonad (Int, Int)
-getJsetNumber c = let err    = throwError "Set number must be YEAR-NUMBER."
-                      go u v = (,) <$> readMaybe u <*> readMaybe v
-                  in  case break (== '-') <$> T.cJsetKey c of
-                           Just (y,'-':n) -> maybe err pure . go y $ n
-                           _              -> err
+getJsetNumber :: T.AppMonad (Int, Int)
+getJsetNumber = asks go >>= maybe err pure
+    where err  = throwError "Set number must be YEAR-NUMBER."
+          go u = case break (== '-') <$> T.cJsetKey u of
+                      Just (y,'-':n) -> (,) <$> readMaybe y <*> readMaybe n
+                      _              -> Nothing
 
 ---------------------------------------------------------------------
 -- Downloading table of contents
 
-writeTocsToMkd :: T.Config -> T.ErrMonad Text
-writeTocsToMkd c = do
+writeTocsToMkd :: T.AppMonad Text
+writeTocsToMkd = do
     let defFP = "dev/tocs.mkd"
-    (_,xs) <- getJset c
+    (_,xs)     <- getJset
     pubmedData <- mapM downloadIssueToC xs
     liftIO . Tx.writeFile defFP . Tx.unlines . map F.tocToMkd $ pubmedData
     pure . Tx.pack $ "Tables of contents written to " <> defFP
 
-downloadIssueToC ::  T.Issue -> T.ErrMonad T.TableOfContents
+downloadIssueToC ::  T.Issue -> T.AppMonad T.TableOfContents
 downloadIssueToC x = do
     liftIO . Tx.putStr $ "Downloading toc for " <> F.issueToTxt x <> "..."
     liftIO . hFlush $ stdout
-    toc <- downloadToC x
+    toc <- downloadPubMedToc x >>= liftEither . P.parseToC x
     liftIO . Tx.putStrLn $ "OK"
     pure toc
 
-downloadToC :: T.Issue -> T.ErrMonad T.TableOfContents
-downloadToC x = downloadToCTxt x >>= liftEither . P.parseToC x
-
-downloadToCTxt :: T.Issue -> T.ErrMonad Text
-downloadToCTxt x = ExceptT $ J.readResponse <$> Wreq.getWith opts addr
-    where addr = "https://www.ncbi.nlm.nih.gov/pubmed"
-          opts = J.tocQuery x
+downloadPubMedToc :: T.Issue -> T.AppMonad Text
+downloadPubMedToc x = do
+    let addr = "https://www.ncbi.nlm.nih.gov/pubmed"
+        opts = J.tocQuery x
+    resp <- liftIO . Wreq.getWith opts $ addr
+    liftEither . J.readResponse $ resp
