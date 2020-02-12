@@ -4,7 +4,7 @@ module Model.Core.Types
     ( --State
       ErrString
     , ErrMonad
-    , Setup         (..)
+    , Config        (..)
     , RunMode       (..)
       -- Journal sets
     , JournalSet
@@ -36,23 +36,23 @@ type ErrMonad  = ExceptT ErrString IO
 ---------------------------------------------------------------------
 -- Program setup
 
-data Setup = Setup {
-      suCmds      :: [String]
-    , suOutputDir :: Maybe FilePath
-    , suJsetsFile :: Maybe FilePath
-    , suJsetsYear :: Maybe String
-    , suJsetKey   :: Maybe String
-    , runMode     :: RunMode
+data Config = Config {
+      cCmds      :: [String]
+    , cOutputDir :: Maybe FilePath
+    , cJsetsFile :: Maybe FilePath
+    , cJsetsYear :: Maybe String
+    , cJsetKey   :: Maybe String
+    , runMode    :: RunMode
     } deriving ( Show )
 
-instance Default Setup where
-    def = Setup { suCmds      = []
-                , suOutputDir = Nothing
-                , suJsetsFile = Nothing
-                , suJsetsYear = Nothing
-                , suJsetKey   = Nothing
-                , runMode     = NoMode
-                }
+instance Default Config where
+    def = Config { cCmds      = []
+                 , cOutputDir = Nothing
+                 , cJsetsFile = Nothing
+                 , cJsetsYear = Nothing
+                 , cJsetKey   = Nothing
+                 , runMode    = NoMode
+                 }
 
 data RunMode =
       NoMode

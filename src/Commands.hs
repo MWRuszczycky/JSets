@@ -29,11 +29,11 @@ import           Control.Monad.Except               ( ExceptT (..)
 ---------------------------------------------------------------------
 -- Acquiring journal sets
 
-findJsets :: T.Setup -> T.ErrMonad T.JournalSets
-findJsets su = case (T.suJsetsFile su, T.suJsetsYear su) of
-                    (Just fp, _      ) -> jsetsFromFile fp
-                    (Nothing, Just y ) -> jsetsFromYear y
-                    (Nothing, Nothing) -> throwError "Cannot find journal sets."
+findJsets :: T.Config -> T.ErrMonad T.JournalSets
+findJsets c = case (T.cJsetsFile c, T.cJsetsYear c) of
+                   (Just fp, _      ) -> jsetsFromFile fp
+                   (Nothing, Just y ) -> jsetsFromYear y
+                   (Nothing, Nothing) -> throwError "Cannot find journal sets."
 
 jsetsFromFile :: FilePath -> T.ErrMonad T.JournalSets
 jsetsFromFile fp = ExceptT $ P.parseJsets <$> Tx.readFile fp
@@ -43,28 +43,28 @@ jsetsFromYear = maybe err go . readMaybe
     where err  = throwError "Invalid year."
           go y = pure . J.yearly26Sets y $ R.issueRefs
 
-getJset :: T.Setup -> T.ErrMonad T.JournalSet
-getJset su = do
+getJset :: T.Config -> T.ErrMonad T.JournalSet
+getJset c = do
     let err = "Cannot find requested journal set."
-    jsets <- findJsets su
-    key   <- getJsetNumber su
+    jsets <- findJsets c
+    key   <- getJsetNumber c
     jset  <- maybe (throwError err) pure . Map.lookup key $ jsets
     pure (key, jset)
 
-getJsetNumber :: T.Setup -> T.ErrMonad (Int, Int)
-getJsetNumber su = let err    = throwError "Set number must be YEAR-NUMBER."
-                       go u v = (,) <$> readMaybe u <*> readMaybe v
-                   in  case break (== '-') <$> T.suJsetKey su of
-                            Just (y,'-':n) -> maybe err pure . go y $ n
-                            _              -> err
+getJsetNumber :: T.Config -> T.ErrMonad (Int, Int)
+getJsetNumber c = let err    = throwError "Set number must be YEAR-NUMBER."
+                      go u v = (,) <$> readMaybe u <*> readMaybe v
+                  in  case break (== '-') <$> T.cJsetKey c of
+                           Just (y,'-':n) -> maybe err pure . go y $ n
+                           _              -> err
 
 ---------------------------------------------------------------------
 -- Downloading table of contents
 
-writeTocsToMkd :: T.Setup -> T.ErrMonad Text
-writeTocsToMkd su = do
+writeTocsToMkd :: T.Config -> T.ErrMonad Text
+writeTocsToMkd c = do
     let defFP = "dev/tocs.mkd"
-    (_,xs) <- getJset su
+    (_,xs) <- getJset c
     pubmedData <- mapM downloadIssueToC xs
     liftIO . Tx.writeFile defFP . Tx.unlines . map F.tocToMkd $ pubmedData
     pure . Tx.pack $ "Tables of contents written to " <> defFP
