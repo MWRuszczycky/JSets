@@ -41,11 +41,11 @@ finish (Left err)  = putStr $ unlines [ err, msg ]
 
 options :: [ Opt.OptDescr (T.Config -> T.Config) ]
 options =
-    [ Opt.Option "o" [ "output-path" ]
-      ( Opt.ReqArg ( \ arg s -> s { T.cOutputPath = Just arg } ) "Path" )
+    [ Opt.Option "o" [ "output-path", "output" ]
+      ( Opt.ReqArg ( \ arg s -> s { T.cOutputPath = Just arg } ) "PATH" )
       "Set the output-directory to DIR."
 
-    , Opt.Option "p" [ "file", "input-path" ]
+    , Opt.Option "i" [ "input-path", "input" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cInputPath = Just arg } ) "PATH" )
       "Set filepath for the journal sets to PATH."
 
