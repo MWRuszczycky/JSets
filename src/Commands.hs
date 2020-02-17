@@ -63,16 +63,24 @@ getJsetNumber = asks go >>= maybe err pure
                       _              -> Nothing
 
 ---------------------------------------------------------------------
+-- Routing output
+
+toOutput :: Text -> T.AppMonad Text
+toOutput x = asks T.cOutputPath >>= maybe (pure x) go
+    where go fp = liftIO (Tx.writeFile fp x) *> pure Tx.empty
+
+---------------------------------------------------------------------
 -- Downloading table of contents
 
 writeTocs :: T.AppMonad Text
 writeTocs = do
     (k,xs) <- getJset
-    mkd    <- F.tocsToMkd k <$> mapM downloadIssueToC xs
-    mbPath <- asks T.cOutputPath
-    case mbPath of
-         Just path -> liftIO (Tx.writeFile path  mkd) *> pure Tx.empty
-         Nothing   -> pure mkd
+    fmt    <- asks T.cFormat
+    tocs   <- mapM downloadIssueToC xs
+    toOutput $ case fmt of
+                    T.CSV -> "ToC conversion to csv is not supported."
+                    T.MKD -> F.tocsToMkd k tocs
+                    T.TXT -> Tx.unlines . map F.tocToTxt $ tocs
 
 downloadIssueToC ::  T.Issue -> T.AppMonad T.TableOfContents
 downloadIssueToC x = do
@@ -97,7 +105,7 @@ convert = do
     let js = map T.journal R.issueRefs
     jsets <- getJsets
     fmt   <- asks T.cFormat
-    case fmt of
-         T.CSV -> pure . F.jsetsToCSV js $ jsets
-         T.MKD -> pure "Conversion to markdown is not yet implemented."
-         T.TXT -> pure . F.jsetsToTxt $ jsets
+    toOutput $ case fmt of
+                    T.CSV -> F.jsetsToCSV js $ jsets
+                    T.MKD -> "Conversion to markdown is not yet implemented."
+                    T.TXT -> F.jsetsToTxt $ jsets
