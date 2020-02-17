@@ -11,6 +11,7 @@ import qualified Data.Text                 as Tx
 import qualified System.Console.GetOpt     as Opt
 import qualified Model.Core.Types          as T
 import qualified Commands                  as C
+import qualified Model.Help                as H
 import           Data.List                          ( foldl', intercalate )
 import           Data.Default                       ( def                 )
 import           Control.Monad.Except               ( throwError          )
@@ -23,13 +24,13 @@ controller :: T.AppMonad Tx.Text
 controller = do
     runHelp <- asks T.cHelp
     if runHelp
-       then pure "Print help."
+       then pure . H.helpText $ options
        else asks T.cCmds >>= route
 
 route :: [String] -> T.AppMonad Tx.Text
 route ([])      = C.convert
 route ("toc":_) = C.writeTocs
-route (x:_)     = throwError . (<>) "Unrecognized command " $ x
+route (x:_)     = throwError . (<>) "Unrecognized command: " $ x
 
 finish :: Either String Tx.Text -> IO ()
 finish (Right msg) = Tx.putStrLn msg
@@ -41,29 +42,29 @@ finish (Left err)  = putStr $ unlines [ err, msg ]
 
 options :: [ Opt.OptDescr (T.Config -> T.Config) ]
 options =
-    [ Opt.Option "o" [ "output-path", "output" ]
+    [ Opt.Option "o" [ "output" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cOutputPath = Just arg } ) "PATH" )
-      "Set the output-directory to DIR."
+      "Set the output filepath to PATH."
 
-    , Opt.Option "i" [ "input-path", "input" ]
+    , Opt.Option "i" [ "input" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cInputPath = Just arg } ) "PATH" )
-      "Set filepath for the journal sets to PATH."
+      "Set input filepath to PATH."
 
     , Opt.Option "f" [ "format" ]
       ( Opt.ReqArg configFormat "FMT" )
-      "Set the output format to FMT (valid options: txt, csv, mkd)"
+      "Set the output format to FMT (txt, csv, mkd)"
 
-    , Opt.Option "h" [ "help", "info", "information" ]
+    , Opt.Option "h" [ "help" ]
       ( Opt.NoArg ( \ s -> s { T.cHelp = True } ) )
       "Display help information."
 
-    , Opt.Option "k" [ "jset", "key", "journal-set" ]
+    , Opt.Option "k" [ "key" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cJsetKey = Just arg } ) "KEY" )
       "Set the journal set key to KEY"
 
     , Opt.Option "y" [ "year" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cJsetsYear = Just arg } ) "YEAR" )
-      "Set the year for the journal sets to YEAR."
+      "Set the year to YEAR."
     ]
 
 configure :: [String] -> Either T.ErrString T.Config
