@@ -123,8 +123,11 @@ tocsToMkd (y,n) = Tx.unlines . (:) hdr . map tocToMkd
 tocToMkd :: T.TableOfContents -> Text
 tocToMkd []       = Tx.empty
 tocToMkd xs@(x:_) = Tx.unlines . (hdr:) . map citationToMkd $ xs
-    where hdr = flip Tx.snoc '\n' . (<>) "## "
-                . T.name . T.journal . T.issue $ x
+    where iss = T.issue x
+          hdr = Tx.unwords [ "##"
+                           , T.name . T.journal $ iss
+                           , volIssToTxt iss <> "\n"
+                           ]
 
 citationToMkd :: T.Citation -> Text
 citationToMkd x = Tx.unlines parts
