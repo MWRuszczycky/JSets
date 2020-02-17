@@ -14,18 +14,26 @@ import qualified Commands                  as C
 import           Data.List                          ( foldl', intercalate )
 import           Data.Default                       ( def                 )
 import           Control.Monad.Except               ( throwError          )
-import           Control.Monad.Reader               ( reader              )
+import           Control.Monad.Reader               ( asks                )
+import           Text.Read                          ( readMaybe           )
 
 -- =============================================================== --
 -- Main control point and routers
 
 controller :: T.AppMonad Tx.Text
-controller = reader T.runMode >>= go
-    where go rm = case rm of
-                       T.NoMode      -> pure "Nothing to do"
-                       T.HelpMode    -> pure "Display help"
-                       T.ToCMode     -> C.writeTocsToMkd
-                       T.ErrMode err -> throwError err
+controller = do
+    runHelp <- asks T.cHelp
+    if runHelp
+       then pure "Print help."
+       else asks T.cCmds >>= route
+
+route :: [String] -> T.AppMonad Tx.Text
+route ("toc":_) = C.writeTocsToMkd
+route (x:_)     = maybe (badCommand x) C.writeJsetsByYear . readMaybe $ x
+route ([])      = pure "Nothing to do."
+
+badCommand :: String -> T.AppMonad Tx.Text
+badCommand = throwError . (<>) "Unrecognized command "
 
 finish :: Either String Tx.Text -> IO ()
 finish (Right msg) = Tx.putStrLn msg
@@ -37,21 +45,21 @@ finish (Left err)  = putStr $ unlines [ err, msg ]
 
 options :: [ Opt.OptDescr (T.Config -> T.Config) ]
 options =
-    [ Opt.Option "d" [ "output-directory", "output-dir" ]
-      ( Opt.ReqArg ( \ arg s -> s { T.cOutputDir = Just arg } ) "DIR" )
+    [ Opt.Option "o" [ "output-path" ]
+      ( Opt.ReqArg ( \ arg s -> s { T.cOutputPath = Just arg } ) "Path" )
       "Set the output-directory to DIR."
 
+    , Opt.Option "f" [ "file", "input-path" ]
+      ( Opt.ReqArg ( \ arg s -> s { T.cInputPath = Just arg } ) "PATH" )
+      "Set filepath for the journal sets to PATH."
+
     , Opt.Option "h" [ "help", "info", "information" ]
-      ( Opt.NoArg ( \ s -> s { T.runMode = T.HelpMode } ) )
+      ( Opt.NoArg ( \ s -> s { T.cHelp = True } ) )
       "Display help information."
 
     , Opt.Option "k" [ "jset", "key", "journal-set" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cJsetKey = Just arg } ) "KEY" )
       "Set the journal set key to KEY"
-
-    , Opt.Option "x" [ "jsets", "journal-sets" ]
-      ( Opt.ReqArg ( \ arg s -> s { T.cJsetsFile = Just arg } ) "PATH" )
-      "Set filepath for the journal sets to PATH."
 
     , Opt.Option "y" [ "year" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cJsetsYear = Just arg } ) "YEAR" )
@@ -61,11 +69,5 @@ options =
 configure :: [String] -> Either T.ErrString T.Config
 configure xs =
     case Opt.getOpt Opt.Permute options xs of
-         (fs,cs,[] ) -> pure . setMode cs . foldl' (flip ($)) def $ fs
+         (fs,cs,[] ) -> pure . foldl' (flip ($)) (def { T.cCmds = cs }) $ fs
          (_ ,_ ,err) -> Left . intercalate "\n" $ err
-
-setMode :: [String] -> T.Config -> T.Config
-setMode []         c = c
-setMode ("toc":xs) c = c { T.runMode = T.ToCMode,     T.cCmds = xs   }
-setMode cmds       c = c { T.runMode = T.ErrMode err, T.cCmds = cmds }
-    where err = "Invalid usage."

@@ -6,7 +6,6 @@ module Model.Core.Types
     , ErrMonad
     , AppMonad
     , Config        (..)
-    , RunMode       (..)
       -- Journal sets
     , JournalSet
     , JournalSets
@@ -42,29 +41,22 @@ type AppMonad  = ReaderT Config ErrMonad
 -- Program setup
 
 data Config = Config {
-      cCmds      :: [String]
-    , cOutputDir :: Maybe FilePath
-    , cJsetsFile :: Maybe FilePath
-    , cJsetsYear :: Maybe String
-    , cJsetKey   :: Maybe String
-    , runMode    :: RunMode
+      cCmds       :: [String]
+    , cInputPath  :: Maybe FilePath
+    , cOutputPath :: Maybe FilePath
+    , cJsetsYear  :: Maybe String
+    , cJsetKey    :: Maybe String
+    , cHelp       :: Bool
     } deriving ( Show )
 
 instance Default Config where
-    def = Config { cCmds      = []
-                 , cOutputDir = Nothing
-                 , cJsetsFile = Nothing
-                 , cJsetsYear = Nothing
-                 , cJsetKey   = Nothing
-                 , runMode    = NoMode
+    def = Config { cCmds       = []
+                 , cInputPath  = Nothing
+                 , cOutputPath = Nothing
+                 , cJsetsYear  = Nothing
+                 , cJsetKey    = Nothing
+                 , cHelp       = False
                  }
-
-data RunMode =
-      NoMode
-    | ErrMode ErrString
-    | HelpMode
-    | ToCMode
-      deriving ( Show, Eq )
 
 -- =============================================================== --
 -- Journal sets

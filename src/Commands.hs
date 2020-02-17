@@ -2,6 +2,7 @@
 module Commands
     ( downloadPubMedToc
     , writeTocsToMkd
+    , writeJsetsByYear
     ) where
 
 import qualified Data.Text.IO              as Tx
@@ -33,7 +34,7 @@ import           Control.Monad.Except               ( ExceptT (..)
 getJsets :: T.AppMonad T.JournalSets
 getJsets = ask >>= go
     where err  = "Cannot find journal sets."
-          go c = case (T.cJsetsFile c, T.cJsetsYear c) of
+          go c = case (T.cInputPath c, T.cJsetsYear c) of
                       (Just fp, _      ) -> jsetsFromFile fp
                       (Nothing, Just y ) -> jsetsFromYear y
                       (Nothing, Nothing) -> throwError err
@@ -86,3 +87,9 @@ downloadPubMedToc x = do
         opts = J.tocQuery x
     resp <- liftIO . Wreq.getWith opts $ addr
     liftEither . J.readResponse $ resp
+
+---------------------------------------------------------------------
+-- Displaying journal sets
+
+writeJsetsByYear :: Int -> T.AppMonad Text
+writeJsetsByYear = undefined
