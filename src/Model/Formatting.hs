@@ -5,6 +5,7 @@ module Model.Formatting
       jsetsToCSV
     , jsetToCSV
       -- Converting journal sets to text
+    , jsetsToTxt
     , jsetToTxt
     , jsetKeyToTxt
       -- Converting issues to text strings
@@ -56,6 +57,9 @@ jsetToCSV keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
 
 -- =============================================================== --
 -- Converting journal sets to text
+
+jsetsToTxt :: T.JournalSets -> Text
+jsetsToTxt = Tx.unlines . map jsetToTxt . Map.toList
 
 jsetToTxt :: T.JournalSet -> Text
 -- ^Convert a journal set to easily readable, formatted text.

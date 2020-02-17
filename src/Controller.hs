@@ -15,7 +15,6 @@ import           Data.List                          ( foldl', intercalate )
 import           Data.Default                       ( def                 )
 import           Control.Monad.Except               ( throwError          )
 import           Control.Monad.Reader               ( asks                )
-import           Text.Read                          ( readMaybe           )
 
 -- =============================================================== --
 -- Main control point and routers
@@ -28,12 +27,9 @@ controller = do
        else asks T.cCmds >>= route
 
 route :: [String] -> T.AppMonad Tx.Text
-route ("toc":_) = C.writeTocsToMkd
-route (x:_)     = maybe (badCommand x) C.writeJsetsByYear . readMaybe $ x
-route ([])      = pure "Nothing to do."
-
-badCommand :: String -> T.AppMonad Tx.Text
-badCommand = throwError . (<>) "Unrecognized command "
+route ([])      = C.convert
+route ("toc":_) = C.writeTocs
+route (x:_)     = throwError . (<>) "Unrecognized command " $ x
 
 finish :: Either String Tx.Text -> IO ()
 finish (Right msg) = Tx.putStrLn msg
@@ -49,9 +45,13 @@ options =
       ( Opt.ReqArg ( \ arg s -> s { T.cOutputPath = Just arg } ) "Path" )
       "Set the output-directory to DIR."
 
-    , Opt.Option "f" [ "file", "input-path" ]
+    , Opt.Option "p" [ "file", "input-path" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cInputPath = Just arg } ) "PATH" )
       "Set filepath for the journal sets to PATH."
+
+    , Opt.Option "f" [ "format" ]
+      ( Opt.ReqArg configFormat "FMT" )
+      "Set the output format to FMT (valid options: txt, csv, mkd)"
 
     , Opt.Option "h" [ "help", "info", "information" ]
       ( Opt.NoArg ( \ s -> s { T.cHelp = True } ) )
@@ -71,3 +71,9 @@ configure xs =
     case Opt.getOpt Opt.Permute options xs of
          (fs,cs,[] ) -> pure . foldl' (flip ($)) (def { T.cCmds = cs }) $ fs
          (_ ,_ ,err) -> Left . intercalate "\n" $ err
+
+configFormat :: String -> T.Config -> T.Config
+configFormat "csv" s = s { T.cFormat = T.CSV }
+configFormat "mkd" s = s { T.cFormat = T.MKD }
+configFormat "txt" s = s { T.cFormat = T.TXT }
+configFormat _     s = s

@@ -6,6 +6,7 @@ module Model.Core.Types
     , ErrMonad
     , AppMonad
     , Config        (..)
+    , Format        (..)
       -- Journal sets
     , JournalSet
     , JournalSets
@@ -38,7 +39,13 @@ type ErrMonad  = ExceptT ErrString IO
 type AppMonad  = ReaderT Config ErrMonad
 
 ---------------------------------------------------------------------
--- Program setup
+-- Program configuration
+
+data Format =
+      CSV
+    | TXT
+    | MKD
+      deriving ( Show, Eq )
 
 data Config = Config {
       cCmds       :: [String]
@@ -46,6 +53,7 @@ data Config = Config {
     , cOutputPath :: Maybe FilePath
     , cJsetsYear  :: Maybe String
     , cJsetKey    :: Maybe String
+    , cFormat     :: Format
     , cHelp       :: Bool
     } deriving ( Show )
 
@@ -55,6 +63,7 @@ instance Default Config where
                  , cOutputPath = Nothing
                  , cJsetsYear  = Nothing
                  , cJsetKey    = Nothing
+                 , cFormat     = TXT
                  , cHelp       = False
                  }
 

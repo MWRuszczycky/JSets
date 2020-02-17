@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commands
     ( downloadPubMedToc
-    , writeTocsToMkd
-    , writeJsetsByYear
+    , writeTocs
+    , convert
     ) where
 
 import qualified Data.Text.IO              as Tx
@@ -65,13 +65,14 @@ getJsetNumber = asks go >>= maybe err pure
 ---------------------------------------------------------------------
 -- Downloading table of contents
 
-writeTocsToMkd :: T.AppMonad Text
-writeTocsToMkd = do
-    let defFP = "dev/tocs.mkd"
-    (_,xs)     <- getJset
-    pubmedData <- mapM downloadIssueToC xs
-    liftIO . Tx.writeFile defFP . Tx.unlines . map F.tocToMkd $ pubmedData
-    pure . Tx.pack $ "Tables of contents written to " <> defFP
+writeTocs :: T.AppMonad Text
+writeTocs = do
+    (_,xs) <- getJset
+    mkd    <- Tx.unlines . map F.tocToMkd <$> mapM downloadIssueToC xs
+    mbPath <- asks T.cOutputPath
+    case mbPath of
+         Just path -> liftIO (Tx.writeFile path  mkd) *> pure Tx.empty
+         Nothing   -> pure mkd
 
 downloadIssueToC ::  T.Issue -> T.AppMonad T.TableOfContents
 downloadIssueToC x = do
@@ -91,5 +92,12 @@ downloadPubMedToc x = do
 ---------------------------------------------------------------------
 -- Displaying journal sets
 
-writeJsetsByYear :: Int -> T.AppMonad Text
-writeJsetsByYear = undefined
+convert :: T.AppMonad Text
+convert = do
+    let js = map T.journal R.issueRefs
+    jsets <- getJsets
+    fmt   <- asks T.cFormat
+    case fmt of
+         T.CSV -> pure . F.jsetsToCSV js $ jsets
+         T.MKD -> pure "Conversion to markdown is not yet implemented."
+         T.TXT -> pure . F.jsetsToTxt $ jsets
