@@ -202,7 +202,6 @@ readResponse resp
 
 decodePubMed :: BS.ByteString -> Text
 decodePubMed = Tx.map go . decodeUtf8
-    where go x | x == '['         = toEnum 0x27e6
-               | x == ']'         = toEnum 0x27e7
-               | fromEnum x < 128 = x
-               | otherwise        = toEnum 0xfffd
+    where go x | x == '['  = toEnum 0x27e6
+               | x == ']'  = toEnum 0x27e7
+               | otherwise = x
