@@ -67,8 +67,8 @@ getJsetNumber = asks go >>= maybe err pure
 
 writeTocs :: T.AppMonad Text
 writeTocs = do
-    (_,xs) <- getJset
-    mkd    <- Tx.unlines . map F.tocToMkd <$> mapM downloadIssueToC xs
+    (k,xs) <- getJset
+    mkd    <- F.tocsToMkd k <$> mapM downloadIssueToC xs
     mbPath <- asks T.cOutputPath
     case mbPath of
          Just path -> liftIO (Tx.writeFile path  mkd) *> pure Tx.empty

@@ -14,6 +14,7 @@ module Model.Formatting
       -- Viewing table of contents
     , tocToTxt
     , citationToTxt
+    , tocsToMkd
     , tocToMkd
     , citationToMkd
       -- Formatting helper functions
@@ -114,6 +115,10 @@ citationToTxt x = Tx.unlines parts
 
 ---------------------------------------------------------------------
 -- Conversion to Markdown
+
+tocsToMkd :: (Int,Int) -> [T.TableOfContents] -> Text
+tocsToMkd (y,n) = Tx.unlines . (:) hdr . map tocToMkd
+    where hdr = "# Journal Set " <> C.tshow y <> "-" <> C.tshow n
 
 tocToMkd :: T.TableOfContents -> Text
 tocToMkd []       = Tx.empty
