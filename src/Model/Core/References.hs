@@ -89,7 +89,7 @@ biochemistryRef = T.Issue {
 
 cellChemBiol :: T.Journal
 cellChemBiol = T.Journal {
-      T.name   = "Cell Chemical biology"
+      T.name   = "Cell Chemical Biology"
     , T.key    = "Cell Chem Biol"
     , T.pubmed = "Cell Chem Biol"
     , T.freq   = T.Monthly
