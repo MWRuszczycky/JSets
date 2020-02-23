@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commands
     ( -- Downloading tables of contents
-      downloadPubMedToc
-    , getTocs
+      getTocs
       -- Displaying journal sets
     , displayJsets
     ) where
@@ -10,7 +9,6 @@ module Commands
 import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
 import qualified Data.Map.Strict           as Map
-import qualified Network.Wreq              as Wreq
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
@@ -105,20 +103,17 @@ getTocs = do
 
 downloadIssueToc ::  T.Issue -> T.AppMonad T.TableOfContents
 -- ^Download the table of contents for a journal issue from PubMed.
+-- Display progress messages for each ToC download.
 downloadIssueToc x = do
-    liftIO . Tx.putStr $ "Downloading toc for " <> F.issueToTxt x <> "..."
-    liftIO . hFlush $ stdout
-    toc <- downloadPubMedToc x >>= liftEither . P.parseToC x
-    liftIO . Tx.putStrLn $ "OK"
-    pure toc
-
-downloadPubMedToc :: T.Issue -> T.AppMonad Text
--- ^Download raw table of contents text for an issue from PubMed.
-downloadPubMedToc x = do
     let addr = "https://www.ncbi.nlm.nih.gov/pubmed"
         opts = J.tocQuery x
-    resp <- liftIO . Wreq.getWith opts $ addr
-    liftEither . J.readResponse $ resp
+    liftIO . Tx.putStr $ "Downloading toc for " <> F.issueToTxt x <> "..."
+    liftIO . hFlush $ stdout
+    toc <- lift $ C.webRequest opts addr >>= liftEither . P.parseToC x
+    if null toc
+       then liftIO . Tx.putStrLn $ "No articles listed at PubMed"
+       else liftIO . Tx.putStrLn $ "OK"
+    pure toc
 
 -- =============================================================== --
 -- Displaying journal sets

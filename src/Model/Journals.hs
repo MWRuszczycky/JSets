@@ -17,26 +17,19 @@ module Model.Journals
     , nextMonthly
       -- Working with downloaded table of contents
     , tocQuery
-    , readResponse
     ) where
 
 import qualified Model.Core.Types        as T
 import qualified Model.Core.Dates        as D
 import qualified Model.Core.Core         as C
 import qualified Model.Core.References   as R
-import qualified Data.Text               as Tx
 import qualified Data.Time               as Tm
 import qualified Data.Map.Strict         as Map
 import qualified Network.Wreq            as Wreq
-import qualified Data.ByteString         as BS
-import qualified Data.ByteString.Lazy    as BSL
-import           Data.Time                          ( Day               )
-import           Data.Text                          ( Text              )
-import           Data.List                          ( find              )
-import           Lens.Micro                         ( (^.), (.~), (&)   )
-import           Data.Text.Encoding                 ( decodeUtf8        )
-import           Data.ByteString.Lazy               ( toStrict          )
-
+import           Data.Time                          ( Day       )
+import           Data.Text                          ( Text      )
+import           Data.List                          ( find      )
+import           Lens.Micro                         ( (.~), (&) )
 
 -- =============================================================== --
 -- Working with journal sets
@@ -193,15 +186,3 @@ tocQuery x = let j = "\"" <> (T.pubmed . T.journal $ x) <> "\""
                                                       , n <> "[issue]"
                                                       , t <> "[pt]"
                                                       ]
-
-readResponse :: Wreq.Response BSL.ByteString -> Either String Text
-readResponse resp
-    | code == 200 = pure . decodePubMed . toStrict $ resp ^. Wreq.responseBody
-    | otherwise   = Left $ "Cannot access, error code: " ++ show code
-    where code = resp ^. Wreq.responseStatus . Wreq.statusCode
-
-decodePubMed :: BS.ByteString -> Text
-decodePubMed = Tx.map go . decodeUtf8
-    where go x | x == '['  = toEnum 0x27e6
-               | x == ']'  = toEnum 0x27e7
-               | otherwise = x

@@ -133,9 +133,9 @@ citationToMkd :: T.Citation -> Text
 citationToMkd x = Tx.unlines parts
     where iss   = T.issue x
           jrnl  = T.journal iss
-          parts = [ mkdBd ( mkdLink (T.title x) (T.doi x) ) <> "\\"
-                  , T.authors x <> "\\"
-                  , Tx.unwords [ mkdIt $ T.name jrnl
+          parts = [ (mkdBd $ mkdLink (fixMkd $ T.title x) (T.doi x)) <> "\\"
+                  , fixMkd (T.authors x) <> "\\"
+                  , Tx.unwords [ mkdIt . fixMkd . T.name $ jrnl
                                , volIssToTxt iss
                                , pagesToTxt x
                                ]
@@ -153,6 +153,15 @@ bracket x y = flip Tx.snoc y . Tx.cons x
 
 ---------------------------------------------------------------------
 -- Markdown formatting
+
+fixMkd :: Text -> Text
+-- ^Make any corrections to general text that may interfere with
+-- Markdown formatting:
+--  1. Change brackets to avoid inteference with url links.
+fixMkd = Tx.map go
+    where go x | x == '['  = toEnum 0x27e6
+               | x == ']'  = toEnum 0x27e7
+               | otherwise = x
 
 mkdBd :: Text -> Text
 -- ^Make text bold in Markdown.
