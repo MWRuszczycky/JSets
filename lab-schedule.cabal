@@ -25,6 +25,7 @@ library lab-schedule-internal
   exposed-modules:      Commands
                       , Controller
                       , Model.Core.Core
+                      , Model.Core.CoreIO
                       , Model.Core.Types
                       , Model.Core.Dates
                       , Model.Core.References
