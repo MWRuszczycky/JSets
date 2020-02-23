@@ -28,8 +28,8 @@ controller = do
        else asks T.cCmds >>= route
 
 route :: [String] -> T.AppMonad Tx.Text
-route ([])      = C.convert
-route ("toc":_) = C.writeTocs
+route ([])      = C.displayJsets
+route ("toc":_) = C.getTocs
 route (x:_)     = throwError . (<>) "Unrecognized command: " $ x
 
 finish :: Either String Tx.Text -> IO ()

@@ -8,3 +8,5 @@
 * Move reference issues to a configuration file.
 * Generate selection files.
 * Use selection files to create journal set selections.
+* Add message when downloading a ToC if there are no articles.
+* Add class for formatting to different format types.
