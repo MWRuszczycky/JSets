@@ -5,20 +5,20 @@ module Model.Core.Types
       ErrString
     , ErrMonad
     , AppMonad
-    , Config        (..)
-    , Format        (..)
+    , Config            (..)
+    , Format            (..)
       -- Journal sets
     , JournalSet
     , JournalSets
       -- Journals
-    , Journal       (..)
-    , Frequency     (..)
+    , Journal           (..)
+    , Frequency         (..)
       -- Journal issues
-    , Issue         (..)
+    , Issue             (..)
       -- Table of contents and citations
-    , TableOfContents
-    , Citation      (..)
-    , PageNumber    (..)
+    , TableOfContents   (..)
+    , Citation          (..)
+    , PageNumber        (..)
     ) where
 
 import Data.Time            ( Day            )
@@ -109,13 +109,12 @@ data Issue = Issue {
 -- =============================================================== --
 -- Table of contents and citations
 
-type TableOfContents = [Citation]
+data TableOfContents = ToC Issue [Citation] deriving ( Show , Eq )
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {
       title   :: Text
     , authors :: Text
-    , issue   :: Issue
     , pages   :: (PageNumber,PageNumber)
     , doi     :: Text
     } deriving ( Show, Eq )

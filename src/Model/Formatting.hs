@@ -1,19 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Formatting
-    ( -- Converting journal sets to CSV
+    ( -- Formatting journal sets
+      -- As CSV
       jsetsToCSV
     , jsetToCSV
-      -- Converting journal sets to text
+      -- As Text
     , jsetsToTxt
     , jsetToTxt
     , jsetKeyToTxt
-      -- Converting issues to text strings
+      -- Formatting Issues
+      -- As Text
     , issueToTxt
     , volIssToTxt
-      -- Viewing table of contents
+      -- Formatting tables of contents
+      -- As Text
+    , tocsToTxt
     , tocToTxt
     , citationToTxt
+      -- As Markdown
     , tocsToMkd
     , tocToMkd
     , citationToMkd
@@ -31,7 +36,10 @@ import           Data.List                  ( sortBy    )
 import           Data.Ord                   ( comparing )
 
 -- =============================================================== --
--- Converting journal sets to CSV
+-- Formatting journal sets
+
+---------------------------------------------------------------------
+-- As CSV
 
 jsetsToCSV :: [T.Journal] -> T.JournalSets -> Text
 -- ^Convert a list of journal sets to CSV. Every element is enclosed
@@ -56,8 +64,8 @@ jsetToCSV keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
           hdr     = bracket '\"' '\"' (jsetKeyToTxt jset <> "\n" <> date) <> ","
           date    = C.tshow . J.dateOfJSet $ jset
 
--- =============================================================== --
--- Converting journal sets to text
+---------------------------------------------------------------------
+-- As Text
 
 jsetsToTxt :: T.JournalSets -> Text
 jsetsToTxt = Tx.unlines . map jsetToTxt . Map.toList
@@ -74,7 +82,10 @@ jsetKeyToTxt :: T.JournalSet -> Text
 jsetKeyToTxt ((y,n),_) = C.tshow y <> "-" <> C.tshow n
 
 -- =============================================================== --
--- Converting issues to text strings
+-- Formatting issues
+
+---------------------------------------------------------------------
+-- As Text
 
 issueToTxt :: T.Issue -> Text
 -- ^Convert a journal issue to easily readable, formatted text.
@@ -92,47 +103,53 @@ volIssToTxt x = Tx.intercalate ":" volIss
     where volIss = map C.tshow [ T.volNo x, T.issNo x ]
 
 -- =============================================================== --
--- Viewing table of contents
+-- Formatting tables of contents
 
 ---------------------------------------------------------------------
--- General viewing
+-- As Text
+
+tocsToTxt :: [T.TableOfContents] -> Text
+tocsToTxt = Tx.unlines . map tocToTxt
 
 tocToTxt :: T.TableOfContents -> Text
-tocToTxt = Tx.unlines . map citationToTxt
+tocToTxt (T.ToC x cs) = Tx.unlines
+                        . (issueToTxt x <> "\n" :)
+                        . map (citationToTxt x) $ cs
 
 pagesToTxt :: T.Citation -> Text
 pagesToTxt x = C.tshow p1 <> "-" <> C.tshow p2
     where (p1,p2) = T.pages x
 
-citationToTxt :: T.Citation -> Text
-citationToTxt x = Tx.unlines parts
-    where iss   = T.issue x
-          jrnl  = T.journal iss
+citationToTxt :: T.Issue -> T.Citation -> Text
+citationToTxt iss x = Tx.unlines parts
+    where jrnl  = T.journal iss
           parts = [ T.title x
                   , T.authors x
                   , Tx.unwords [ T.name jrnl,  volIssToTxt iss, pagesToTxt x ]
                   ]
 
 ---------------------------------------------------------------------
--- Conversion to Markdown
+-- As Markdown
 
 tocsToMkd :: (Int,Int) -> [T.TableOfContents] -> Text
 tocsToMkd (y,n) = Tx.unlines . (:) hdr . map tocToMkd
     where hdr = "# Journal Set " <> C.tshow y <> "-" <> C.tshow n
 
 tocToMkd :: T.TableOfContents -> Text
-tocToMkd []       = Tx.empty
-tocToMkd xs@(x:_) = Tx.unlines . (hdr:) . map citationToMkd $ xs
-    where iss = T.issue x
-          hdr = Tx.unwords [ "##"
-                           , T.name . T.journal $ iss
-                           , volIssToTxt iss <> "\n"
-                           ]
+tocToMkd (T.ToC x []) = issueToMkdHeader x
+tocToMkd (T.ToC x cs) = Tx.unlines
+                        . (issueToMkdHeader x :)
+                        . map (citationToMkd x) $ cs
 
-citationToMkd :: T.Citation -> Text
-citationToMkd x = Tx.unlines parts
-    where iss   = T.issue x
-          jrnl  = T.journal iss
+issueToMkdHeader :: T.Issue -> Text
+issueToMkdHeader iss = Tx.unwords [ "##"
+                                  , T.name . T.journal $ iss
+                                  , volIssToTxt iss <> "\n"
+                                  ]
+
+citationToMkd :: T.Issue -> T.Citation -> Text
+citationToMkd iss x = Tx.unlines parts
+    where jrnl  = T.journal iss
           parts = [ (mkdBd $ mkdLink (fixMkd $ T.title x) (T.doi x)) <> "\\"
                   , fixMkd (T.authors x) <> "\\"
                   , Tx.unwords [ mkdIt . fixMkd . T.name $ jrnl

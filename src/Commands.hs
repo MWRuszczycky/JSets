@@ -99,7 +99,7 @@ getTocs = do
     toOutput $ case fmt of
                     T.CSV -> "ToC conversion to csv is not supported."
                     T.MKD -> F.tocsToMkd k tocs
-                    T.TXT -> Tx.unlines . map F.tocToTxt $ tocs
+                    T.TXT -> F.tocsToTxt tocs
 
 downloadIssueToc ::  T.Issue -> T.AppMonad T.TableOfContents
 -- ^Download the table of contents for a journal issue from PubMed.
@@ -109,11 +109,11 @@ downloadIssueToc x = do
         opts = J.tocQuery x
     liftIO . Tx.putStr $ "Downloading toc for " <> F.issueToTxt x <> "..."
     liftIO . hFlush $ stdout
-    toc <- lift $ C.webRequest opts addr >>= liftEither . P.parseToC x
-    if null toc
+    cs <- lift $ C.webRequest opts addr >>= liftEither . P.parseCitations x
+    if null cs
        then liftIO . Tx.putStrLn $ "No articles listed at PubMed"
        else liftIO . Tx.putStrLn $ "OK"
-    pure toc
+    pure $ T.ToC x cs
 
 -- =============================================================== --
 -- Displaying journal sets
@@ -126,6 +126,6 @@ displayJsets = do
     jsets <- getJsets
     fmt   <- asks T.cFormat
     toOutput $ case fmt of
-                    T.CSV -> F.jsetsToCSV js $ jsets
+                    T.CSV -> F.jsetsToCSV js jsets
                     T.MKD -> "Conversion to markdown is not yet implemented."
-                    T.TXT -> F.jsetsToTxt $ jsets
+                    T.TXT -> F.jsetsToTxt jsets

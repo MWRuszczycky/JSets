@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Parsers.PubMed
-    ( parseToC
+    ( parseCitations
     ) where
 
 import qualified Model.Core.Types     as T
@@ -13,12 +13,12 @@ import           Data.Bifunctor              ( bimap      )
 import           Control.Applicative         ( many, some )
 import           Data.Ord                    ( comparing  )
 
-parseToC :: T.Issue -> Text -> Either String T.TableOfContents
-parseToC iss = bimap err sortByPage . At.parseOnly (tableOfContents iss)
+parseCitations :: T.Issue -> Text -> Either String [T.Citation]
+parseCitations iss = bimap err sortByPage . At.parseOnly (citations iss)
     where err x = "Cannot parse PubMed table of contents: " ++ x
 
-tableOfContents :: T.Issue -> At.Parser T.TableOfContents
-tableOfContents iss = do
+citations :: T.Issue -> At.Parser [T.Citation]
+citations iss = do
     At.skipSpace *> skipXML
     At.skipSpace *> skipXML
     At.skipSpace *> At.string "<pre>"
@@ -61,7 +61,6 @@ citation iss = do
     pubmedData
     pure $ T.Citation { T.title   = title
                       , T.authors = authors
-                      , T.issue   = iss
                       , T.pages   = pages
                       , T.doi     = doi
                       }
