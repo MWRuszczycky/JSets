@@ -122,10 +122,10 @@ displayJsets :: T.AppMonad Text
 -- ^Retrieve the requested journal set based on the configuration and
 -- format for output.
 displayJsets = do
-    let js = map T.journal R.issueRefs
+    let ks = map (T.key . T.journal) R.issueRefs
     jsets <- getJsets
     fmt   <- asks T.cFormat
     toOutput $ case fmt of
-                    T.CSV -> F.jsetsToCSV js jsets
+                    T.CSV -> F.jsetsToCSV ks jsets
                     T.MKD -> "Conversion to markdown is not yet implemented."
                     T.TXT -> F.jsetsToTxt jsets

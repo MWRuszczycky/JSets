@@ -41,15 +41,15 @@ import           Data.Ord                   ( comparing )
 ---------------------------------------------------------------------
 -- As CSV
 
-jsetsToCSV :: [T.Journal] -> T.JournalSets -> Text
+jsetsToCSV :: [Text] -> T.JournalSets -> Text
 -- ^Convert a list of journal sets to CSV. Every element is enclosed
--- in double quotes. The first line is the list of journals. Every
--- subsequent line is a journal set with issues for a given journal
--- separated by new line characters.
-jsetsToCSV js jsets = hdr <> "\n" <> tbl
+-- in double quotes. The first line is the list of journals by
+-- journal key as specified by the first argument. Every subsequent
+-- line is a journal set with issues for a given journal separated by
+-- new line characters.
+jsetsToCSV keys jsets = hdr <> "\n" <> tbl
         where tbl  = Tx.unlines . map (jsetToCSV keys) . Map.toList $ jsets
               hdr  = Tx.intercalate "," $ "No. & Date" : keys
-              keys = map T.key js
 
 jsetToCSV :: [Text] -> T.JournalSet -> Text
 -- ^Convert a journal set to a single line of CSV. The first argument
