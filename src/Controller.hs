@@ -1,42 +1,51 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Controller
-    ( controller
-    , finish
+    ( runApp
     , configure
     ) where
 
 import qualified Data.Text.IO              as Tx
-import qualified Data.Text                 as Tx
 import qualified System.Console.GetOpt     as Opt
 import qualified Model.Core.Types          as T
-import qualified Commands                  as C
+import qualified Model.Core.CoreIO         as C
+import qualified Commands                  as Cmd
 import qualified Model.Help                as H
+import qualified Model.Formatting          as F
+import           Data.Text                          ( Text                )
+import           System.Environment                 ( getArgs             )
 import           Text.Read                          ( readMaybe           )
 import           Data.List                          ( foldl', intercalate )
 import           Data.Default                       ( def                 )
-import           Control.Monad.Except               ( throwError          )
-import           Control.Monad.Reader               ( asks                )
+import           Control.Monad.Except               ( throwError
+                                                    , ExceptT (..)        )
+import           Control.Monad.Reader               ( runReaderT, asks
+                                                    , liftIO, lift        )
 
 -- =============================================================== --
 -- Main control point and routers
 
-controller :: T.AppMonad Tx.Text
-controller = do
-    runHelp <- asks T.cHelp
-    if runHelp
-       then pure . H.helpText $ options
-       else asks T.cCmds >>= route
+configure :: T.ErrMonad ([String], T.Config)
+configure = ExceptT $ argsToConfig <$> getArgs
 
-route :: [String] -> T.AppMonad Tx.Text
-route ([])      = C.displayJsets
-route ("toc":_) = C.getTocs
-route (x:_)     = throwError . (<>) "Unrecognized command: " $ x
+runApp :: ([String], T.Config) -> T.ErrMonad ()
+runApp (cmds, config)
+    | T.cHelp config = liftIO . Tx.putStrLn . H.helpText $ options
+    | otherwise      = runReaderT ( route cmds ) config
 
-finish :: Either String Tx.Text -> IO ()
-finish (Right msg) = Tx.putStrLn msg
-finish (Left err)  = putStr $ unlines [ err, msg ]
-    where msg = "Try option '-h' or '--help' for usage."
+route :: [String] -> T.AppMonad ()
+route []          = pure ()
+route ("toc":xs)  = Cmd.getTocs xs >>= finish
+route ("year":xs) = Cmd.jsetsFromYear xs >>= finish
+route (x:_)       = throwError $ "Unknown command: " <> x <> "\n"
+
+finish :: F.Formattable a => ([Text], a) -> T.AppMonad ()
+finish (hdr, x) = do
+    fmt  <- asks T.cFormat
+    path <- asks T.cOutputPath
+    case path of
+         Nothing -> liftIO . Tx.putStrLn . F.format fmt hdr $ x
+         Just fp -> lift . C.writeFileErr fp . F.format fmt hdr $ x
 
 -- =============================================================== --
 -- Options
@@ -46,10 +55,6 @@ options =
     [ Opt.Option "o" [ "output" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cOutputPath = Just arg } ) "PATH" )
       "Set the output filepath to PATH."
-
-    , Opt.Option "i" [ "input" ]
-      ( Opt.ReqArg ( \ arg s -> s { T.cInputPath = Just arg } ) "PATH" )
-      "Set input filepath to PATH."
 
     , Opt.Option "f" [ "format" ]
       ( Opt.ReqArg configFormat "FMT" )
@@ -62,16 +67,12 @@ options =
     , Opt.Option "k" [ "key" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cJsetKey = readMaybe arg } ) "KEY" )
       "Set the journal set key to KEY (positive integer)"
-
-    , Opt.Option "y" [ "year" ]
-      ( Opt.ReqArg ( \ arg s -> s { T.cJsetsYear = Just arg } ) "YEAR" )
-      "Set the year to YEAR."
     ]
 
-configure :: [String] -> Either T.ErrString T.Config
-configure xs =
+argsToConfig :: [String] -> Either T.ErrString ([String], T.Config)
+argsToConfig xs =
     case Opt.getOpt Opt.Permute options xs of
-         (fs,cs,[] ) -> pure . foldl' (flip ($)) (def { T.cCmds = cs }) $ fs
+         (fs,cs,[] ) -> pure ( cs, foldl' (flip ($)) def $ fs )
          (_ ,_ ,err) -> Left . intercalate "\n" $ err
 
 configFormat :: String -> T.Config -> T.Config

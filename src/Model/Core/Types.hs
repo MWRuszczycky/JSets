@@ -16,7 +16,8 @@ module Model.Core.Types
       -- Journal issues
     , Issue             (..)
       -- Table of contents and citations
-    , TableOfContents   (..)
+    , JournalSetToC     (..)
+    , IssueToC          (..)
     , Citation          (..)
     , PageNumber        (..)
     ) where
@@ -53,20 +54,14 @@ data Format =
 
 -- |Application configuration
 data Config = Config {
-      cCmds       :: [String]       -- user commands
-    , cInputPath  :: Maybe FilePath -- file input path
-    , cOutputPath :: Maybe FilePath -- file output path
-    , cJsetsYear  :: Maybe String   -- journal sets year
+      cOutputPath :: Maybe FilePath -- file output path
     , cJsetKey    :: Maybe Int      -- journal set key
     , cFormat     :: Format         -- output format
     , cHelp       :: Bool           -- user requested help
     } deriving ( Show )
 
 instance Default Config where
-    def = Config { cCmds       = []
-                 , cInputPath  = Nothing
-                 , cOutputPath = Nothing
-                 , cJsetsYear  = Nothing
+    def = Config { cOutputPath = Nothing
                  , cJsetKey    = Nothing
                  , cFormat     = TXT
                  , cHelp       = False
@@ -120,7 +115,11 @@ data Issue = Issue {
 -- =============================================================== --
 -- Table of contents and citations
 
-data TableOfContents = ToC Issue [Citation] deriving ( Show , Eq )
+-- |Journal set in terms of tables of contents. The first value is
+-- the journal set key.
+data JournalSetToC = JSetToC Int [IssueToC]
+
+data IssueToC = IssueToC Issue [Citation] deriving ( Show , Eq )
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {

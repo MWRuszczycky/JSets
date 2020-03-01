@@ -2,6 +2,7 @@ module Model.Core.Core
     ( -- Working with Text strings
       tshow
     , readMaybeTxt
+    , readTxt
       -- List manipulation
     , chunksOf
     , takeEveryAt
@@ -24,6 +25,9 @@ tshow = Tx.pack . show
 
 readMaybeTxt :: Read a => Text -> Maybe a
 readMaybeTxt = readMaybe . Tx.unpack
+
+readTxt :: Read a => Text -> a
+readTxt = read . Tx.unpack
 
 -- =============================================================== --
 -- List manipulation

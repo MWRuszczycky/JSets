@@ -3,13 +3,13 @@ module Commands
     ( -- Downloading tables of contents
       getTocs
       -- Displaying journal sets
-    , displayJsets
+    , jsetsFromYear
     ) where
 
 import qualified Data.Text.IO              as Tx
-import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
+import qualified Model.Core.Core           as C
 import qualified Model.Journals            as J
 import qualified Model.Formatting          as F
 import qualified Model.Parsers.PubMed      as P
@@ -18,7 +18,7 @@ import qualified Model.Core.References     as R
 import           Data.Text                          ( Text           )
 import           Text.Read                          ( readMaybe      )
 import           System.IO                          ( hFlush, stdout )
-import           Control.Monad.Reader               ( asks, ask      )
+import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , lift
                                                     , throwError
@@ -28,75 +28,51 @@ import           Control.Monad.Except               ( liftIO
 -- Acquiring journal sets
 
 ---------------------------------------------------------------------
--- Collections of journal sets
-
-getJsets :: T.AppMonad T.JournalSets
--- ^Get the collection of journal sets based on the configuration.
-getJsets = ask >>= go
-    where err  = "Cannot find journal sets."
-          go c = case (T.cInputPath c, T.cJsetsYear c) of
-                      (Just fp, _      ) -> jsetsFromFile fp
-                      (Nothing, Just y ) -> jsetsFromYear y
-                      (Nothing, Nothing) -> throwError err
-
-jsetsFromFile :: FilePath -> T.AppMonad T.JournalSets
--- ^Read a collection of journal sets from a file.
-jsetsFromFile fp = lift $ C.readFileErr fp >>= liftEither . P.parseJsets
-
-jsetsFromYear :: String -> T.AppMonad T.JournalSets
--- ^Build the default collection of journal sets based on a year.
--- The year is provided as a string, which will raise an error if
--- it is an invalid year.
-jsetsFromYear = maybe err go . readMaybe
-    where err  = throwError "Invalid year."
-          go y = pure . J.yearly26Sets y $ R.issueRefs
-
----------------------------------------------------------------------
--- A single journal set
-
-getJset :: T.AppMonad T.JournalSet
--- ^Get a journal set based on the configuration.
-getJset = do
-    let err = "Cannot find requested journal set."
-    jsets <- getJsets
-    key   <- getJsetKey
-    maybe (throwError err) pure . J.lookupJSet key $ jsets
+-- Helpers
 
 getJsetKey :: T.AppMonad Int
 -- ^Read the journal set key according to the configuration.
 getJsetKey = asks T.cJsetKey >>= maybe err pure
     where err  = throwError "Journal set key must be a positive integer"
 
--- =============================================================== --
--- Routing output
+---------------------------------------------------------------------
+-- Collections of journal sets
 
-toOutput :: Text -> T.AppMonad Text
--- ^Route output according to the configuration.
--- If output is to sent to a file, then it is written to the output
--- file as determined by the configuration and an empty Text value is
--- returned. Otherwise, it is wrapped in the AppMonad so it can be
--- accessed for display in the terminal.
-toOutput x = asks T.cOutputPath >>= maybe (pure x) go
-    where go fp = lift (C.writeFileErr fp x) *> pure Tx.empty
+jsetsFromYear :: [String] -> T.AppMonad ([Text], T.JournalSets)
+-- ^Build the default collection of journal sets based on a year.
+-- The year is provided as a string, which will raise an error if
+-- it is an invalid year.
+jsetsFromYear []    = throwError "A valid year must be specified!"
+jsetsFromYear (x:_) = maybe err go . readMaybe $ x
+    where err  = throwError "Invalid year."
+          go y = pure . (,) [C.tshow y] . J.yearly26Sets y $ R.issueRefs
+
+---------------------------------------------------------------------
+-- A single journal set
+
+jsetFromFile :: FilePath -> T.AppMonad ([Text], T.JournalSet)
+-- ^Get a journal set based on the configuration.
+jsetFromFile fp = do
+    jsets <- lift $ C.readFileErr fp >>= liftEither . P.parseJsets
+    key   <- getJsetKey
+    let err = "Cannot find requested journal set."
+    maybe (throwError err) (pure . (,) []) . J.lookupJSet key $ jsets
 
 -- =============================================================== --
 -- Downloading tables of contents
 
-getTocs :: T.AppMonad Text
+getTocs :: [String] -> T.AppMonad ([Text], T.JournalSetToC)
 -- ^Acquire the tables of contents for all issues in the journal set
 -- according to the collection & key specified by the configuration.
 -- The tables of contents are returned as Text in the format also
 -- specified by the configuration.
-getTocs = do
-    jset <- getJset
-    fmt  <- asks T.cFormat
+getTocs []     = throwError "A file path to the journal sets must be supplied!"
+getTocs (fp:_) = do
+    jset <- snd <$> jsetFromFile fp
     tocs <- mapM downloadIssueToc . T.jsIssues $ jset
-    toOutput $ case fmt of
-                    T.CSV -> "ToC conversion to csv is not supported."
-                    T.MKD -> F.tocsToMkd jset tocs
-                    T.TXT -> F.tocsToTxt tocs
+    pure . (,) [C.tshow $ T.jsKey jset] . T.JSetToC (T.jsKey jset) $ tocs
 
-downloadIssueToc ::  T.Issue -> T.AppMonad T.TableOfContents
+downloadIssueToc ::  T.Issue -> T.AppMonad T.IssueToC
 -- ^Download the table of contents for a journal issue from PubMed.
 -- Display progress messages for each ToC download.
 downloadIssueToc x = do
@@ -108,19 +84,4 @@ downloadIssueToc x = do
     if null cs
        then liftIO . Tx.putStrLn $ "No articles listed at PubMed"
        else liftIO . Tx.putStrLn $ "OK"
-    pure $ T.ToC x cs
-
--- =============================================================== --
--- Displaying journal sets
-
-displayJsets :: T.AppMonad Text
--- ^Retrieve the requested journal set based on the configuration and
--- format for output.
-displayJsets = do
-    let ks = map (T.key . T.journal) R.issueRefs
-    jsets <- getJsets
-    fmt   <- asks T.cFormat
-    toOutput $ case fmt of
-                    T.CSV -> F.jsetsToCSV ks jsets
-                    T.MKD -> "Conversion to markdown is not yet implemented."
-                    T.TXT -> F.jsetsToTxt jsets
+    pure $ T.IssueToC x cs
