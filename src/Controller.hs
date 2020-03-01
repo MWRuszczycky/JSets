@@ -12,6 +12,7 @@ import qualified System.Console.GetOpt     as Opt
 import qualified Model.Core.Types          as T
 import qualified Commands                  as C
 import qualified Model.Help                as H
+import           Text.Read                          ( readMaybe           )
 import           Data.List                          ( foldl', intercalate )
 import           Data.Default                       ( def                 )
 import           Control.Monad.Except               ( throwError          )
@@ -59,8 +60,8 @@ options =
       "Display help information."
 
     , Opt.Option "k" [ "key" ]
-      ( Opt.ReqArg ( \ arg s -> s { T.cJsetKey = Just arg } ) "KEY" )
-      "Set the journal set key to KEY"
+      ( Opt.ReqArg ( \ arg s -> s { T.cJsetKey = readMaybe arg } ) "KEY" )
+      "Set the journal set key to KEY (positive integer)"
 
     , Opt.Option "y" [ "year" ]
       ( Opt.ReqArg ( \ arg s -> s { T.cJsetsYear = Just arg } ) "YEAR" )

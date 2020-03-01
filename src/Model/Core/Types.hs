@@ -8,8 +8,8 @@ module Model.Core.Types
     , Config            (..)
     , Format            (..)
       -- Journal sets
-    , JournalSet
-    , JournalSets
+    , JournalSet        (..)
+    , JournalSets       (..)
       -- Journals
     , Journal           (..)
     , Frequency         (..)
@@ -31,30 +31,35 @@ import Control.Monad.Reader ( ReaderT        )
 -- =============================================================== --
 -- State
 
+-- |Error strings
 type ErrString = String
 
+-- |IO monad with a fail state
 type ErrMonad  = ExceptT ErrString IO
 
+-- |Core application monad
 -- |AppMonad a = IO ( Either ErrString ( Reader Config a ) )
 type AppMonad  = ReaderT Config ErrMonad
 
 ---------------------------------------------------------------------
 -- Program configuration
 
+-- |Data type for output formats
 data Format =
-      CSV
-    | TXT
-    | MKD
+      CSV   -- comma separated values
+    | TXT   -- text
+    | MKD   -- markdown
       deriving ( Show, Eq )
 
+-- |Application configuration
 data Config = Config {
-      cCmds       :: [String]
-    , cInputPath  :: Maybe FilePath
-    , cOutputPath :: Maybe FilePath
-    , cJsetsYear  :: Maybe String
-    , cJsetKey    :: Maybe String
-    , cFormat     :: Format
-    , cHelp       :: Bool
+      cCmds       :: [String]       -- user commands
+    , cInputPath  :: Maybe FilePath -- file input path
+    , cOutputPath :: Maybe FilePath -- file output path
+    , cJsetsYear  :: Maybe String   -- journal sets year
+    , cJsetKey    :: Maybe Int      -- journal set key
+    , cFormat     :: Format         -- output format
+    , cHelp       :: Bool           -- user requested help
     } deriving ( Show )
 
 instance Default Config where
@@ -70,9 +75,15 @@ instance Default Config where
 -- =============================================================== --
 -- Journal sets
 
-type JournalSet  = ((Int,Int), [Issue])
+-- |A JournalSet is a list of all journal issues to be reviewed in
+-- a single along with an identifying INT key.
+data JournalSet  = JSet {
+      jsKey    :: Int
+    , jsIssues :: [Issue]
+    } deriving Show
 
-type JournalSets = Map (Int,Int) [Issue]
+-- |A JournalSets is a collection of journal sets mapped by key.
+newtype JournalSets = JSets (Map Int [Issue])
 
 -- =============================================================== --
 -- Journals

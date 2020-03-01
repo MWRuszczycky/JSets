@@ -9,9 +9,8 @@ import qualified Model.Core.Types      as T
 import qualified Model.Core.References as R
 import qualified Model.Parsers.CSV     as CSV
 import qualified Model.Journals        as J
-import qualified Data.Map.Strict       as Map
+import           Data.Char                    ( isSpace      )
 import           Data.Text                    ( Text         )
-import           Data.Maybe                   ( listToMaybe  )
 import           Model.Core.Core              ( readMaybeTxt )
 
 -- =============================================================== --
@@ -27,13 +26,13 @@ toJournalSets :: [[Text]] -> Either String T.JournalSets
 -- ^Convert a parsed CSV file to Journal Sets.
 -- The input is a list of lists of Text, where each sublist is a row
 -- in the CSV file and each Text is a cell in that row.
-toJournalSets []     = pure Map.empty
+toJournalSets []     = pure J.emptyJSets
 toJournalSets (x:xs) = do
     jKeys <- toJournalKeys x
     jSets <- traverse (toJournalSet jKeys) xs
     if duplicateKeys jSets
        then Left "There duplicated journal set keys."
-       else pure . Map.fromList $ jSets
+       else pure . J.pack $ jSets
 
 -- =============================================================== --
 -- Component parsers
@@ -60,18 +59,12 @@ toJournalSet :: [Text] -> [Text] -> Either String T.JournalSet
 -- ^Convert all csv cell contents as Text values to a journal set.
 -- The journal set must begin with a correctly formatted key.
 toJournalSet _  []     = Left "Missing key for journal set."
-toJournalSet js (x:xs) = (,) <$> parseKey x <*> toIssuesInSet js xs
+toJournalSet js (x:xs) = T.JSet <$> parseKey x <*> toIssuesInSet js xs
 
-parseKey :: Text -> Either String (Int, Int)
--- ^Parse the journal set key. The journal set key must be of the
--- form 'Y-N, where Y is the four digit year and N is the set number.
--- These are then converted to the (Int, Int) key used to index the
--- journal sets.
-parseKey t = maybe err pure yn
+parseKey :: Text -> Either String Int
+-- ^Parse the journal set key, which is just an integer.
+parseKey t = maybe err pure . readMaybeTxt . Tx.takeWhile (not . isSpace) $ t
     where err = Left $ "Invalid journal set key: " ++ Tx.unpack t
-          yn  = case fmap (Tx.splitOn "-") . listToMaybe . Tx.lines $ t of
-                     Just (y:n:_) -> (,) <$> readMaybeTxt y <*> readMaybeTxt n
-                     _            -> Nothing
 
 toIssuesInSet :: [Text] -> [Text] -> Either String [T.Issue]
 -- ^Generate the issues for each journal in a csv line corresponding
@@ -100,7 +93,7 @@ toIssues (j, t) = mapM toVolIssNo xs >>= mapM (go . J.lookupIssue j)
 
 duplicateKeys :: [T.JournalSet] -> Bool
 -- ^Check for duplicated journal set keys.
-duplicateKeys = go . fst . unzip
+duplicateKeys = go . map T.jsKey
     where go []     = False
           go (x:xs) = elem x xs || go xs
 

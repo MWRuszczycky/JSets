@@ -2,7 +2,11 @@
 
 module Model.Journals
     ( -- Working with journal sets
-      yearly26Sets
+      pack
+    , unpack
+    , emptyJSets
+    , lookupJSet
+    , yearly26Sets
     , splitByFreq
     , dateOfJSet
     , issuesByKey
@@ -35,6 +39,23 @@ import           Lens.Micro                         ( (.~), (&) )
 -- Working with journal sets
 
 ---------------------------------------------------------------------
+-- Basic operations
+
+pack :: [T.JournalSet] -> T.JournalSets
+pack = T.JSets . Map.fromList . map go
+    where go (T.JSet k xs) = (k, xs)
+
+unpack :: T.JournalSets -> [T.JournalSet]
+unpack (T.JSets m) = map go . Map.toList $ m
+    where go (k, xs) = T.JSet k xs
+
+emptyJSets :: T.JournalSets
+emptyJSets = T.JSets Map.empty
+
+lookupJSet :: Int -> T.JournalSets -> Maybe T.JournalSet
+lookupJSet k (T.JSets m) = T.JSet k <$> Map.lookup k m
+
+---------------------------------------------------------------------
 -- Creation of yearly journal sets
 
 yearly26Sets :: Int -> [T.Issue] -> T.JournalSets
@@ -43,11 +64,10 @@ yearly26Sets :: Int -> [T.Issue] -> T.JournalSets
 ---- the first 48 weekly issues. The 25-th set accounts for 49-th and
 ---- 50-th weekly issues. The 26-th set is all straglers that may or
 ---- may not be published in the specified year.
-yearly26Sets y refs = Map.fromList . zip keys $ C.zipLists wsets msets
+yearly26Sets y refs = pack . zipWith T.JSet [1..] $ C.zipLists wsets msets
     where (ws,ms) = splitByFreq refs
           wsets   = weekly26InYear y ws
           msets   = monthly26InYear y ms
-          keys    = [ (y,n) | n <- [1..] ]
 
 weekly26InYear :: Int -> [T.Issue] -> [[T.Issue]]
 -- ^Compute 26 sets of weekly issues. The first 24 sets contain two
@@ -72,7 +92,7 @@ monthly26InYear y refs = [] : [] : C.shuffleIn byqs byqrs
 -- Helper functions
 
 dateOfJSet :: T.JournalSet -> Day
-dateOfJSet = maximum . map T.date . snd
+dateOfJSet = maximum . map T.date . T.jsIssues
 
 issuesByKey :: Text -> [T.Issue] -> [T.Issue]
 -- ^Pull all issues in a list for a given journal key.

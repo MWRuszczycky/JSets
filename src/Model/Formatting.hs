@@ -27,7 +27,6 @@ module Model.Formatting
     ) where
 
 import qualified Data.Text          as Tx
-import qualified Data.Map           as Map
 import qualified Model.Core.Core    as C
 import qualified Model.Core.Types   as T
 import qualified Model.Journals     as J
@@ -48,7 +47,7 @@ jsetsToCSV :: [Text] -> T.JournalSets -> Text
 -- line is a journal set with issues for a given journal separated by
 -- new line characters.
 jsetsToCSV keys jsets = hdr <> "\n" <> tbl
-        where tbl  = Tx.unlines . map (jsetToCSV keys) . Map.toList $ jsets
+        where tbl  = Tx.unlines . map (jsetToCSV keys) . J.unpack $ jsets
               hdr  = Tx.intercalate "," $ "No. & Date" : keys
 
 jsetToCSV :: [Text] -> T.JournalSet -> Text
@@ -59,7 +58,7 @@ jsetToCSV :: [Text] -> T.JournalSet -> Text
 -- the issues for the corresponding journal separated by newline
 -- characters. All elements are enclosed in double quotes.
 jsetToCSV keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
-    where go k xs = (volIss . J.issuesByKey k . snd) jset : xs
+    where go k xs = (volIss . J.issuesByKey k . T.jsIssues) jset : xs
           volIss  = bracket '\"' '\"' . Tx.intercalate "\n" . map volIssToTxt
           hdr     = bracket '\"' '\"' (jsetKeyToTxt jset <> "\n" <> date) <> ","
           date    = C.tshow . J.dateOfJSet $ jset
@@ -68,18 +67,18 @@ jsetToCSV keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
 -- As Text
 
 jsetsToTxt :: T.JournalSets -> Text
-jsetsToTxt = Tx.unlines . map jsetToTxt . Map.toList
+jsetsToTxt = Tx.unlines . map jsetToTxt . J.unpack
 
 jsetToTxt :: T.JournalSet -> Text
 -- ^Convert a journal set to easily readable, formatted text.
 jsetToTxt jset = Tx.concat [jsetKeyToTxt jset, " | ", d, "\n"] <> Tx.unlines xs
-    where xs    = map issueToTxt . sortBy (comparing jName) . snd $ jset
+    where xs    = map issueToTxt . sortBy (comparing jName) . T.jsIssues $ jset
           jName = T.name . T.journal
           d     = C.tshow . J.dateOfJSet $ jset
 
 jsetKeyToTxt :: T.JournalSet -> Text
 -- ^Convert a journal set key to text formatted as year-number.
-jsetKeyToTxt ((y,n),_) = C.tshow y <> "-" <> C.tshow n
+jsetKeyToTxt = C.tshow . T.jsKey
 
 -- =============================================================== --
 -- Formatting issues
@@ -131,9 +130,9 @@ citationToTxt iss x = Tx.unlines parts
 ---------------------------------------------------------------------
 -- As Markdown
 
-tocsToMkd :: (Int,Int) -> [T.TableOfContents] -> Text
-tocsToMkd (y,n) = Tx.unlines . (:) hdr . map tocToMkd
-    where hdr = "# Journal Set " <> C.tshow y <> "-" <> C.tshow n
+tocsToMkd :: T.JournalSet -> [T.TableOfContents] -> Text
+tocsToMkd ( T.JSet k _ ) = Tx.unlines . (:) hdr . map tocToMkd
+    where hdr = "# Journal Set " <> C.tshow k
 
 tocToMkd :: T.TableOfContents -> Text
 tocToMkd (T.ToC x []) = issueToMkdHeader x

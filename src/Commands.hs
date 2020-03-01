@@ -8,7 +8,6 @@ module Commands
 
 import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
-import qualified Data.Map.Strict           as Map
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
@@ -61,16 +60,12 @@ getJset = do
     let err = "Cannot find requested journal set."
     jsets <- getJsets
     key   <- getJsetKey
-    jset  <- maybe (throwError err) pure . Map.lookup key $ jsets
-    pure (key, jset)
+    maybe (throwError err) pure . J.lookupJSet key $ jsets
 
-getJsetKey :: T.AppMonad (Int, Int)
+getJsetKey :: T.AppMonad Int
 -- ^Read the journal set key according to the configuration.
-getJsetKey = asks go >>= maybe err pure
-    where err  = throwError "Journal set key must be YEAR-NUMBER."
-          go u = case break (== '-') <$> T.cJsetKey u of
-                      Just (y,'-':n) -> (,) <$> readMaybe y <*> readMaybe n
-                      _              -> Nothing
+getJsetKey = asks T.cJsetKey >>= maybe err pure
+    where err  = throwError "Journal set key must be a positive integer"
 
 -- =============================================================== --
 -- Routing output
@@ -93,12 +88,12 @@ getTocs :: T.AppMonad Text
 -- The tables of contents are returned as Text in the format also
 -- specified by the configuration.
 getTocs = do
-    (k,xs) <- getJset
-    fmt    <- asks T.cFormat
-    tocs   <- mapM downloadIssueToc xs
+    jset <- getJset
+    fmt  <- asks T.cFormat
+    tocs <- mapM downloadIssueToc . T.jsIssues $ jset
     toOutput $ case fmt of
                     T.CSV -> "ToC conversion to csv is not supported."
-                    T.MKD -> F.tocsToMkd k tocs
+                    T.MKD -> F.tocsToMkd jset tocs
                     T.TXT -> F.tocsToTxt tocs
 
 downloadIssueToc ::  T.Issue -> T.AppMonad T.TableOfContents
