@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commands
-    ( -- Downloading tables of contents
-      getTocs
+    ( getFormat
+      -- Downloading tables of contents
+    , getTocs
       -- Displaying journal sets
     , jsetsFromYear
     ) where
@@ -33,6 +34,18 @@ getJsetKey :: T.AppMonad Int
 -- ^Read the journal set key according to the configuration.
 getJsetKey = asks T.cJsetKey >>= maybe err pure
     where err  = throwError "Journal set key must be a positive integer"
+
+getFormat :: T.AppMonad T.Format
+getFormat = do
+    mbFmt <- asks T.cFormat
+    path  <- asks T.cOutputPath
+    case ( mbFmt, C.extension <$> path ) of
+         (Just fmt, _          ) -> pure fmt
+         (Nothing , Just "txt" ) -> pure T.TXT
+         (Nothing , Just "md"  ) -> pure T.MKD
+         (Nothing , Just "mkd" ) -> pure T.MKD
+         (Nothing , Just "csv" ) -> pure T.MKD
+         _                       -> pure T.TXT
 
 ---------------------------------------------------------------------
 -- Collections of journal sets

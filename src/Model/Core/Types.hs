@@ -62,14 +62,14 @@ data Format =
 data Config = Config {
       cOutputPath :: Maybe FilePath -- file output path
     , cJsetKey    :: Maybe Int      -- journal set key
-    , cFormat     :: Format         -- output format
+    , cFormat     :: Maybe Format   -- output format
     , cHelp       :: Bool           -- user requested help
     } deriving ( Show )
 
 instance Default Config where
     def = Config { cOutputPath = Nothing
                  , cJsetKey    = Nothing
-                 , cFormat     = TXT
+                 , cFormat     = Nothing
                  , cHelp       = False
                  }
 

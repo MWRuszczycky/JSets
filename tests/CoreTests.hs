@@ -11,6 +11,8 @@ import Test.Hspec                       ( Spec (..)
 
 spec :: IO ()
 spec = hspec $ do
+    describe "extension" $ do
+        extensionSpec
     describe "chunksOf" $ do
         chunksOfSpec
     describe "takeEveryAt" $ do
@@ -23,6 +25,18 @@ spec = hspec $ do
         shuffleInAtSpec
     describe "zipLists" $ do
         zipListsSpec
+
+extensionSpec :: Spec
+extensionSpec = do
+    it "Works on empty paths" $ do
+        C.extension "" `shouldBe` []
+    it "Works on paths with no extensions" $ do
+        C.extension "/dir1/dir2/filename" `shouldBe` []
+    it "Works on paths with a single extension" $ do
+        C.extension "/dir1/dir2/filename.mkd" `shouldBe` "mkd"
+    it "Works on paths with a multiple extensions" $ do
+        C.extension "/dir1/dir2.dir/filename.mkd" `shouldBe` "mkd"
+        C.extension "/dir1.cat/dir2.dir/file.name.cat.mkd" `shouldBe` "mkd"
 
 chunksOfSpec :: Spec
 chunksOfSpec = do

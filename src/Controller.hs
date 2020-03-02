@@ -12,7 +12,6 @@ import qualified Model.Core.CoreIO         as C
 import qualified Commands                  as Cmd
 import qualified Model.Help                as H
 import qualified Model.Formatting          as F
-import           Data.Text                          ( Text                )
 import           System.Environment                 ( getArgs             )
 import           Text.Read                          ( readMaybe           )
 import           Data.List                          ( foldl', intercalate )
@@ -41,7 +40,7 @@ route (x:_)       = throwError $ "Unknown command: " <> x <> "\n"
 
 finish :: F.Formattable a => T.Result a -> T.AppMonad ()
 finish (T.Result hdr x) = do
-    fmt  <- asks T.cFormat
+    fmt  <- Cmd.getFormat
     path <- asks T.cOutputPath
     case path of
          Nothing -> liftIO . Tx.putStrLn . F.format fmt hdr $ x
@@ -76,7 +75,7 @@ argsToConfig xs =
          (_ ,_ ,err) -> Left . intercalate "\n" $ err
 
 configFormat :: String -> T.Config -> T.Config
-configFormat "csv" s = s { T.cFormat = T.CSV }
-configFormat "mkd" s = s { T.cFormat = T.MKD }
-configFormat "txt" s = s { T.cFormat = T.TXT }
+configFormat "csv" s = s { T.cFormat = Just T.CSV }
+configFormat "mkd" s = s { T.cFormat = Just T.MKD }
+configFormat "txt" s = s { T.cFormat = Just T.TXT }
 configFormat _     s = s

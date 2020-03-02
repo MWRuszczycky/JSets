@@ -3,6 +3,8 @@ module Model.Core.Core
       tshow
     , readMaybeTxt
     , readTxt
+      -- Working with file paths
+    , extension
       -- List manipulation
     , chunksOf
     , takeEveryAt
@@ -28,6 +30,15 @@ readMaybeTxt = readMaybe . Tx.unpack
 
 readTxt :: Read a => Text -> a
 readTxt = read . Tx.unpack
+
+-- =============================================================== --
+-- Working with file paths
+
+extension :: FilePath -> String
+extension fp
+    | null p    = []
+    | otherwise = reverse e
+    where (e,p) = break (=='.') . reverse $ fp
 
 -- =============================================================== --
 -- List manipulation
