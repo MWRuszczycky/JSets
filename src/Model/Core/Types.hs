@@ -5,6 +5,7 @@ module Model.Core.Types
       ErrString
     , ErrMonad
     , AppMonad
+    , Result            (..)
     , Config            (..)
     , Format            (..)
       -- Journal sets
@@ -41,6 +42,11 @@ type ErrMonad  = ExceptT ErrString IO
 -- |Core application monad
 -- |AppMonad a = IO ( Either ErrString ( Reader Config a ) )
 type AppMonad  = ReaderT Config ErrMonad
+
+data Result a = Result {
+      header :: [Text]
+    , result :: a
+    }
 
 ---------------------------------------------------------------------
 -- Program configuration

@@ -39,8 +39,8 @@ route ("toc":xs)  = Cmd.getTocs xs >>= finish
 route ("year":xs) = Cmd.jsetsFromYear xs >>= finish
 route (x:_)       = throwError $ "Unknown command: " <> x <> "\n"
 
-finish :: F.Formattable a => ([Text], a) -> T.AppMonad ()
-finish (hdr, x) = do
+finish :: F.Formattable a => T.Result a -> T.AppMonad ()
+finish (T.Result hdr x) = do
     fmt  <- asks T.cFormat
     path <- asks T.cOutputPath
     case path of

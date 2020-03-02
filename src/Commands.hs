@@ -15,7 +15,6 @@ import qualified Model.Formatting          as F
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
 import qualified Model.Core.References     as R
-import           Data.Text                          ( Text           )
 import           Text.Read                          ( readMaybe      )
 import           System.IO                          ( hFlush, stdout )
 import           Control.Monad.Reader               ( asks           )
@@ -38,39 +37,39 @@ getJsetKey = asks T.cJsetKey >>= maybe err pure
 ---------------------------------------------------------------------
 -- Collections of journal sets
 
-jsetsFromYear :: [String] -> T.AppMonad ([Text], T.JournalSets)
+jsetsFromYear :: [String] -> T.AppMonad (T.Result T.JournalSets)
 -- ^Build the default collection of journal sets based on a year.
 -- The year is provided as a string, which will raise an error if
 -- it is an invalid year.
 jsetsFromYear []    = throwError "A valid year must be specified!"
 jsetsFromYear (x:_) = maybe err go . readMaybe $ x
     where err  = throwError "Invalid year."
-          go y = pure . (,) [C.tshow y] . J.yearly26Sets y $ R.issueRefs
+          go y = pure . T.Result [C.tshow y] . J.yearly26Sets y $ R.issueRefs
 
 ---------------------------------------------------------------------
 -- A single journal set
 
-jsetFromFile :: FilePath -> T.AppMonad ([Text], T.JournalSet)
+jsetFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSet)
 -- ^Get a journal set based on the configuration.
 jsetFromFile fp = do
     jsets <- lift $ C.readFileErr fp >>= liftEither . P.parseJsets
     key   <- getJsetKey
     let err = "Cannot find requested journal set."
-    maybe (throwError err) (pure . (,) []) . J.lookupJSet key $ jsets
+    maybe (throwError err) (pure . T.Result []) . J.lookupJSet key $ jsets
 
 -- =============================================================== --
 -- Downloading tables of contents
 
-getTocs :: [String] -> T.AppMonad ([Text], T.JournalSetToC)
+getTocs :: [String] -> T.AppMonad (T.Result T.JournalSetToC)
 -- ^Acquire the tables of contents for all issues in the journal set
 -- according to the collection & key specified by the configuration.
 -- The tables of contents are returned as Text in the format also
 -- specified by the configuration.
 getTocs []     = throwError "A file path to the journal sets must be supplied!"
 getTocs (fp:_) = do
-    jset <- snd <$> jsetFromFile fp
+    jset <- T.result <$> jsetFromFile fp
     tocs <- mapM downloadIssueToc . T.jsIssues $ jset
-    pure . (,) [C.tshow $ T.jsKey jset] . T.JSetToC (T.jsKey jset) $ tocs
+    pure . T.Result [C.tshow $ T.jsKey jset] . T.JSetToC (T.jsKey jset) $ tocs
 
 downloadIssueToc ::  T.Issue -> T.AppMonad T.IssueToC
 -- ^Download the table of contents for a journal issue from PubMed.
