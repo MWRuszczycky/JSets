@@ -4,6 +4,7 @@ module Model.Core.References
     ( -- Utilities
       isAvailable
     , refIssue
+    , issueRefKeys
     , issueRefs
     ) where
 
@@ -22,6 +23,9 @@ isAvailable = maybe False (const True) . refIssue
 refIssue :: Text -> Maybe T.Issue
 -- ^Find a reference issue by its journal key.
 refIssue key = find ( (== key) . T.key . T.journal ) issueRefs
+
+issueRefKeys :: [Text]
+issueRefKeys = map ( T.key . T.journal ) issueRefs
 
 issueRefs :: [T.Issue]
 -- ^List of all available reference issues.

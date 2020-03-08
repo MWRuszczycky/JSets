@@ -95,7 +95,7 @@ downloadJsetTocs (fp:_) = do
 jsetsFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSets)
 jsetsFromFile fp = lift ( C.readFileErr fp )
                    >>= liftEither . P.parseJsets
-                   >>= pure . T.Result []
+                   >>= pure . T.Result R.issueRefKeys
 
 ---------------------------------------------------------------------
 -- Read a single journal set from a file
@@ -105,8 +105,9 @@ jsetFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSet)
 jsetFromFile fp = do
     jsets <- T.result <$> jsetsFromFile fp
     key   <- requireKey
-    let err = "Cannot find requested journal set."
-    maybe (throwError err) (pure . T.Result []) . J.lookupJSet key $ jsets
+    case J.lookupJSet key jsets of
+         Nothing   -> throwError "Cannot find requested journal set."
+         Just jset -> pure $ T.Result R.issueRefKeys jset
 
 ---------------------------------------------------------------------
 -- Downloading issue table of contents
