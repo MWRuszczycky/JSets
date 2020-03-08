@@ -28,8 +28,8 @@ runApp (cmds, config)
 
 route :: [String] -> T.AppMonad ()
 route []          = pure ()
-route ("toc":xs)  = Cmd.downloadJsetTocs xs >>= Cmd.finish
-route ("year":xs) = Cmd.jsetsFromYear xs    >>= Cmd.finish
+route ("toc":xs)  = Cmd.downloadJsetTocs xs
+route ("year":xs) = Cmd.jsetsFromYear xs
 route ("read":xs) = Cmd.readJsetOrJsets xs
 route (x:_)       = throwError $ "Unknown command: " <> x <> "\n"
 
