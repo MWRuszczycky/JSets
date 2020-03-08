@@ -5,20 +5,18 @@ module Controller
     , configure
     ) where
 
-import qualified Data.Text.IO              as Tx
 import qualified System.Console.GetOpt     as Opt
+import qualified Data.Text.IO              as Tx
 import qualified Model.Core.Types          as T
-import qualified Model.Core.CoreIO         as C
 import qualified Commands                  as Cmd
 import qualified Model.Help                as H
-import qualified Model.Formatting          as F
 import           System.Environment                 ( getArgs           )
 import           Text.Read                          ( readMaybe         )
 import           Data.List                          ( intercalate       )
 import           Control.Monad                      ( foldM             )
 import           Control.Monad.Except               ( throwError        )
-import           Control.Monad.Reader               ( runReaderT, asks
-                                                    , liftIO, lift      )
+import           Control.Monad.Reader               ( runReaderT
+                                                    , liftIO            )
 
 -- =============================================================== --
 -- Main control point and routers
@@ -30,17 +28,10 @@ runApp (cmds, config)
 
 route :: [String] -> T.AppMonad ()
 route []          = pure ()
-route ("toc":xs)  = Cmd.downloadJsetTocs xs >>= finish
-route ("year":xs) = Cmd.jsetsFromYear xs    >>= finish
+route ("toc":xs)  = Cmd.downloadJsetTocs xs >>= Cmd.finish
+route ("year":xs) = Cmd.jsetsFromYear xs    >>= Cmd.finish
+route ("read":xs) = Cmd.readJsetOrJsets xs
 route (x:_)       = throwError $ "Unknown command: " <> x <> "\n"
-
-finish :: F.Formattable a => T.Result a -> T.AppMonad ()
-finish (T.Result hdr x) = do
-    fmt  <- Cmd.getFormat
-    path <- asks T.cOutputPath
-    case path of
-         Nothing -> liftIO . Tx.putStrLn . F.format fmt hdr $ x
-         Just fp -> lift . C.writeFileErr fp . F.format fmt hdr $ x
 
 -- =============================================================== --
 -- Configuration

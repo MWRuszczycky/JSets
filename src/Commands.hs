@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commands
     ( getFormat
+      -- Handling output
+    , finish
       -- Reading journal sets from files
+    , readJsetOrJsets
     , jsetsFromFile
     , jsetFromFile
       -- Downloading tables of contents
@@ -19,6 +22,7 @@ import qualified Model.Formatting          as F
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
 import qualified Model.Core.References     as R
+import           Data.Maybe                         ( isJust         )
 import           Text.Read                          ( readMaybe      )
 import           System.IO                          ( hFlush, stdout )
 import           Control.Monad.Reader               ( asks           )
@@ -45,6 +49,28 @@ getFormat = do
 requireKey :: T.AppMonad Int
 requireKey = asks T.cJsetKey >>= maybe err pure
     where err = throwError "A valid journal set key is required."
+
+-- =============================================================== --
+-- Handling output
+
+finish :: F.Formattable a => T.Result a -> T.AppMonad ()
+finish (T.Result hdr x) = do
+    fmt  <- getFormat
+    path <- asks T.cOutputPath
+    case path of
+         Nothing -> liftIO . Tx.putStrLn . F.format fmt hdr $ x
+         Just fp -> lift . C.writeFileErr fp . F.format fmt hdr $ x
+
+-- =============================================================== --
+-- File format reading and conversion
+
+readJsetOrJsets :: [String] -> T.AppMonad ()
+readJsetOrJsets []     = throwError "A path to the journal sets file required!"
+readJsetOrJsets (fp:_) = do
+    keyProvided <- asks $ isJust . T.cJsetKey
+    if keyProvided
+       then jsetFromFile fp  >>= finish
+       else jsetsFromFile fp >>= finish
 
 -- =============================================================== --
 -- Aquiring journal set collections by year
