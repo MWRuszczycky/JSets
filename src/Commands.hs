@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commands
     ( getFormat
+      -- Reading journal sets from files
+    , jsetsFromFile
+    , jsetFromFile
       -- Downloading tables of contents
-    , getTocs
+    , downloadJsetTocs
       -- Displaying journal sets
     , jsetsFromYear
     ) where
@@ -25,10 +28,7 @@ import           Control.Monad.Except               ( liftIO
                                                     , liftEither     )
 
 -- =============================================================== --
--- Acquiring journal sets
-
----------------------------------------------------------------------
--- Helpers
+-- General Helper Commands
 
 getJsetKey :: T.AppMonad Int
 -- ^Read the journal set key according to the configuration.
@@ -47,8 +47,11 @@ getFormat = do
          (Nothing , Just "csv" ) -> pure T.MKD
          _                       -> pure T.TXT
 
----------------------------------------------------------------------
--- Collections of journal sets
+body :: T.Result a -> T.AppMonad a
+body (T.Result _ y) = pure y
+
+-- =============================================================== --
+-- Aquiring journal set collections by year
 
 jsetsFromYear :: [String] -> T.AppMonad (T.Result T.JournalSets)
 -- ^Build the default collection of journal sets based on a year.
@@ -59,27 +62,35 @@ jsetsFromYear (x:_) = maybe err go . readMaybe $ x
     where err  = throwError "Invalid year."
           go y = pure . T.Result [C.tshow y] . J.yearly26Sets y $ R.issueRefs
 
----------------------------------------------------------------------
--- A single journal set
+-- =============================================================== --
+-- Read all journal sets from a file
+
+jsetsFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSets)
+jsetsFromFile fp = lift ( C.readFileErr fp )
+                   >>= liftEither . P.parseJsets
+                   >>= pure . T.Result []
+
+-- =============================================================== --
+-- Read a single journal set from a file
 
 jsetFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSet)
 -- ^Get a journal set based on the configuration.
 jsetFromFile fp = do
-    jsets <- lift $ C.readFileErr fp >>= liftEither . P.parseJsets
+    jsets <- jsetsFromFile fp >>= body
     key   <- getJsetKey
     let err = "Cannot find requested journal set."
     maybe (throwError err) (pure . T.Result []) . J.lookupJSet key $ jsets
 
 -- =============================================================== --
--- Downloading tables of contents
+-- Download tables of contents for all issues in a journal set
 
-getTocs :: [String] -> T.AppMonad (T.Result T.JournalSetToC)
+downloadJsetTocs :: [String] -> T.AppMonad (T.Result T.JournalSetToC)
 -- ^Acquire the tables of contents for all issues in the journal set
 -- according to the collection & key specified by the configuration.
 -- The tables of contents are returned as Text in the format also
 -- specified by the configuration.
-getTocs []     = throwError "A file path to the journal sets must be supplied!"
-getTocs (fp:_) = do
+downloadJsetTocs []     = throwError "Path to the journal sets file is needed!"
+downloadJsetTocs (fp:_) = do
     jset <- T.result <$> jsetFromFile fp
     tocs <- mapM downloadIssueToc . T.jsIssues $ jset
     pure . T.Result [C.tshow $ T.jsKey jset] . T.JSetToC (T.jsKey jset) $ tocs

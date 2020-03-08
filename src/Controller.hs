@@ -34,8 +34,8 @@ runApp (cmds, config)
 
 route :: [String] -> T.AppMonad ()
 route []          = pure ()
-route ("toc":xs)  = Cmd.getTocs xs >>= finish
-route ("year":xs) = Cmd.jsetsFromYear xs >>= finish
+route ("toc":xs)  = Cmd.downloadJsetTocs xs >>= finish
+route ("year":xs) = Cmd.jsetsFromYear xs    >>= finish
 route (x:_)       = throwError $ "Unknown command: " <> x <> "\n"
 
 finish :: F.Formattable a => T.Result a -> T.AppMonad ()
