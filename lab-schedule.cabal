@@ -43,7 +43,6 @@ library lab-schedule-internal
                       , attoparsec
                       , bytestring
                       , containers
-                      , data-default
                       , microlens
                       , mtl
                       , text

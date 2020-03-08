@@ -11,7 +11,7 @@ import           Data.Version                   ( showVersion )
 import           Paths_lab_schedule             ( version     )
 import           Data.Text                      ( Text        )
 
-helpText :: [ Opt.OptDescr (T.Config -> T.Config) ] -> Text
+helpText :: [ Opt.OptDescr (T.Config -> T.ErrMonad T.Config) ] -> Text
 helpText opts = Tx.unlines hs
     where hs = [ introHelp
                , optionsHelp opts
@@ -31,7 +31,7 @@ introHelp = Tx.unlines hs
 header :: Text -> Text
 header x = Tx.unlines [ Tx.replicate 60 "-" , "-- " <> x ]
 
-optionsHelp :: [Opt.OptDescr (T.Config -> T.Config)] -> Text
+optionsHelp :: [Opt.OptDescr (T.Config -> T.ErrMonad T.Config)] -> Text
 optionsHelp = Tx.pack . Opt.usageInfo "Options summary:"
 
 journalSetsHelp :: Text

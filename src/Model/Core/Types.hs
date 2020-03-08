@@ -25,7 +25,6 @@ module Model.Core.Types
 
 import Data.Time            ( Day            )
 import Data.Text            ( Text           )
-import Data.Default         ( Default (..)   )
 import Data.Map.Strict      ( Map            )
 import Control.Monad.Except ( ExceptT        )
 import Control.Monad.Reader ( ReaderT        )
@@ -65,13 +64,6 @@ data Config = Config {
     , cFormat     :: Maybe Format   -- output format
     , cHelp       :: Bool           -- user requested help
     } deriving ( Show )
-
-instance Default Config where
-    def = Config { cOutputPath = Nothing
-                 , cJsetKey    = Nothing
-                 , cFormat     = Nothing
-                 , cHelp       = False
-                 }
 
 -- =============================================================== --
 -- Journal sets

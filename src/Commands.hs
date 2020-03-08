@@ -30,11 +30,6 @@ import           Control.Monad.Except               ( liftIO
 -- =============================================================== --
 -- General Helper Commands
 
-getJsetKey :: T.AppMonad Int
--- ^Read the journal set key according to the configuration.
-getJsetKey = asks T.cJsetKey >>= maybe err pure
-    where err  = throwError "Journal set key must be a positive integer"
-
 getFormat :: T.AppMonad T.Format
 getFormat = do
     mbFmt <- asks T.cFormat
@@ -47,8 +42,9 @@ getFormat = do
          (Nothing , Just "csv" ) -> pure T.MKD
          _                       -> pure T.TXT
 
-body :: T.Result a -> T.AppMonad a
-body (T.Result _ y) = pure y
+requireKey :: T.AppMonad Int
+requireKey = asks T.cJsetKey >>= maybe err pure
+    where err = throwError "A valid journal set key is required."
 
 -- =============================================================== --
 -- Aquiring journal set collections by year
@@ -76,8 +72,8 @@ jsetsFromFile fp = lift ( C.readFileErr fp )
 jsetFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSet)
 -- ^Get a journal set based on the configuration.
 jsetFromFile fp = do
-    jsets <- jsetsFromFile fp >>= body
-    key   <- getJsetKey
+    jsets <- T.result <$> jsetsFromFile fp
+    key   <- requireKey
     let err = "Cannot find requested journal set."
     maybe (throwError err) (pure . T.Result []) . J.lookupJSet key $ jsets
 
