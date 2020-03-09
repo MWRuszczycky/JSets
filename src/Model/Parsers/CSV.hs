@@ -15,7 +15,7 @@ parseCSV = bimap err id . At.parseOnly csv
     where err = (++) "Cannot parse CSV: "
 
 csv :: At.Parser [[Text]]
-csv = many csvLine
+csv = many csvLine <* At.endOfInput
 
 csvLine :: At.Parser [Text]
 csvLine = At.sepBy csvCell (At.char ',') <* At.endOfLine

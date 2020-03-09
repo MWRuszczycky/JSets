@@ -1,26 +1,90 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Parsers.JournalSets
-    ( parseJsets
+    ( parseJsetsCsv
+    , parseJsetsTxt
+    , parseJsets
     ) where
 
 import qualified Data.Text             as Tx
+import qualified Data.Attoparsec.Text  as At
 import qualified Model.Core.Types      as T
 import qualified Model.Core.References as R
 import qualified Model.Parsers.CSV     as CSV
 import qualified Model.Journals        as J
-import           Data.Char                    ( isSpace      )
-import           Data.Text                    ( Text         )
-import           Model.Core.Core              ( readMaybeTxt )
+import           Data.Attoparsec.Text         ( (<?>)              )
+import           Data.Bifunctor               ( bimap              )
+import           Data.Char                    ( isSpace, isDigit   )
+import           Data.Text                    ( Text               )
+import           Model.Core.Core              ( readMaybeTxt       )
+import           Control.Monad                ( sequence           )
+import           Control.Applicative          ( some, many
+                                              , empty, (<|>)       )
 
 -- =============================================================== --
--- Main parser
+-- Main parsers
 
-parseJsets :: Text -> Either String T.JournalSets
+parseJsets :: Text -> Either T.ErrString T.JournalSets
+parseJsets x = parseJsetsCsv x <|> parseJsetsTxt x
+
+parseJsetsCsv :: Text -> Either T.ErrString T.JournalSets
 -- ^Parse a properly formatted csv file to JournalSets.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
-parseJsets x = CSV.parseCSV x >>= toJournalSets
+parseJsetsCsv x = CSV.parseCSV x >>= toJournalSets
+
+parseJsetsTxt :: Text -> Either T.ErrString T.JournalSets
+parseJsetsTxt = bimap err id . At.parseOnly jsetsTxtParser
+    where err = (<>) "Cannot parse TXT: "
+
+-- =============================================================== --
+-- Component parsers for TXT
+
+jsetsTxtParser :: At.Parser T.JournalSets
+jsetsTxtParser = do
+    At.skipSpace
+    etJSets <- sequence <$> many jsetTxtParser
+    case etJSets of
+         Left err -> empty <?> err
+         Right js -> if duplicateKeys js
+                        then empty <?> "There are duplicated journal set keys."
+                        else pure . J.pack $ js
+
+jsetTxtParser :: At.Parser (Either T.ErrString T.JournalSet)
+jsetTxtParser = do
+    key <- jsetKeyParser
+    iss <- sequence <$> many issueTxtParser
+    At.skipSpace
+    pure $ T.JSet key <$> iss
+
+jsetKeyParser :: At.Parser Int
+jsetKeyParser = do
+    key <- intParser
+    At.skipSpace *> At.char '|' *> At.skipSpace
+    dateParser *> At.skipSpace
+    pure key
+
+issueTxtParser :: At.Parser (Either T.ErrString T.Issue)
+issueTxtParser = do
+    journal <- Tx.init <$> At.takeWhile1 ( not . isDigit )
+    volNo   <- intParser <* At.skipSpace
+    issNo   <- intParser <* At.skipSpace
+    At.char '(' *> dateParser *> At.char ')'
+    At.skipSpace
+    case J.lookupIssue journal (volNo, issNo) of
+         Nothing  -> pure . Left $ invalidIssErr journal volNo issNo
+         Just iss -> pure . pure $ iss
+
+intParser :: At.Parser Int
+intParser = some At.digit >>= pure . read
+
+dateParser :: At.Parser (Int, Int, Int)
+dateParser = (,,) <$> ( intParser <* At.char '-'  )
+                  <*> ( intParser <* At.char '-'  )
+                  <*> ( intParser                 )
+
+-- =============================================================== --
+-- Component parsers for CSV
 
 toJournalSets :: [[Text]] -> Either String T.JournalSets
 -- ^Convert a parsed CSV file to Journal Sets.
@@ -31,11 +95,8 @@ toJournalSets (x:xs) = do
     jKeys <- toJournalKeys x
     jSets <- traverse (toJournalSet jKeys) xs
     if duplicateKeys jSets
-       then Left "There duplicated journal set keys."
+       then Left "There are duplicated journal set keys."
        else pure . J.pack $ jSets
-
--- =============================================================== --
--- Component parsers
 
 ---------------------------------------------------------------------
 -- Journal keys
@@ -45,8 +106,8 @@ toJournalKeys :: [Text] -> Either String [Text]
 -- first element is a dummy header for the journal set keys, so it
 -- needs to be dropped. Each journal must have a reference issue
 -- available for this to succeed.
-toJournalKeys []     = Left "Nothing to parse."
-toJournalKeys (_:[]) = Left "Nothing to parse."
+toJournalKeys []     = Left "Missing CSV journal key headers."
+toJournalKeys (_:[]) = Left "Missing CSV journal key headers."
 toJournalKeys (_:ks) = traverse go ks
     where errMsg x = "Journal key unavailable: " ++ Tx.unpack x
           go x | R.isAvailable x = pure x
@@ -96,6 +157,12 @@ duplicateKeys :: [T.JournalSet] -> Bool
 duplicateKeys = go . map T.jsKey
     where go []     = False
           go (x:xs) = elem x xs || go xs
+
+invalidIssErr :: Text -> Int -> Int -> T.ErrString
+invalidIssErr j v n = "Invalid issue: " <> jstr <> " " <> vstr <> ":" <> nstr
+    where jstr = Tx.unpack j
+          vstr = show v
+          nstr = show n
 
 toVolIssNo :: Text -> Either String (Int, Int)
 -- ^Parse a 'volume:issue' text string to the numeric values.

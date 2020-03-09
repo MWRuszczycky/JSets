@@ -12,5 +12,5 @@ main = do
     GHC.setLocaleEncoding GHC.utf8
     result <- runExceptT $ configure >>= runApp
     case result of
-         Left err -> putStrLn $ err <> "Try option '-h' or '--help' for usage."
+         Left err -> putStrLn $ err <> "\nTry '-h' or '--help' for usage."
          Right _  -> pure ()
