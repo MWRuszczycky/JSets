@@ -12,14 +12,12 @@ import qualified Model.Core.Types      as T
 import qualified Model.Core.References as R
 import qualified Model.Parsers.CSV     as CSV
 import qualified Model.Journals        as J
-import           Data.Attoparsec.Text         ( (<?>)              )
 import           Data.Bifunctor               ( bimap              )
 import           Data.Char                    ( isSpace, isDigit   )
 import           Data.Text                    ( Text               )
 import           Model.Core.Core              ( readMaybeTxt       )
 import           Control.Monad                ( sequence           )
-import           Control.Applicative          ( some, many
-                                              , empty, (<|>)       )
+import           Control.Applicative          ( some, many,  (<|>) )
 
 -- =============================================================== --
 -- Main parsers
@@ -31,9 +29,12 @@ parseJsetsCsv :: Text -> Either T.ErrString T.JournalSets
 -- ^Parse a properly formatted csv file to JournalSets.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
+-- All issues must be valid and the first row must be the journals.
 parseJsetsCsv x = CSV.parseCSV x >>= toJournalSets
 
 parseJsetsTxt :: Text -> Either T.ErrString T.JournalSets
+-- ^Parse a properly formatted text file to JournalSets.
+-- All issues must be valid on lookup.
 parseJsetsTxt = bimap err id . At.parseOnly jsetsTxtParser
     where err = (<>) "Cannot parse TXT: "
 
@@ -45,9 +46,9 @@ jsetsTxtParser = do
     At.skipSpace
     etJSets <- sequence <$> many jsetTxtParser
     case etJSets of
-         Left err -> empty <?> err
+         Left err -> fail err
          Right js -> if duplicateKeys js
-                        then empty <?> "There are duplicated journal set keys."
+                        then fail "There are duplicated journal set keys."
                         else pure . J.pack $ js
 
 jsetTxtParser :: At.Parser (Either T.ErrString T.JournalSet)

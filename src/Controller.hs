@@ -43,6 +43,13 @@ configure = do
          (fs, cs, [] ) -> foldM (flip ($)) initConfig fs >>= pure . ( (,) cs )
          (_,  _ , err) -> throwError . intercalate "\n" $ err
 
+initConfig :: T.Config
+initConfig = T.Config { T.cOutputPath = Nothing
+                      , T.cJsetKey    = Nothing
+                      , T.cFormat     = Nothing
+                      , T.cHelp       = False
+                      }
+
 -- =============================================================== --
 -- Options
 
@@ -76,10 +83,3 @@ configFormat "csv" s = pure s { T.cFormat = Just T.CSV }
 configFormat "mkd" s = pure s { T.cFormat = Just T.MKD }
 configFormat "txt" s = pure s { T.cFormat = Just T.TXT }
 configFormat x     _ = throwError $ "Unrecognized format: " <> x
-
-initConfig :: T.Config
-initConfig = T.Config { T.cOutputPath = Nothing
-                      , T.cJsetKey    = Nothing
-                      , T.cFormat     = Nothing
-                      , T.cHelp       = False
-                      }
