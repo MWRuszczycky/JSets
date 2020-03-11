@@ -52,9 +52,10 @@ runCommands (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
 ---------------------------------------------------------------------
 -- File format reading and conversion
 
-readHelp :: Text
-readHelp = Tx.unlines hs
-    where hs = [ "read help" ]
+readHelp :: (Text, Text)
+readHelp = (s, Tx.unlines hs)
+    where s  = "read help header"
+          hs = [ "read help content" ]
 
 readJsetOrJsets :: [String] -> T.AppMonad ()
 -- ^Read and output a journal set collection or a single journal set
@@ -69,9 +70,10 @@ readJsetOrJsets (fp:_) = do
 ---------------------------------------------------------------------
 -- Aquire journal set collections by year
 
-yearHelp :: Text
-yearHelp = Tx.unlines hs
-    where hs = [ "year help" ]
+yearHelp :: (Text, Text)
+yearHelp = (s, Tx.unlines hs)
+    where s  = "year help header"
+          hs = [ "year help content" ]
 
 jsetsFromYear :: [String] -> T.AppMonad ()
 -- ^Build the default collection of journal sets based on a year.
@@ -85,9 +87,10 @@ jsetsFromYear (x:_) = maybe err go  (readMaybe x) >>= finish
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
 
-tocHelp :: Text
-tocHelp = Tx.unlines hs
-    where hs = [ "toc help" ]
+tocHelp :: (Text, Text)
+tocHelp = (s, Tx.unlines hs)
+    where s  = "toc help header"
+          hs = [ "toc help content" ]
 
 downloadJsetTocs :: [String] -> T.AppMonad ()
 -- ^Acquire the tables of contents for all issues in the journal set

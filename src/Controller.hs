@@ -15,14 +15,14 @@ import           Data.List                          ( intercalate           )
 import           Control.Monad                      ( foldM                 )
 import           Control.Monad.Except               ( throwError            )
 import           Control.Monad.Reader               ( runReaderT, liftIO    )
-import           Commands                           ( runCommands           )
+import           Commands                           ( runCommands, commands )
 
 -- =============================================================== --
 -- Main control point and routers
 
 runApp :: ([String], T.Config) -> T.ErrMonad ()
 runApp (cmds, config)
-    | T.cHelp config = liftIO . Tx.putStrLn . H.helpText $ options
+    | T.cHelp config = liftIO . Tx.putStrLn . H.helpText commands $ options
     | otherwise      = runReaderT ( runCommands cmds ) config
 
 -- =============================================================== --

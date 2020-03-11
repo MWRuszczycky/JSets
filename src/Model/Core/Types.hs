@@ -69,7 +69,7 @@ data Config = Config {
 data Command = Command {
       cmdName   :: String
     , cmdAction :: [String] -> AppMonad ()
-    , cmdHelp   :: Text
+    , cmdHelp   :: (Text, Text)
     }
 
 -- =============================================================== --

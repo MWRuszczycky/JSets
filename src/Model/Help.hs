@@ -11,8 +11,12 @@ import           Data.Version                   ( showVersion )
 import           Paths_lab_schedule             ( version     )
 import           Data.Text                      ( Text        )
 
-helpText :: [ Opt.OptDescr (T.Config -> T.ErrMonad T.Config) ] -> Text
-helpText opts = Tx.unlines hs
+-- =============================================================== --
+
+type Option = Opt.OptDescr (T.Config -> T.ErrMonad T.Config)
+
+helpText :: [T.Command] -> [Option] -> Text
+helpText _ opts = Tx.unlines hs
     where hs = [ introHelp
                , optionsHelp opts
                , journalSetsHelp
