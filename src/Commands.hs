@@ -1,11 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commands
-    ( -- Handling output
-      finish
-      -- Commands
-    , readJsetOrJsets
-    , jsetsFromYear
-    , downloadJsetTocs
+    ( -- Commands
+      commands
+    , runCommands
+      -- Handling output
+    , finish
       -- Data structer construction & aquisition
     , jsetsFromFile
     , jsetFromFile
@@ -15,6 +14,7 @@ module Commands
     ) where
 
 import qualified Data.Text.IO              as Tx
+import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
@@ -23,7 +23,9 @@ import qualified Model.Formatting          as F
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
 import qualified Model.Core.References     as R
+import           Data.Text                          ( Text           )
 import           Data.Maybe                         ( isJust         )
+import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
 import           System.IO                          ( hFlush, stdout )
 import           Control.Monad.Reader               ( asks           )
@@ -33,21 +35,26 @@ import           Control.Monad.Except               ( liftIO
                                                     , liftEither     )
 
 -- =============================================================== --
--- Handling output
-
-finish :: F.Formattable a => T.Result a -> T.AppMonad ()
-finish (T.Result hdr x) = do
-    fmt  <- getFormat
-    path <- asks T.cOutputPath
-    case path of
-         Nothing -> liftIO . Tx.putStrLn . F.format fmt hdr $ x
-         Just fp -> lift . C.writeFileErr fp . F.format fmt hdr $ x
-
--- =============================================================== --
 -- Commands
+
+commands :: [ T.Command ]
+commands = [ T.Command "read" readJsetOrJsets  readHelp
+           , T.Command "year" jsetsFromYear    yearHelp
+           , T.Command "toc"  downloadJsetTocs tocHelp
+           ]
+
+runCommands :: [String] -> T.AppMonad ()
+runCommands []     = pure ()
+runCommands (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
+    where go  = flip T.cmdAction xs
+          err = throwError $ "Unknown command: " <> x <> "\n"
 
 ---------------------------------------------------------------------
 -- File format reading and conversion
+
+readHelp :: Text
+readHelp = Tx.unlines hs
+    where hs = [ "read help" ]
 
 readJsetOrJsets :: [String] -> T.AppMonad ()
 -- ^Read and output a journal set collection or a single journal set
@@ -62,6 +69,10 @@ readJsetOrJsets (fp:_) = do
 ---------------------------------------------------------------------
 -- Aquire journal set collections by year
 
+yearHelp :: Text
+yearHelp = Tx.unlines hs
+    where hs = [ "year help" ]
+
 jsetsFromYear :: [String] -> T.AppMonad ()
 -- ^Build the default collection of journal sets based on a year.
 -- The year is provided as a string, which will raise an error if
@@ -74,6 +85,10 @@ jsetsFromYear (x:_) = maybe err go  (readMaybe x) >>= finish
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
 
+tocHelp :: Text
+tocHelp = Tx.unlines hs
+    where hs = [ "toc help" ]
+
 downloadJsetTocs :: [String] -> T.AppMonad ()
 -- ^Acquire the tables of contents for all issues in the journal set
 -- according to the collection & key specified by the configuration.
@@ -85,6 +100,17 @@ downloadJsetTocs (fp:_) = do
     tocs <- mapM downloadIssueToc . T.jsIssues $ jset
     finish $ T.Result [C.tshow $ T.jsKey jset]
              $ T.JSetToC (T.jsKey jset) tocs
+
+-- =============================================================== --
+-- Handling output
+
+finish :: F.Formattable a => T.Result a -> T.AppMonad ()
+finish (T.Result hdr x) = do
+    fmt  <- getFormat
+    path <- asks T.cOutputPath
+    case path of
+         Nothing -> liftIO . Tx.putStrLn . F.format fmt hdr $ x
+         Just fp -> lift . C.writeFileErr fp . F.format fmt hdr $ x
 
 -- =============================================================== --
 -- Data structure construction & acquisition

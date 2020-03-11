@@ -8,15 +8,14 @@ module Controller
 import qualified System.Console.GetOpt     as Opt
 import qualified Data.Text.IO              as Tx
 import qualified Model.Core.Types          as T
-import qualified Commands                  as Cmd
 import qualified Model.Help                as H
-import           System.Environment                 ( getArgs           )
-import           Text.Read                          ( readMaybe         )
-import           Data.List                          ( intercalate       )
-import           Control.Monad                      ( foldM             )
-import           Control.Monad.Except               ( throwError        )
-import           Control.Monad.Reader               ( runReaderT
-                                                    , liftIO            )
+import           System.Environment                 ( getArgs               )
+import           Text.Read                          ( readMaybe             )
+import           Data.List                          ( intercalate           )
+import           Control.Monad                      ( foldM                 )
+import           Control.Monad.Except               ( throwError            )
+import           Control.Monad.Reader               ( runReaderT, liftIO    )
+import           Commands                           ( runCommands           )
 
 -- =============================================================== --
 -- Main control point and routers
@@ -24,14 +23,7 @@ import           Control.Monad.Reader               ( runReaderT
 runApp :: ([String], T.Config) -> T.ErrMonad ()
 runApp (cmds, config)
     | T.cHelp config = liftIO . Tx.putStrLn . H.helpText $ options
-    | otherwise      = runReaderT ( route cmds ) config
-
-route :: [String] -> T.AppMonad ()
-route []          = pure ()
-route ("toc":xs)  = Cmd.downloadJsetTocs xs
-route ("year":xs) = Cmd.jsetsFromYear xs
-route ("read":xs) = Cmd.readJsetOrJsets xs
-route (x:_)       = throwError $ "Unknown command: " <> x <> "\n"
+    | otherwise      = runReaderT ( runCommands cmds ) config
 
 -- =============================================================== --
 -- Configuration

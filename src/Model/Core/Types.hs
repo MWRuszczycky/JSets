@@ -8,6 +8,7 @@ module Model.Core.Types
     , Result            (..)
     , Config            (..)
     , Format            (..)
+    , Command           (..)
       -- Journal sets
     , JournalSet        (..)
     , JournalSets       (..)
@@ -64,6 +65,12 @@ data Config = Config {
     , cFormat     :: Maybe Format   -- output format
     , cHelp       :: Bool           -- user requested help
     } deriving ( Show )
+
+data Command = Command {
+      cmdName   :: String
+    , cmdAction :: [String] -> AppMonad ()
+    , cmdHelp   :: Text
+    }
 
 -- =============================================================== --
 -- Journal sets
