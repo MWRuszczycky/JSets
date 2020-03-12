@@ -198,7 +198,7 @@ getFormat = do
          (Nothing , Just "txt" ) -> pure T.TXT
          (Nothing , Just "md"  ) -> pure T.MKD
          (Nothing , Just "mkd" ) -> pure T.MKD
-         (Nothing , Just "csv" ) -> pure T.MKD
+         (Nothing , Just "csv" ) -> pure T.CSV
          _                       -> pure T.TXT
 
 requireKey :: T.AppMonad Int
