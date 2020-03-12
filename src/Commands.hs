@@ -47,15 +47,32 @@ runCommands :: [String] -> T.AppMonad ()
 runCommands []     = pure ()
 runCommands (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
     where go  = flip T.cmdAction xs
-          err = throwError $ "Unknown command: " <> x <> "\n"
+          err = throwError $ "Unknown command: " <> x
 
 ---------------------------------------------------------------------
 -- File format reading and conversion
 
 readHelp :: (Text, Text)
 readHelp = (s, Tx.unlines hs)
-    where s  = "read help header"
-          hs = [ "read help content" ]
+    where s  = "read : read journal sets from file"
+          hs = [ "A journal set is a collection of journal issues for review."
+               , "Collections of journal sets can be read from a file in either"
+               , "text or csv format using the <read> command. A specific set"
+               , "can be read alone by specifying the key (a positive integer)"
+               , "of the specific journal set of interest using the --key/-k"
+               , "option. Collections of journal sets can be generated using"
+               , "the <year> command. For example, if <jsets2019.txt> is a file"
+               , "containing all the journal sets for 2019, then you can print"
+               , "journal set 5 to the terminal using,\n"
+               , "    lab-schedule read jsets2019.txt --key=5\n"
+               , "You can use the <read> command to convert between journal set"
+               , "formats. For example, if you want to generate a csv file of"
+               , "the journal sets use,\n"
+               , "    lab-schedule read jsets2019.txt --output=jsets2019.csv\n"
+               , "the output format is determined by the output file extension;"
+               , "however, it can be over-ridden using the --format/-f command."
+               , "The default output format is text."
+               ]
 
 readJsetOrJsets :: [String] -> T.AppMonad ()
 -- ^Read and output a journal set collection or a single journal set
@@ -86,6 +103,20 @@ jsetsFromYear (x:_) = maybe err go  (readMaybe x) >>= finish
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
+
+--tocHelp :: Text
+--tocHelp = Tx.unlines hs
+--    where hs = [ header "Working with tables of contents"
+--               , "Tables of contents for journal issues can be downloaded from"
+--               , "PubMed. This requires that a journal set collection file be"
+--               , "available. This collection file can be generated using the"
+--               , "<year> command with the csv format and then edited. The"
+--               , "journal set of interest is specified by its key using the"
+--               , "--key/-k option. Output format is as described above. Thus,"
+--               , "to generate a toc file for the third journal set in the"
+--               , "collection described by the file jsets2019.csv, use\n"
+--               , "    lab-schedule toc jsets2019.csv -k3 -otoc2019-3.mkd"
+--               ]
 
 tocHelp :: (Text, Text)
 tocHelp = (s, Tx.unlines hs)
