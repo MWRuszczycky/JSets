@@ -53,7 +53,7 @@ options =
 
     , Opt.Option "f" [ "format" ]
       ( Opt.ReqArg configFormat "FMT" )
-      "Set the output format to FMT (txt, csv, mkd)"
+      "Set the output format to FMT (txt, csv, mkd, md)"
 
     , Opt.Option "h" [ "help" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cHelp = True } ) )
@@ -73,5 +73,6 @@ configKey key config
 configFormat :: String -> T.Config -> T.ErrMonad T.Config
 configFormat "csv" s = pure s { T.cFormat = Just T.CSV }
 configFormat "mkd" s = pure s { T.cFormat = Just T.MKD }
+configFormat "md"  s = pure s { T.cFormat = Just T.MKD }
 configFormat "txt" s = pure s { T.cFormat = Just T.TXT }
 configFormat x     _ = throwError $ "Unrecognized format: " <> x

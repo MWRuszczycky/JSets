@@ -69,7 +69,7 @@ readHelp = (s, Tx.unlines hs)
                , "formats. For example, if you want to generate a csv file of"
                , "the journal sets use,\n"
                , "    lab-schedule read jsets2019.txt --output=jsets2019.csv\n"
-               , "the output format is determined by the output file extension;"
+               , "The output format is determined by the output file extension;"
                , "however, it can be over-ridden using the --format/-f command."
                , "The default output format is text."
                ]
@@ -89,8 +89,14 @@ readJsetOrJsets (fp:_) = do
 
 yearHelp :: (Text, Text)
 yearHelp = (s, Tx.unlines hs)
-    where s  = "year help header"
-          hs = [ "year help content" ]
+    where s  = "year : build a collection of all journal sets in a given year"
+          hs = [ "The <year> command distributes all issues for all configured"
+               , "journals in a given year into 26 journal sets. So, to create"
+               , "a file with the default journal sets in 2019 use,\n"
+               , "    lab-schedule year 2019 --output=jsets2019.txt\n"
+               , "You can also create a csv file by changing the extension to"
+               , ".csv or using the --format/-f option."
+               ]
 
 jsetsFromYear :: [String] -> T.AppMonad ()
 -- ^Build the default collection of journal sets based on a year.
@@ -104,24 +110,19 @@ jsetsFromYear (x:_) = maybe err go  (readMaybe x) >>= finish
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
 
---tocHelp :: Text
---tocHelp = Tx.unlines hs
---    where hs = [ header "Working with tables of contents"
---               , "Tables of contents for journal issues can be downloaded from"
---               , "PubMed. This requires that a journal set collection file be"
---               , "available. This collection file can be generated using the"
---               , "<year> command with the csv format and then edited. The"
---               , "journal set of interest is specified by its key using the"
---               , "--key/-k option. Output format is as described above. Thus,"
---               , "to generate a toc file for the third journal set in the"
---               , "collection described by the file jsets2019.csv, use\n"
---               , "    lab-schedule toc jsets2019.csv -k3 -otoc2019-3.mkd"
---               ]
-
 tocHelp :: (Text, Text)
 tocHelp = (s, Tx.unlines hs)
-    where s  = "toc help header"
-          hs = [ "toc help content" ]
+    where s  = "toc : generate tables of contents for a journal set"
+          hs = [ "If jsets2019.txt is a collection of journal sets (see <read>"
+               , "command), then you can generate a markdown file of the tables"
+               , "of contents for each issue in the set with key 6 using,\n"
+               , "    lab-schedule toc jsets2019.txt --key=6"
+                 <> " --output=toc2019-5.mkd\n"
+               , "Note that the default output format is text and will be"
+               , "printed to the terminal. So, you need to either specify an"
+               , "output path with the desired extension and/or use the"
+               , "--format/-f option with 'mkd' or 'md' to indicate markdown."
+               ]
 
 downloadJsetTocs :: [String] -> T.AppMonad ()
 -- ^Acquire the tables of contents for all issues in the journal set
