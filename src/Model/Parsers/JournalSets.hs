@@ -9,7 +9,6 @@ module Model.Parsers.JournalSets
 import qualified Data.Text             as Tx
 import qualified Data.Attoparsec.Text  as At
 import qualified Model.Core.Types      as T
-import qualified Model.Core.References as R
 import qualified Model.Parsers.CSV     as CSV
 import qualified Model.Journals        as J
 import           Data.Bifunctor               ( bimap              )
@@ -29,7 +28,8 @@ parseJsetsCsv :: Text -> Either T.ErrString T.JournalSets
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
 -- All issues must be valid and the first row must be the journals.
-parseJsetsCsv x = CSV.parseCSV x >>= toJournalSets
+parseJsetsCsv x = bimap err id $ CSV.parseCSV x >>= toJournalSets >>= validate
+    where err   = (<>) "Cannot parse TXT: "
 
 parseJsetsTxt :: Text -> Either T.ErrString T.JournalSets
 -- ^Parse a properly formatted text file to JournalSets.
@@ -100,68 +100,49 @@ dateParser = (,,) <$> ( intParser <* At.char '-'  )
 -- =============================================================== --
 -- Component parsers for CSV
 
-toJournalSets :: [[Text]] -> Either String T.JournalSets
--- ^Convert a parsed CSV file to Journal Sets.
+toJournalSets :: [[Text]] -> Either T.ErrString [RawJSet]
+-- ^Convert a parsed CSV file to raw journal sets.
 -- The input is a list of lists of Text, where each sublist is a row
 -- in the CSV file and each Text is a cell in that row.
-toJournalSets []     = pure J.emptyJSets
+toJournalSets []     = pure []
 toJournalSets (x:xs) = do
     jKeys <- toJournalKeys x
-    jSets <- traverse (toJournalSet jKeys) xs
-    if duplicateKeys jSets
-       then Left "There are duplicated journal set keys."
-       else pure . J.pack $ jSets
+    mapM (toJournalSet jKeys) xs
 
 ---------------------------------------------------------------------
 -- Journal keys
 
-toJournalKeys :: [Text] -> Either String [Text]
+toJournalKeys :: [Text] -> Either T.ErrString [Text]
 -- ^The first row in the csv file is the journal abbreviations. The
 -- first element is a dummy header for the journal set keys, so it
--- needs to be dropped. Each journal must have a reference issue
--- available for this to succeed.
+-- needs to be dropped.
 toJournalKeys []     = Left "Missing CSV journal key headers."
 toJournalKeys (_:[]) = Left "Missing CSV journal key headers."
-toJournalKeys (_:ks) = traverse go ks
-    where errMsg x = "Journal key unavailable: " ++ Tx.unpack x
-          go x | R.isAvailable x = pure x
-               | otherwise       = Left . errMsg $ x
+toJournalKeys (_:ks) = pure ks
 
 ---------------------------------------------------------------------
 -- Individual journal sets and issues
 
-toJournalSet :: [Text] -> [Text] -> Either String T.JournalSet
--- ^Convert all csv cell contents as Text values to a journal set.
+toJournalSet :: [Text] -> [Text] -> Either T.ErrString RawJSet
+-- ^Convert all csv cell Text values to a raw journal set.
 -- The journal set must begin with a correctly formatted key.
-toJournalSet _  []     = Left "Missing key for journal set."
-toJournalSet js (x:xs) = T.JSet <$> parseKey x <*> toIssuesInSet js xs
+toJournalSet _ []      = Left "Missing key for journal set."
+toJournalSet js (x:xs) = (,) <$> parseKey x <*> toIssues js xs
 
 parseKey :: Text -> Either String Int
 -- ^Parse the journal set key, which is just an integer.
 parseKey t = maybe err pure . readMaybeTxt . Tx.takeWhile (not . isSpace) $ t
     where err = Left $ "Invalid journal set key: " ++ Tx.unpack t
 
-toIssuesInSet :: [Text] -> [Text] -> Either String [T.Issue]
+toIssues :: [Text] -> [Text] -> Either T.ErrString [RawIssue]
 -- ^Generate the issues for each journal in a csv line corresponding
 -- to a single journal set. The first argument is the list of
 -- journals. The second argument is the volume and issue numbers for
--- the corresponding journal in the same order. All volume and issue
--- numbers must correspond to valid issues for the journal.
-toIssuesInSet js xs = fmap concat . traverse toIssues . zip js $ ys
-    where ys = xs ++ replicate (length js - length xs) Tx.empty
-
-toIssues :: (Text, Text) -> Either String [T.Issue]
--- ^Given a journal key (abbreviation) and Text corresponding to
--- volume and issue numbers for that journal, construct a
--- corresponding issue if it exists. The volume and issue numbers
--- must be formatted as 'volume:issue'. Multiple issues can be
--- specified by separating the 'volume:issue' text by newlines.
-toIssues (j, t) = mapM toVolIssNo xs >>= mapM (go . J.lookupIssue j)
-    where xs          = Tx.lines t
-          go (Just x) = pure x
-          go Nothing  = Left . Tx.unpack . Tx.unwords $ [ "Missing Issue(s):"
-                                                        , j, Tx.unwords xs
-                                                        ]
+-- the corresponding journal in the same order.
+toIssues js xs = fmap concat . sequence . zipWith go js $ ys
+    where ys     = xs ++ replicate (length js - length xs) Tx.empty
+          go j y = (mapM toVolIssNo . Tx.lines) y
+                   >>= pure . map ( \ (v,n) -> (j,v,n) )
 
 -- =============================================================== --
 -- Helper functions
@@ -178,7 +159,7 @@ invalidIssErr j v n = "Invalid issue: " <> jstr <> " " <> vstr <> ":" <> nstr
           vstr = show v
           nstr = show n
 
-toVolIssNo :: Text -> Either String (Int, Int)
+toVolIssNo :: Text -> Either T.ErrString (Int, Int)
 -- ^Parse a 'volume:issue' text string to the numeric values.
 toVolIssNo t = case traverse readMaybeTxt . Tx.splitOn ":" $ t of
                     Just (v:i:[]) -> pure (v,i)
