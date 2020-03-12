@@ -16,7 +16,6 @@ import           Data.Bifunctor               ( bimap              )
 import           Data.Char                    ( isSpace, isDigit   )
 import           Data.Text                    ( Text               )
 import           Model.Core.Core              ( readMaybeTxt       )
-import           Control.Monad                ( sequence           )
 import           Control.Applicative          ( some, many,  (<|>) )
 
 -- =============================================================== --
@@ -35,28 +34,44 @@ parseJsetsCsv x = CSV.parseCSV x >>= toJournalSets
 parseJsetsTxt :: Text -> Either T.ErrString T.JournalSets
 -- ^Parse a properly formatted text file to JournalSets.
 -- All issues must be valid on lookup.
-parseJsetsTxt = bimap err id . At.parseOnly jsetsTxtParser
-    where err = (<>) "Cannot parse TXT: "
+parseJsetsTxt t = bimap err id $ At.parseOnly jsetsTxtParser t >>= validate
+    where err   = (<>) "Cannot parse TXT: "
+
+-- =============================================================== --
+-- Local types
+
+type RawIssue = ( Text, Int, Int  )
+
+type RawJSet  = ( Int, [RawIssue] )
+
+-- =============================================================== --
+-- Parse validation
+
+validate :: [RawJSet] -> Either T.ErrString T.JournalSets
+validate js = mapM go js >>= packJSets
+    where go (key, iss) = T.JSet key <$> mapM validateIssue iss
+
+validateIssue :: RawIssue -> Either T.ErrString T.Issue
+validateIssue (j,v,n) = maybe err pure . J.lookupIssue j $ (v,n)
+    where err = Left $ invalidIssErr j v n
+
+packJSets :: [T.JournalSet] -> Either T.ErrString T.JournalSets
+packJSets js
+    | duplicateKeys js = Left "There are duplicated journal set keys."
+    | otherwise        = pure . J.pack $ js
 
 -- =============================================================== --
 -- Component parsers for TXT
 
-jsetsTxtParser :: At.Parser T.JournalSets
-jsetsTxtParser = do
-    At.skipSpace
-    etJSets <- sequence <$> many jsetTxtParser
-    case etJSets of
-         Left err -> fail err
-         Right js -> if duplicateKeys js
-                        then fail "There are duplicated journal set keys."
-                        else pure . J.pack $ js
+jsetsTxtParser :: At.Parser [RawJSet]
+jsetsTxtParser = At.skipSpace *> many jsetTxtParser <* At.endOfInput
 
-jsetTxtParser :: At.Parser (Either T.ErrString T.JournalSet)
+jsetTxtParser :: At.Parser RawJSet
 jsetTxtParser = do
     key <- jsetKeyParser
-    iss <- sequence <$> many issueTxtParser
+    iss <- many issueTxtParser
     At.skipSpace
-    pure $ T.JSet key <$> iss
+    pure (key, iss)
 
 jsetKeyParser :: At.Parser Int
 jsetKeyParser = do
@@ -65,16 +80,14 @@ jsetKeyParser = do
     dateParser *> At.skipSpace
     pure key
 
-issueTxtParser :: At.Parser (Either T.ErrString T.Issue)
+issueTxtParser :: At.Parser RawIssue
 issueTxtParser = do
     journal <- Tx.init <$> At.takeWhile1 ( not . isDigit )
     volNo   <- intParser <* At.skipSpace
     issNo   <- intParser <* At.skipSpace
     At.char '(' *> dateParser *> At.char ')'
     At.skipSpace
-    case J.lookupIssue journal (volNo, issNo) of
-         Nothing  -> pure . Left $ invalidIssErr journal volNo issNo
-         Just iss -> pure . pure $ iss
+    pure (journal, volNo, issNo)
 
 intParser :: At.Parser Int
 intParser = some At.digit >>= pure . read
