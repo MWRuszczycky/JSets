@@ -38,16 +38,18 @@ parseJsetsTxt :: Text -> Either T.ErrString T.JournalSets
 parseJsetsTxt t = bimap err id $ At.parseOnly jsetsTxtParser t >>= validate
     where err = (<>) "Cannot parse TXT: "
 
-parseSelection :: Text -> Either T.ErrString [(T.Issue, [Int])]
+parseSelection :: Text -> Either T.ErrString T.SelectionSet
 parseSelection t = bimap err id $ At.parseOnly selParser t >>= validateSel
     where err = (<>) "Cannot parse selection: "
 
 -- =============================================================== --
 -- Local types
 
-type RawIssue = ( Text, Int, Int  )
+type RawSelSet = ( Int, [(RawIssue, [Int])] )
 
-type RawJSet  = ( Int, [RawIssue] )
+type RawIssue  = ( Text, Int, Int  )
+
+type RawJSet   = ( Int, [RawIssue] )
 
 -- =============================================================== --
 -- Parse validation
@@ -56,8 +58,9 @@ validate :: [RawJSet] -> Either T.ErrString T.JournalSets
 validate js = mapM go js >>= packJSets
     where go (key, iss) = T.JSet key <$> mapM validateIssue iss
 
-validateSel :: [(RawIssue, [Int])] -> Either T.ErrString [(T.Issue, [Int])]
-validateSel = mapM ( \ (r,xs) -> (,) <$> validateIssue r <*> pure xs )
+validateSel :: RawSelSet -> Either T.ErrString T.SelectionSet
+validateSel (key,xs) = T.SelSet <$> pure key <*> mapM go xs
+    where go (r,ys) = (,) <$> validateIssue r <*> pure ys
 
 validateIssue :: RawIssue -> Either T.ErrString T.Issue
 validateIssue (j,v,n) = maybe err pure . J.lookupIssue j $ (v,n)
@@ -108,11 +111,19 @@ dateParser = (,,) <$> ( intParser <* At.char '-'  )
 -- =============================================================== --
 -- Component parsers for issue selections
 
-selParser :: At.Parser [ (RawIssue, [Int]) ]
-selParser = many issueSel <* At.endOfInput
+selParser :: At.Parser RawSelSet
+selParser = do
+    At.skipSpace
+    key <- jsetKeyParser <* At.skipSpace
+    xs  <- many issueSel
+    At.endOfInput
+    pure (key, xs)
 
 issueSel :: At.Parser (RawIssue, [Int])
-issueSel = (,) <$> issueTxtParser <*> many intParser <* At.skipSpace
+issueSel = (,) <$> issueTxtParser <*> many pageParser <* At.skipSpace
+
+pageParser :: At.Parser Int
+pageParser = intParser <* At.skipSpace
 
 -- =============================================================== --
 -- Component parsers for CSV

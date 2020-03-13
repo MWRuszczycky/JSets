@@ -12,6 +12,7 @@ module Model.Core.Types
       -- Journal sets
     , JournalSet        (..)
     , JournalSets       (..)
+    , SelectionSet      (..)
       -- Journals
     , Journal           (..)
     , Frequency         (..)
@@ -80,6 +81,12 @@ data Command = Command {
 data JournalSet  = JSet {
       jsKey    :: Int
     , jsIssues :: [Issue]
+    } deriving Show
+
+-- |Same as JournalSet but with page numbers for selected articles.
+data SelectionSet = SelSet {
+      selKey    :: Int
+    , selIssues :: [(Issue, [Int])]
     } deriving Show
 
 -- |A JournalSets is a collection of journal sets mapped by key.

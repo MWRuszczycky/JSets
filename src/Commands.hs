@@ -38,9 +38,10 @@ import           Control.Monad.Except               ( liftIO
 -- Commands
 
 commands :: [ T.Command ]
-commands = [ T.Command "read" readJsetOrJsets  readHelp
-           , T.Command "year" jsetsFromYear    yearHelp
-           , T.Command "toc"  downloadJsetTocs tocHelp
+commands = [ T.Command "read"   readJsetOrJsets  readHelp
+           , T.Command "year"   jsetsFromYear    yearHelp
+           , T.Command "select" handleSelection  selectHelp
+           , T.Command "toc"    downloadJsetTocs tocHelp
            ]
 
 runCommands :: [String] -> T.AppMonad ()
@@ -106,6 +107,23 @@ jsetsFromYear []    = throwError "A valid year must be specified!"
 jsetsFromYear (x:_) = maybe err go  (readMaybe x) >>= finish
     where err  = throwError "Invalid year."
           go y = pure . T.Result [C.tshow y] . J.yearly26Sets y $ R.issueRefs
+
+---------------------------------------------------------------------
+-- Handling issue selections
+
+selectHelp :: (Text, Text)
+selectHelp = (s, Tx.unlines hs)
+    where s  = "select : select issues for review"
+          hs = [ "select help contents" ]
+
+handleSelection :: [String] -> T.AppMonad ()
+handleSelection []    = throwError "A selection file must be sepecified!"
+handleSelection (fp:_) = do
+    sel <- lift ( C.readFileErr fp ) >>= liftEither . P.parseSelection
+    let go (x,ks) = F.issueToTxt x <> (Tx.unwords . map C.tshow) ks
+        ys        = Tx.intercalate "\n" . map go . T.selIssues $ sel
+    liftIO . Tx.putStrLn $ ys
+    pure ()
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
