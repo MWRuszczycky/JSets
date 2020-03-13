@@ -3,6 +3,7 @@
 module Model.Parsers.JournalSets
     ( parseJsetsCsv
     , parseJsetsTxt
+    , parseSelection
     , parseJsets
     ) where
 
@@ -29,13 +30,17 @@ parseJsetsCsv :: Text -> Either T.ErrString T.JournalSets
 -- csv cells are treated as no issues for the corresponding journal.
 -- All issues must be valid and the first row must be the journals.
 parseJsetsCsv x = bimap err id $ CSV.parseCSV x >>= toJournalSets >>= validate
-    where err   = (<>) "Cannot parse TXT: "
+    where err = (<>) "Cannot parse CSV: "
 
 parseJsetsTxt :: Text -> Either T.ErrString T.JournalSets
 -- ^Parse a properly formatted text file to JournalSets.
 -- All issues must be valid on lookup.
 parseJsetsTxt t = bimap err id $ At.parseOnly jsetsTxtParser t >>= validate
-    where err   = (<>) "Cannot parse TXT: "
+    where err = (<>) "Cannot parse TXT: "
+
+parseSelection :: Text -> Either T.ErrString [(T.Issue, [Int])]
+parseSelection t = bimap err id $ At.parseOnly selParser t >>= validateSel
+    where err = (<>) "Cannot parse selection: "
 
 -- =============================================================== --
 -- Local types
@@ -50,6 +55,9 @@ type RawJSet  = ( Int, [RawIssue] )
 validate :: [RawJSet] -> Either T.ErrString T.JournalSets
 validate js = mapM go js >>= packJSets
     where go (key, iss) = T.JSet key <$> mapM validateIssue iss
+
+validateSel :: [(RawIssue, [Int])] -> Either T.ErrString [(T.Issue, [Int])]
+validateSel = mapM ( \ (r,xs) -> (,) <$> validateIssue r <*> pure xs )
 
 validateIssue :: RawIssue -> Either T.ErrString T.Issue
 validateIssue (j,v,n) = maybe err pure . J.lookupIssue j $ (v,n)
@@ -96,6 +104,15 @@ dateParser :: At.Parser (Int, Int, Int)
 dateParser = (,,) <$> ( intParser <* At.char '-'  )
                   <*> ( intParser <* At.char '-'  )
                   <*> ( intParser                 )
+
+-- =============================================================== --
+-- Component parsers for issue selections
+
+selParser :: At.Parser [ (RawIssue, [Int]) ]
+selParser = many issueSel <* At.endOfInput
+
+issueSel :: At.Parser (RawIssue, [Int])
+issueSel = (,) <$> issueTxtParser <*> many intParser <* At.skipSpace
 
 -- =============================================================== --
 -- Component parsers for CSV
