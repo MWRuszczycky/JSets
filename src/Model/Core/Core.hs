@@ -12,6 +12,7 @@ module Model.Core.Core
     , shuffleIn
     , shuffleInAt
     , zipLists
+    , collectBy
     ) where
 
 import qualified Data.Text as Tx
@@ -103,3 +104,13 @@ zipLists :: [[a]] -> [[a]] -> [[a]]
 zipLists [] _          = []
 zipLists _  []         = []
 zipLists (x:xs) (y:ys) = (x <> y) : zipLists xs ys
+
+---------------------------------------------------------------------
+-- Decomposing lists
+
+collectBy :: (a -> a -> Bool) -> [a] -> [[a]]
+collectBy p = foldl' go []
+    where go []           x = [[x]]
+          go ([]:ys)      x = go ys x
+          go ((y:ys):ys') x | p x y     = (x:y:ys) : ys'
+                            | otherwise = (y:ys)   : go ys' x

@@ -113,17 +113,23 @@ jsetsFromYear (x:_) = maybe err go  (readMaybe x) >>= finish
 
 selectHelp :: (Text, Text)
 selectHelp = (s, Tx.unlines hs)
-    where s  = "select : select issues for review"
-          hs = [ "select help contents" ]
+    where s  = "select : collect issues selected for review"
+          hs = [ "Usage:\n"
+               , "    lab-schedule select file1.txt file2.txt file3.txt\n"
+               , "Selection file formats are the same as journal set text files"
+               , "with the first page of each selected article immediately"
+               , "following the issue header line."
+               ]
 
 handleSelection :: [String] -> T.AppMonad ()
-handleSelection []    = throwError "A selection file must be sepecified!"
-handleSelection (fp:_) = do
-    sel <- lift ( C.readFileErr fp ) >>= liftEither . P.parseSelection
-    let go (x,ks) = F.issueToTxt x <> (Tx.unwords . map C.tshow) ks
-        ys        = Tx.intercalate "\n" . map go . T.selIssues $ sel
-    liftIO . Tx.putStrLn $ ys
-    pure ()
+handleSelection []  = throwError "A selection file must be sepecified!"
+handleSelection fps = mapM readSelection fps
+                      >>= pure . J.groupSelections
+                      >>= maybe (throwError "No Issues in selection!") pure
+                      >>= finish . T.Result R.issueRefKeys
+
+readSelection :: FilePath -> T.AppMonad T.SelectionSet
+readSelection fp = lift (C.readFileErr fp) >>= liftEither . P.parseSelection
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set

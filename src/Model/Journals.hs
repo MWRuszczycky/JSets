@@ -19,6 +19,8 @@ module Model.Journals
     , lookupIssue
     , nextWeekly
     , nextMonthly
+      -- Working with selection sets
+    , groupSelections
       -- Working with downloaded table of contents
     , tocQuery
     ) where
@@ -32,7 +34,7 @@ import qualified Data.Map.Strict         as Map
 import qualified Network.Wreq            as Wreq
 import           Data.Time                          ( Day       )
 import           Data.Text                          ( Text      )
-import           Data.List                          ( find      )
+import           Data.List                          ( find, nub )
 import           Lens.Micro                         ( (.~), (&) )
 
 -- =============================================================== --
@@ -187,6 +189,24 @@ nextWeekly x1
           n2  = succ . T.issNo $ x1
           x2  = x1 { T.refNo = r2, T.issNo = n2 }
           n2y = if T.resets . T.journal $ x1 then 1 else n2
+
+-- =============================================================== --
+-- Working with selection sets for review
+
+groupSelections :: [T.SelectionSet] -> Maybe T.SelectionSet
+-- ^Fold multiple selections into a single selection by combining
+-- page numbers for the same issues between the selection sets.
+groupSelections []       = Nothing
+groupSelections ss@(x:_) = let key = T.selKey x
+                           in  pure . T.SelSet key
+                                    . groupPages
+                                    . concatMap T.selIssues $ ss
+
+groupPages :: [(T.Issue, [Int])] -> [(T.Issue, [Int])]
+groupPages = concatMap rewrap . C.collectBy go
+    where go (x,_) (y,_) = x == y
+          rewrap []      = []
+          rewrap (x:xs)  = [( fst x, nub . concatMap snd $ (x:xs) )]
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues

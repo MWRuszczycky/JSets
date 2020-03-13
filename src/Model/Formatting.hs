@@ -78,8 +78,9 @@ jsetToCsv :: [Text] -> T.JournalSet -> Text
 jsetToCsv keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
     where go k xs = (volIss . J.issuesByKey k . T.jsIssues) jset : xs
           volIss  = bracket '\"' '\"' . Tx.intercalate "\n" . map volIssToTxt
-          hdr     = bracket '\"' '\"' (jsetKeyToTxt jset <> "\n" <> date) <> ","
+          hdr     = bracket '\"' '\"' (keyStr <> "\n" <> date) <> ","
           date    = C.tshow . J.dateOfJSet $ jset
+          keyStr  = C.tshow . T.jsKey $ jset
 
 ---------------------------------------------------------------------
 -- As Text
@@ -89,14 +90,16 @@ jsetsToTxt hdr jsets = Tx.unlines . map (jsetToTxt hdr) . J.unpack $ jsets
 
 jsetToTxt :: [Text] -> T.JournalSet -> Text
 -- ^Convert a journal set to easily readable, formatted text.
-jsetToTxt _ js = Tx.concat [jsetKeyToTxt js, " | ", d, "\n"] <> Tx.unlines xs
+jsetToTxt _ js = jsetKeyToTxt js <> "\n" <> Tx.unlines xs
     where xs    = map issueToTxt . sortBy (comparing jName) . T.jsIssues $ js
           jName = T.name . T.journal
-          d     = C.tshow . J.dateOfJSet $ js
 
 jsetKeyToTxt :: T.JournalSet -> Text
 -- ^Convert a journal set key to text formatted as year-number.
-jsetKeyToTxt = C.tshow . T.jsKey
+jsetKeyToTxt js = Tx.unwords [ (C.tshow . T.jsKey) js
+                             , "|"
+                             , C.tshow . J.dateOfJSet $ js
+                             ]
 
 -- =============================================================== --
 -- Formatting issues
@@ -179,6 +182,23 @@ citationToMkd iss x = Tx.unlines parts
                                , pagesToTxt x
                                ]
                   ]
+
+-- =============================================================== --
+-- Formatting selection sets
+
+instance Formattable T.SelectionSet where
+    format T.CSV _   _   = "Selections not formattable as CSV"
+    format T.TXT hdr sel = selectionToText hdr sel
+    format T.MKD _   _   = "Selections not formattable as MKD"
+
+---------------------------------------------------------------------
+-- As text
+
+selectionToText :: [Text] -> T.SelectionSet -> Text
+selectionToText _ sel = Tx.unlines $ jsetKeyToTxt jset : concatMap go xs
+    where jset      = T.JSet (T.selKey sel) (fst . unzip $ xs)
+          xs        = T.selIssues sel
+          go (x,ps) = issueToTxt x : map ( \ n -> "    " <> C.tshow n ) ps
 
 -- =============================================================== --
 -- Helper functions
