@@ -76,8 +76,6 @@ readHelp = (s, Tx.unlines hs)
                ]
 
 readJsetOrJsets :: [String] -> T.AppMonad ()
--- ^Read and output a journal set collection or a single journal set
--- depending on whether or not a valid key is provided.
 readJsetOrJsets []     = throwError "A path to the journal sets file required!"
 readJsetOrJsets (fp:_) = do
     keyProvided <- asks $ isJust . T.cJsetKey
@@ -86,7 +84,7 @@ readJsetOrJsets (fp:_) = do
        else jsetsFromFile fp >>= finish
 
 ---------------------------------------------------------------------
--- Aquire journal set collections by year
+-- Construct journal set collections by year
 
 yearHelp :: (Text, Text)
 yearHelp = (s, Tx.unlines hs)
@@ -100,9 +98,6 @@ yearHelp = (s, Tx.unlines hs)
                ]
 
 jsetsFromYear :: [String] -> T.AppMonad ()
--- ^Build the default collection of journal sets based on a year.
--- The year is provided as a string, which will raise an error if
--- it is an invalid year.
 jsetsFromYear []    = throwError "A valid year must be specified!"
 jsetsFromYear (x:_) = maybe err go  (readMaybe x) >>= finish
     where err  = throwError "Invalid year."
@@ -149,10 +144,6 @@ tocHelp = (s, Tx.unlines hs)
                ]
 
 downloadJsetTocs :: [String] -> T.AppMonad ()
--- ^Acquire the tables of contents for all issues in the journal set
--- according to the collection & key specified by the configuration.
--- The tables of contents are returned as Text in the format also
--- specified by the configuration.
 downloadJsetTocs []     = throwError "Path to the journal sets file is needed!"
 downloadJsetTocs (fp:_) = do
     jset <- T.result <$> jsetFromFile fp
@@ -219,12 +210,12 @@ getFormat = do
     mbFmt <- asks T.cFormat
     path  <- asks T.cOutputPath
     case ( mbFmt, C.extension <$> path ) of
-         (Just fmt, _          ) -> pure fmt
-         (Nothing , Just "txt" ) -> pure T.TXT
-         (Nothing , Just "md"  ) -> pure T.MKD
-         (Nothing , Just "mkd" ) -> pure T.MKD
-         (Nothing , Just "csv" ) -> pure T.CSV
-         _                       -> pure T.TXT
+         (Just fmt, _         ) -> pure fmt
+         (Nothing , Just "txt") -> pure T.TXT
+         (Nothing , Just "md" ) -> pure T.MKD
+         (Nothing , Just "mkd") -> pure T.MKD
+         (Nothing , Just "csv") -> pure T.CSV
+         _                      -> pure T.TXT
 
 requireKey :: T.AppMonad Int
 requireKey = asks T.cJsetKey >>= maybe err pure
