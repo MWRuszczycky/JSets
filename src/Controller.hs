@@ -16,6 +16,7 @@ import           Control.Monad                      ( foldM                 )
 import           Control.Monad.Except               ( throwError            )
 import           Control.Monad.Reader               ( runReaderT, liftIO    )
 import           Commands                           ( runCommands, commands )
+import           Model.Core.References              ( issueRefs             )
 
 -- =============================================================== --
 -- Main control point and routers
@@ -40,6 +41,7 @@ initConfig = T.Config { T.cOutputPath = Nothing
                       , T.cJsetKey    = Nothing
                       , T.cFormat     = Nothing
                       , T.cHelp       = False
+                      , T.cReferences = issueRefs
                       }
 
 -- =============================================================== --

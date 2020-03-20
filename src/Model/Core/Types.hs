@@ -65,6 +65,7 @@ data Config = Config {
     , cJsetKey    :: Maybe Int      -- journal set key
     , cFormat     :: Maybe Format   -- output format
     , cHelp       :: Bool           -- user requested help
+    , cReferences :: [Issue]        -- reference issues
     } deriving ( Show )
 
 data Command = Command {
