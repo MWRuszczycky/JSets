@@ -4,6 +4,11 @@ module AppMonad
     ( -- Data structer construction & aquisition
       jsetsFromFile
     , jsetFromFile
+      -- Working with configured reference issues
+    , isAvailable
+    , references
+    , refIssue
+    , issueRefKeys
       -- Internet requests
     , downloadIssueToc
       -- General helper functions
@@ -20,6 +25,8 @@ import qualified Model.Formatting          as F
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
 import qualified Model.Core.References     as R
+import           Data.Text                          ( Text           )
+import           Data.List                          ( find           )
 import           System.IO                          ( hFlush, stdout )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
@@ -50,8 +57,25 @@ jsetFromFile fp = do
          Nothing   -> throwError "Cannot find requested journal set."
          Just jset -> pure $ T.Result R.issueRefKeys jset
 
----------------------------------------------------------------------
--- Downloading issue table of contents
+-- =============================================================== --
+-- Working with configured reference issues
+
+isAvailable :: Text -> T.AppMonad Bool
+-- ^Determine whether a given journal has a reference issue.
+isAvailable key = issueRefKeys >>= pure . elem key
+
+references :: T.AppMonad [T.Issue]
+references = asks T.cReferences
+
+refIssue :: Text -> T.AppMonad (Maybe T.Issue)
+-- ^Find a reference issue by its journal key.
+refIssue key = references >>= pure . find ( (== key) . T.key . T.journal )
+
+issueRefKeys :: T.AppMonad [Text]
+issueRefKeys = references >>= pure . map ( T.key . T.journal )
+
+-- =============================================================== --
+-- Internet requests
 
 downloadIssueToc ::  T.Issue -> T.AppMonad T.IssueToC
 -- ^Download the table of contents for a journal issue from PubMed.
