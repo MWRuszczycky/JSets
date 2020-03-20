@@ -38,10 +38,11 @@ import           Control.Monad.Except               ( liftIO
 -- Commands
 
 commands :: [ T.Command ]
-commands = [ T.Command "read"   readJsetOrJsets  readHelp
-           , T.Command "year"   jsetsFromYear    yearHelp
-           , T.Command "select" handleSelection  selectHelp
-           , T.Command "toc"    downloadJsetTocs tocHelp
+commands = [ T.Command "list"   listCmd   listHelp
+           , T.Command "read"   readCmd   readHelp
+           , T.Command "select" selectCmd selectHelp
+           , T.Command "toc"    tocCmd    tocHelp
+           , T.Command "year"   yearCmd   yearHelp
            ]
 
 runCommands :: [String] -> T.AppMonad ()
@@ -75,9 +76,9 @@ readHelp = (s, Tx.unlines hs)
                , "The default output format is text."
                ]
 
-readJsetOrJsets :: [String] -> T.AppMonad ()
-readJsetOrJsets []     = throwError "A path to the journal sets file required!"
-readJsetOrJsets (fp:_) = do
+readCmd :: [String] -> T.AppMonad ()
+readCmd []     = throwError "A path to the journal sets file required!"
+readCmd (fp:_) = do
     keyProvided <- asks $ isJust . T.cJsetKey
     if keyProvided
        then jsetFromFile fp  >>= finish
@@ -97,9 +98,9 @@ yearHelp = (s, Tx.unlines hs)
                , ".csv or using the --format/-f option."
                ]
 
-jsetsFromYear :: [String] -> T.AppMonad ()
-jsetsFromYear []    = throwError "A valid year must be specified!"
-jsetsFromYear (x:_) = maybe err go  (readMaybe x) >>= finish
+yearCmd :: [String] -> T.AppMonad ()
+yearCmd []    = throwError "A valid year must be specified!"
+yearCmd (x:_) = maybe err go  (readMaybe x) >>= finish
     where err  = throwError "Invalid year."
           go y = pure . T.Result [C.tshow y] . J.yearly26Sets y $ R.issueRefs
 
@@ -116,15 +117,29 @@ selectHelp = (s, Tx.unlines hs)
                , "following the issue header line."
                ]
 
-handleSelection :: [String] -> T.AppMonad ()
-handleSelection []  = throwError "A selection file must be sepecified!"
-handleSelection fps = mapM readSelection fps
-                      >>= pure . J.groupSelections
-                      >>= maybe (throwError "No Issues in selection!") pure
-                      >>= finish . T.Result R.issueRefKeys
+selectCmd :: [String] -> T.AppMonad ()
+selectCmd []  = throwError "A selection file must be sepecified!"
+selectCmd fps = mapM readSelection fps
+                >>= pure . J.groupSelections
+                >>= maybe (throwError "No Issues in selection!") pure
+                >>= finish . T.Result R.issueRefKeys
 
 readSelection :: FilePath -> T.AppMonad T.SelectionSet
 readSelection fp = lift (C.readFileErr fp) >>= liftEither . P.parseSelection
+
+---------------------------------------------------------------------
+-- View configured journals
+
+listHelp :: (Text, Text)
+listHelp = (s, Tx.unlines hs)
+    where s  = "list : list currently configured journals and reference issues"
+          hs = [ "Usage:\n"
+               , "    lab-schedule list\n"
+               ]
+
+listCmd :: [String] -> T.AppMonad ()
+listCmd _ = liftIO . Tx.putStrLn $ xs
+    where xs = Tx.unlines . map F.issueToTxtVerbose $ R.issueRefs
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
@@ -143,9 +158,9 @@ tocHelp = (s, Tx.unlines hs)
                , "--format/-f option with 'mkd' or 'md' to indicate markdown."
                ]
 
-downloadJsetTocs :: [String] -> T.AppMonad ()
-downloadJsetTocs []     = throwError "Path to the journal sets file is needed!"
-downloadJsetTocs (fp:_) = do
+tocCmd :: [String] -> T.AppMonad ()
+tocCmd []     = throwError "Path to the journal sets file is needed!"
+tocCmd (fp:_) = do
     jset <- T.result <$> jsetFromFile fp
     tocs <- mapM downloadIssueToc . T.jsIssues $ jset
     finish $ T.Result [C.tshow $ T.jsKey jset]

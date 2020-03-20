@@ -14,6 +14,7 @@ module Model.Formatting
       -- Formatting Issues
       -- As Text
     , issueToTxt
+    , issueToTxtVerbose
     , volIssToTxt
       -- Formatting tables of contents
       -- As Text
@@ -115,6 +116,9 @@ issueToTxt x = Tx.unwords us
                , C.tshow . T.issNo $ x
                , Tx.pack $ "(" ++ show (T.date x) ++ ")"
                ]
+
+issueToTxtVerbose :: T.Issue -> Text
+issueToTxtVerbose = issueToTxt
 
 volIssToTxt :: T.Issue -> Text
 -- ^Construct a vol:iss text string for the volume and issue of a
