@@ -21,26 +21,30 @@ import           Control.Applicative          ( some, many,  (<|>) )
 -- =============================================================== --
 -- Main parsers
 
-parseJsets :: Text -> Either T.ErrString T.JournalSets
-parseJsets x = parseJsetsCsv x <|> parseJsetsTxt x
+parseJsets :: [T.Issue] -> Text -> Either T.ErrString T.JournalSets
+parseJsets refs x = parseJsetsCsv refs x <|> parseJsetsTxt refs x
 
-parseJsetsCsv :: Text -> Either T.ErrString T.JournalSets
+parseJsetsCsv :: [T.Issue] -> Text -> Either T.ErrString T.JournalSets
 -- ^Parse a properly formatted csv file to JournalSets.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
 -- All issues must be valid and the first row must be the journals.
-parseJsetsCsv x = bimap err id $ CSV.parseCSV x >>= toJournalSets >>= validate
-    where err = (<>) "Cannot parse CSV: "
+parseJsetsCsv refs x = let err = (<>) "Cannot parse CSV: "
+                       in  bimap err id $ CSV.parseCSV x
+                                          >>= toJournalSets
+                                          >>= validate refs
 
-parseJsetsTxt :: Text -> Either T.ErrString T.JournalSets
+parseJsetsTxt :: [T.Issue] -> Text -> Either T.ErrString T.JournalSets
 -- ^Parse a properly formatted text file to JournalSets.
 -- All issues must be valid on lookup.
-parseJsetsTxt t = bimap err id $ At.parseOnly jsetsTxtParser t >>= validate
-    where err = (<>) "Cannot parse TXT: "
+parseJsetsTxt refs t = let err = (<>) "Cannot parse TXT: "
+                       in  bimap err id $ At.parseOnly jsetsTxtParser t
+                                          >>= validate refs
 
-parseSelection :: Text -> Either T.ErrString T.SelectionSet
-parseSelection t = bimap err id $ At.parseOnly selParser t >>= validateSel
-    where err = (<>) "Cannot parse selection: "
+parseSelection :: [T.Issue] -> Text -> Either T.ErrString T.SelectionSet
+parseSelection refs t = let err = (<>) "Cannot parse selection: "
+                        in  bimap err id $ At.parseOnly selParser t
+                                           >>= validateSel refs
 
 -- =============================================================== --
 -- Local types
@@ -54,16 +58,16 @@ type RawJSet   = ( Int, [RawIssue] )
 -- =============================================================== --
 -- Parse validation
 
-validate :: [RawJSet] -> Either T.ErrString T.JournalSets
-validate js = mapM go js >>= packJSets
-    where go (key, iss) = T.JSet key <$> mapM validateIssue iss
+validate :: [T.Issue] -> [RawJSet] -> Either T.ErrString T.JournalSets
+validate refs js = mapM go js >>= packJSets
+    where go (key, iss) = T.JSet key <$> mapM (validateIssue refs) iss
 
-validateSel :: RawSelSet -> Either T.ErrString T.SelectionSet
-validateSel (key,xs) = T.SelSet <$> pure key <*> mapM go xs
-    where go (r,ys) = (,) <$> validateIssue r <*> pure ys
+validateSel :: [T.Issue] -> RawSelSet -> Either T.ErrString T.SelectionSet
+validateSel refs (key,xs) = T.SelSet <$> pure key <*> mapM go xs
+    where go (r,ys) = (,) <$> validateIssue refs r <*> pure ys
 
-validateIssue :: RawIssue -> Either T.ErrString T.Issue
-validateIssue (j,v,n) = maybe err pure . J.lookupIssue j $ (v,n)
+validateIssue :: [T.Issue] -> RawIssue -> Either T.ErrString T.Issue
+validateIssue refs (j,v,n) = maybe err pure . J.lookupIssue refs j $ (v,n)
     where err = Left $ invalidIssErr j v n
 
 packJSets :: [T.JournalSet] -> Either T.ErrString T.JournalSets

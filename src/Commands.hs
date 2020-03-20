@@ -23,8 +23,7 @@ import           Text.Read                          ( readMaybe      )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , lift
-                                                    , throwError
-                                                    , liftEither     )
+                                                    , throwError     )
 
 -- =============================================================== --
 -- Commands
@@ -118,7 +117,12 @@ selectCmd fps = do
          Just sel -> A.issueRefKeys >>= finish . flip T.Result sel
 
 readSelection :: FilePath -> T.AppMonad T.SelectionSet
-readSelection fp = lift (C.readFileErr fp) >>= liftEither . P.parseSelection
+readSelection fp = do
+    content <- lift . C.readFileErr $ fp
+    refs    <- A.references
+    case P.parseSelection refs content of
+         Left err  -> throwError err
+         Right sel -> pure sel
 
 ---------------------------------------------------------------------
 -- View configured journals

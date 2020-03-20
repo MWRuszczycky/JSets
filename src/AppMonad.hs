@@ -9,6 +9,7 @@ module AppMonad
     , references
     , refIssue
     , issueRefKeys
+    , getIssue
       -- Internet requests
     , downloadIssueToc
       -- General helper functions
@@ -17,6 +18,7 @@ module AppMonad
     ) where
 
 import qualified Data.Text.IO              as Tx
+import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
@@ -24,7 +26,6 @@ import qualified Model.Journals            as J
 import qualified Model.Formatting          as F
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
-import qualified Model.Core.References     as R
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           System.IO                          ( hFlush, stdout )
@@ -41,9 +42,13 @@ import           Control.Monad.Except               ( liftIO
 -- Acquiring journal sets
 
 jsetsFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSets)
-jsetsFromFile fp = lift ( C.readFileErr fp )
-                   >>= liftEither . P.parseJsets
-                   >>= pure . T.Result R.issueRefKeys
+jsetsFromFile fp = do
+    content <- lift . C.readFileErr $ fp
+    refs    <- references
+    case P.parseJsets refs content of
+         Left err    -> throwError err
+         Right jsets -> do keys <- issueRefKeys
+                           pure $ T.Result keys jsets
 
 ---------------------------------------------------------------------
 -- Read a single journal set from a file
@@ -55,7 +60,8 @@ jsetFromFile fp = do
     key   <- requireKey
     case J.lookupJSet key jsets of
          Nothing   -> throwError "Cannot find requested journal set."
-         Just jset -> pure $ T.Result R.issueRefKeys jset
+         Just jset -> do keys <- issueRefKeys
+                         pure $ T.Result keys jset
 
 -- =============================================================== --
 -- Working with configured reference issues
@@ -73,6 +79,12 @@ refIssue key = references >>= pure . find ( (== key) . T.key . T.journal )
 
 issueRefKeys :: T.AppMonad [Text]
 issueRefKeys = references >>= pure . map ( T.key . T.journal )
+
+getIssue :: Text -> Int -> Int -> T.AppMonad T.Issue
+getIssue key v n = references >>= maybe err pure . go
+    where issMsg = Tx.unpack key <> " " <> show v <> ":" <> show n
+          err    = throwError $ "Invalid issue: " <> issMsg
+          go rs  = J.lookupIssue rs key (v,n)
 
 -- =============================================================== --
 -- Internet requests

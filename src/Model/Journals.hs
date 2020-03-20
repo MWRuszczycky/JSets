@@ -16,6 +16,7 @@ module Model.Journals
     , issuesFromDate
     , issuesByDates
     , issuesInYear
+    , issuesInVolume
     , lookupIssue
     , nextWeekly
     , nextMonthly
@@ -28,7 +29,6 @@ module Model.Journals
 import qualified Model.Core.Types        as T
 import qualified Model.Core.Dates        as D
 import qualified Model.Core.Core         as C
-import qualified Model.Core.References   as R
 import qualified Data.Time               as Tm
 import qualified Data.Map.Strict         as Map
 import qualified Network.Wreq            as Wreq
@@ -143,13 +143,13 @@ issuesInYear y x = take 52 . filter ((== y) . D.getYear . T.date) $ xs
           d1 = Tm.fromGregorian (fromIntegral $ y + 1) 1  1
           xs = issuesByDates d0 d1 x
 
-lookupIssue :: Text -> (Int, Int) -> Maybe T.Issue
--- ^Look up a journal issue by its journal key, volume and number.
-lookupIssue jKey (vNo,nNo) = find ((== jKey) . T.key . T.journal) R.issueRefs
-                             >>= find ((== nNo) . T.issNo)
-                                 . takeWhile ((== vNo) . T.volNo)
-                                 . dropWhile ((< vNo) . T.volNo)
-                                 . iterate (addIssues 1)
+issuesInVolume :: Int -> T.Issue -> [T.Issue]
+issuesInVolume v = takeWhile ((==v) . T.volNo) . dropWhile ((<v) . T.volNo)
+                   . iterate (addIssues 1)
+
+lookupIssue :: [T.Issue] -> Text -> (Int, Int) -> Maybe T.Issue
+lookupIssue refs key (v,n) = find ( (== key) . T.key . T.journal ) refs
+                             >>= find ( (== n) . T.issNo ) . issuesInVolume v
 
 addIssues :: Int -> T.Issue -> T.Issue
 addIssues n x
