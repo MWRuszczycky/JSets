@@ -112,10 +112,11 @@ selectHelp = (s, Tx.unlines hs)
 
 selectCmd :: [String] -> T.AppMonad ()
 selectCmd []  = throwError "A selection file must be sepecified!"
-selectCmd fps = mapM readSelection fps
-                >>= pure . J.groupSelections
-                >>= maybe (throwError "No Issues in selection!") pure
-                >>= finish . T.Result R.issueRefKeys
+selectCmd fps = do
+    mbSel <- mapM readSelection fps >>= pure . J.groupSelections
+    case mbSel of
+         Nothing  -> throwError "No Issues in selection!"
+         Just sel -> A.issueRefKeys >>= finish . flip T.Result sel
 
 readSelection :: FilePath -> T.AppMonad T.SelectionSet
 readSelection fp = lift (C.readFileErr fp) >>= liftEither . P.parseSelection
