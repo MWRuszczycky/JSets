@@ -125,7 +125,7 @@ readSelection fp = lift (C.readFileErr fp) >>= liftEither . P.parseSelection
 
 listHelp :: (Text, Text)
 listHelp = (s, Tx.unlines hs)
-    where s  = "list : list currently configured journals and reference issues"
+    where s  = "list : list configured journals and reference issues"
           hs = [ "Usage:\n"
                , "    lab-schedule list\n"
                ]
