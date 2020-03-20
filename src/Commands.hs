@@ -15,7 +15,6 @@ import qualified Model.Core.Core           as C
 import qualified Model.Journals            as J
 import qualified Model.Formatting          as F
 import qualified Model.Parsers.JournalSets as P
-import qualified Model.Core.References     as R
 import qualified AppMonad                  as A
 import           Data.Text                          ( Text           )
 import           Data.Maybe                         ( isJust         )
@@ -132,8 +131,8 @@ listHelp = (s, Tx.unlines hs)
                ]
 
 listCmd :: [String] -> T.AppMonad ()
-listCmd _ = liftIO . Tx.putStrLn $ xs
-    where xs = Tx.unlines . map F.referenceToTxt $ R.issueRefs
+listCmd _ = A.references >>= display . map F.referenceToTxt
+    where display = liftIO . Tx.putStr . Tx.unlines
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
