@@ -58,6 +58,7 @@ test-suite model
   other-modules:        CoreTests
                       , JournalsTests
                       , ParserTests
+                      , TestReferences
   build-depends:        base >= 4.7 && < 5
                       , lab-schedule-internal
                       , hspec

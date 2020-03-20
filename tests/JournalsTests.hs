@@ -5,7 +5,7 @@ module JournalsTests
 
 import qualified Data.Time             as Tm
 import qualified Model.Core.Types      as T
-import qualified Model.Core.References as R
+import qualified TestReferences        as TR
 import qualified Model.Journals        as J
 import Test.Hspec                            ( Spec (..)
                                              , hspec
@@ -25,9 +25,9 @@ checkVolNum :: T.Issue -> Int -> Int -> IO ()
 checkVolNum x v n = (T.volNo x, T.issNo x) `shouldBe` (v, n)
 
 scienceRef, jacsRef, cellChemBiolRef :: T.Issue
-scienceRef      = let (Just x) = R.refIssue "Science" in x
-jacsRef         = let (Just x) = R.refIssue "JACS" in x
-cellChemBiolRef = let (Just x) = R.refIssue "Cell Chem Biol" in x
+scienceRef      = let (Just x) = TR.refIssue "Science" in x
+jacsRef         = let (Just x) = TR.refIssue "JACS" in x
+cellChemBiolRef = let (Just x) = TR.refIssue "Cell Chem Biol" in x
 
 earlyDates :: Spec
 earlyDates = do
