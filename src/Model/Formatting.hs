@@ -24,8 +24,6 @@ module Model.Formatting
     , tocsToMkd
     , tocToMkd
     , citationToMkd
-      -- Formatting helper functions
-    , bracket
       -- Fomatting references
     , referenceToTxt
     ) where
@@ -203,6 +201,30 @@ selectionToText _ sel = Tx.unlines $ jsetKeyToTxt jset : concatMap go xs
           go (x,ps) = issueToTxt x : map ( \ n -> "    " <> C.tshow n ) ps
 
 -- =============================================================== --
+-- Formatting journals and reference issues
+
+referenceToTxt :: T.Issue -> Text
+referenceToTxt x = Tx.unlines hs
+    where j  = T.journal x
+          hs = [ T.name j
+               , "  key:       " <> T.key j
+               , "  pubmed:    " <> T.pubmed j
+               , "  frequency: " <> (freqToTxt . T.freq) j
+               , "  resets:    " <> (resetsToTxt . T.resets) j
+               , "  reference: " <> issueToTxt x
+               ]
+
+resetsToTxt :: Bool -> Text
+resetsToTxt True  = "yes (issue numbers reset to 1 each year)"
+resetsToTxt False = "no (issue numbers continuously increase)"
+
+freqToTxt :: T.Frequency -> Text
+freqToTxt T.Weekly      = "weekly (52 issues per year)"
+freqToTxt T.WeeklyLast  = "weekly-last (drop the last issue of the year)"
+freqToTxt T.WeeklyFirst = "weekly-first (drop the first issue of the year)"
+freqToTxt T.Monthly     = "monthly (12 issues per year)"
+
+-- =============================================================== --
 -- Helper functions
 
 ---------------------------------------------------------------------
@@ -237,27 +259,3 @@ mkdLink :: Text -> Text -> Text
 mkdLink content url = contentMkd <> link
     where contentMkd = bracket '[' ']' content
           link       = bracket '(' ')' url
-
--- =============================================================== --
--- Formatting journals and reference issues
-
-referenceToTxt :: T.Issue -> Text
-referenceToTxt x = Tx.unlines hs
-    where j  = T.journal x
-          hs = [ T.name j
-               , "  key:       " <> T.key j
-               , "  pubmed:    " <> T.pubmed j
-               , "  frequency: " <> (freqToTxt . T.freq) j
-               , "  resets:    " <> (resetsToTxt . T.resets) j
-               , "  reference: " <> issueToTxt x
-               ]
-
-resetsToTxt :: Bool -> Text
-resetsToTxt True  = "yes (issue numbers reset to 1 each year)"
-resetsToTxt False = "no (issue numbers continuously increase)"
-
-freqToTxt :: T.Frequency -> Text
-freqToTxt T.Weekly      = "weekly (52 issues per year)"
-freqToTxt T.WeeklyLast  = "weekly-last (drop the last issue of the year)"
-freqToTxt T.WeeklyFirst = "weekly-first (drop the first issue of the year)"
-freqToTxt T.Monthly     = "monthly (12 issues per year)"
