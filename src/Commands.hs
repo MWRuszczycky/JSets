@@ -139,7 +139,7 @@ listHelp = (s, Tx.unlines hs)
 
 listCmd :: [String] -> T.AppMonad ()
 listCmd _ = liftIO . Tx.putStrLn $ xs
-    where xs = Tx.unlines . map F.issueToTxtVerbose $ R.issueRefs
+    where xs = Tx.unlines . map F.referenceToTxt $ R.issueRefs
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
