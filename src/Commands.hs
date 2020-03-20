@@ -93,9 +93,9 @@ yearHelp = (s, Tx.unlines hs)
 
 yearCmd :: [String] -> T.AppMonad ()
 yearCmd []    = throwError "A valid year must be specified!"
-yearCmd (x:_) = maybe err go  (readMaybe x) >>= finish
+yearCmd (x:_) = maybe err go (readMaybe x) >>= finish
     where err  = throwError "Invalid year."
-          go y = pure . T.Result [C.tshow y] . J.yearly26Sets y $ R.issueRefs
+          go y = A.references >>= pure . T.Result [C.tshow y] . J.yearly26Sets y
 
 ---------------------------------------------------------------------
 -- Handling issue selections
