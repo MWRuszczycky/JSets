@@ -24,6 +24,7 @@ executable lab-schedule
 library lab-schedule-internal
   exposed-modules:      Commands
                       , Controller
+                      , AppMonad
                       , Model.Core.Core
                       , Model.Core.CoreIO
                       , Model.Core.Types
