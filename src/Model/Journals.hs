@@ -32,10 +32,10 @@ import qualified Model.Core.Core         as C
 import qualified Data.Time               as Tm
 import qualified Data.Map.Strict         as Map
 import qualified Network.Wreq            as Wreq
-import           Data.Time                          ( Day       )
-import           Data.Text                          ( Text      )
-import           Data.List                          ( find, nub )
-import           Lens.Micro                         ( (.~), (&) )
+import           Data.Time                          ( Day             )
+import           Data.Text                          ( Text            )
+import           Data.List                          ( find, nub, sort )
+import           Lens.Micro                         ( (.~), (&)       )
 
 -- =============================================================== --
 -- Working with journal sets
@@ -206,7 +206,7 @@ groupPages :: [(T.Issue, [Int])] -> [(T.Issue, [Int])]
 groupPages = concatMap rewrap . C.collectBy go
     where go (x,_) (y,_) = x == y
           rewrap []      = []
-          rewrap (x:xs)  = [( fst x, nub . concatMap snd $ (x:xs) )]
+          rewrap (x:xs)  = [( fst x, sort . nub . concatMap snd $ (x:xs) )]
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues
