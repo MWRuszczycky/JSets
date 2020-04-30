@@ -29,11 +29,11 @@ import           Control.Monad.Except               ( liftIO
 -- Commands
 
 commands :: [ T.Command ]
-commands = [ T.Command "list"   listCmd   listHelp
-           , T.Command "read"   readCmd   readHelp
-           , T.Command "select" selectCmd selectHelp
-           , T.Command "toc"    tocCmd    tocHelp
-           , T.Command "year"   yearCmd   yearHelp
+commands = [ T.Command "list"  listCmd  listHelp
+           , T.Command "read"  readCmd  readHelp
+           , T.Command "group" groupCmd groupHelp
+           , T.Command "toc"   tocCmd   tocHelp
+           , T.Command "year"  yearCmd  yearHelp
            ]
 
 runCommands :: [String] -> T.AppMonad ()
@@ -98,19 +98,19 @@ yearCmd (x:_) = maybe err go (readMaybe x) >>= finish
 ---------------------------------------------------------------------
 -- Handling issue selections
 
-selectHelp :: (Text, Text)
-selectHelp = (s, Tx.unlines hs)
-    where s  = "select : collect issues selected for review"
+groupHelp :: (Text, Text)
+groupHelp = (s, Tx.unlines hs)
+    where s  = "group : group issue selects for review"
           hs = [ "Usage:\n"
-               , "    lab-schedule select file1.txt file2.txt file3.txt\n"
+               , "    lab-schedule group file1.txt file2.txt file3.txt\n"
                , "Selection file formats are the same as journal set text files"
                , "with the first page of each selected article immediately"
                , "following the issue header line."
                ]
 
-selectCmd :: [String] -> T.AppMonad ()
-selectCmd []  = throwError "A selection file must be sepecified!"
-selectCmd fps = do
+groupCmd :: [String] -> T.AppMonad ()
+groupCmd []  = throwError "A selection file must be sepecified!"
+groupCmd fps = do
     mbSel <- mapM readSelection fps >>= pure . J.groupSelections
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
