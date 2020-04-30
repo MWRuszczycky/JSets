@@ -16,16 +16,16 @@ import           Data.Text                      ( Text        )
 type Option = Opt.OptDescr (T.Config -> T.ErrMonad T.Config)
 
 helpText :: [T.Command] -> [Option] -> Text
-helpText cmds opts = Tx.unlines hs
+helpText cmds opts = Tx.intercalate "\n" hs
     where hs = [ introHelp
                , optionsHelp opts
-               , Tx.unlines . map commandsHelp $ cmds
+               , Tx.intercalate "\n" . map commandsHelp $ cmds
                ]
 
 introHelp :: Text
 introHelp = Tx.unlines hs
-    where hs = [ Tx.pack $ "lab-schedule-" <> showVersion version
-               , "Management of journal sets and lab meeting schedules"
+    where hs = [ Tx.pack $ "jsets-" <> showVersion version
+               , "Management of journal sets for lab meetings"
                ]
 
 optionsHelp :: [Opt.OptDescr (T.Config -> T.ErrMonad T.Config)] -> Text

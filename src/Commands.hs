@@ -57,11 +57,11 @@ readHelp = (s, Tx.unlines hs)
                , "the <year> command. For example, if <jsets2019.txt> is a file"
                , "containing all the journal sets for 2019, then you can print"
                , "journal set 5 to the terminal using,\n"
-               , "    lab-schedule read jsets2019.txt --key=5\n"
+               , "    jsets read jsets2019.txt --key=5\n"
                , "You can use the <read> command to convert between journal set"
                , "formats. For example, if you want to generate a csv file of"
                , "the journal sets use,\n"
-               , "    lab-schedule read jsets2019.txt --output=jsets2019.csv\n"
+               , "    jsets read jsets2019.txt --output=jsets2019.csv\n"
                , "The output format is determined by the output file extension;"
                , "however, it can be over-ridden using the --format/-f command."
                , "The default output format is text."
@@ -84,7 +84,7 @@ yearHelp = (s, Tx.unlines hs)
           hs = [ "The <year> command distributes all issues for all configured"
                , "journals in a given year into 26 journal sets. So, to create"
                , "a file with the default journal sets in 2019 use,\n"
-               , "    lab-schedule year 2019 --output=jsets2019.txt\n"
+               , "    jsets year 2019 --output=jsets2019.txt\n"
                , "You can also create a csv file by changing the extension to"
                , ".csv or using the --format/-f option."
                ]
@@ -101,8 +101,7 @@ yearCmd (x:_) = maybe err go (readMaybe x) >>= finish
 groupHelp :: (Text, Text)
 groupHelp = (s, Tx.unlines hs)
     where s  = "group : group issue selects for review"
-          hs = [ "Usage:\n"
-               , "    lab-schedule group file1.txt file2.txt file3.txt\n"
+          hs = [ "Usage: jsets group file1.txt file2.txt file3.txt\n"
                , "Selection file formats are the same as journal set text files"
                , "with the first page of each selected article immediately"
                , "following the issue header line."
@@ -130,8 +129,7 @@ readSelection fp = do
 listHelp :: (Text, Text)
 listHelp = (s, Tx.unlines hs)
     where s  = "list : list configured journals and reference issues"
-          hs = [ "Usage:\n"
-               , "    lab-schedule list\n"
+          hs = [ "Usage: jsets list"
                ]
 
 listCmd :: [String] -> T.AppMonad ()
@@ -147,7 +145,7 @@ tocHelp = (s, Tx.unlines hs)
           hs = [ "If jsets2019.txt is a collection of journal sets (see <read>"
                , "command), then you can generate a markdown file of the tables"
                , "of contents for each issue in the set with key 6 using,\n"
-               , "    lab-schedule toc jsets2019.txt --key=6"
+               , "    jsets toc jsets2019.txt --key=6"
                  <> " --output=toc2019-5.mkd\n"
                , "Note that the default output format is text and will be"
                , "printed to the terminal. So, you need to either specify an"
