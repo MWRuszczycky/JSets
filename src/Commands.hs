@@ -29,7 +29,7 @@ import           Control.Monad.Except               ( liftIO
 -- Commands
 
 commands :: [ T.Command ]
-commands = [ T.Command "list"  listCmd  listHelp
+commands = [ T.Command "refs"  refsCmd  refsHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "group" groupCmd groupHelp
            , T.Command "toc"   tocCmd   tocHelp
@@ -126,14 +126,14 @@ readSelection fp = do
 ---------------------------------------------------------------------
 -- View configured journals
 
-listHelp :: (Text, Text)
-listHelp = (s, Tx.unlines hs)
-    where s  = "list : list configured journals and reference issues"
-          hs = [ "Usage: jsets list"
+refsHelp :: (Text, Text)
+refsHelp = (s, Tx.unlines hs)
+    where s  = "refs : list configured journals and reference issues"
+          hs = [ "Usage: jsets refs"
                ]
 
-listCmd :: [String] -> T.AppMonad ()
-listCmd _ = A.references >>= display . map F.referenceToTxt
+refsCmd :: [String] -> T.AppMonad ()
+refsCmd _ = A.references >>= display . map F.referenceToTxt
     where display = liftIO . Tx.putStr . Tx.unlines
 
 ---------------------------------------------------------------------
