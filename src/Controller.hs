@@ -39,7 +39,6 @@ configure = do
 initConfig :: T.Config
 initConfig = T.Config { T.cOutputPath = Nothing
                       , T.cJsetKey    = Nothing
-                      , T.cFormat     = Nothing
                       , T.cHelp       = False
                       , T.cReferences = issueRefs
                       }
@@ -52,10 +51,6 @@ options =
     [ Opt.Option "o" [ "output" ]
       ( Opt.ReqArg ( \ arg s -> pure $ s { T.cOutputPath = Just arg } ) "PATH" )
       "Set the output filepath to PATH."
-
-    , Opt.Option "f" [ "format" ]
-      ( Opt.ReqArg configFormat "FMT" )
-      "Set the output format to FMT (txt, csv, mkd, md)"
 
     , Opt.Option "h" [ "help" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cHelp = True } ) )
@@ -71,10 +66,3 @@ configKey key config
     | n < 1     = throwError $ "Key must be a positive integer."
     | otherwise = pure $ config { T.cJsetKey = Just n }
     where n = maybe 0 id . readMaybe $ key
-
-configFormat :: String -> T.Config -> T.ErrMonad T.Config
-configFormat "csv" s = pure s { T.cFormat = Just T.CSV }
-configFormat "mkd" s = pure s { T.cFormat = Just T.MKD }
-configFormat "md"  s = pure s { T.cFormat = Just T.MKD }
-configFormat "txt" s = pure s { T.cFormat = Just T.TXT }
-configFormat x     _ = throwError $ "Unrecognized format: " <> x

@@ -3,8 +3,6 @@ module Commands
     ( -- Commands
       commands
     , runCommands
-      -- Handling output
-    , finish
     ) where
 
 import qualified Data.Text.IO              as Tx
@@ -53,18 +51,17 @@ readHelp = (s, Tx.unlines hs)
                , "text or csv format using the <read> command. A specific set"
                , "can be read alone by specifying the key (a positive integer)"
                , "of the specific journal set of interest using the --key/-k"
-               , "option. Collections of journal sets can be generated using"
-               , "the <year> command. For example, if <jsets2019.txt> is a file"
-               , "containing all the journal sets for 2019, then you can print"
+               , "option. For example, if <jsets2019.txt> is a file containing"
+               , "all the journal sets for the year 2019, then you can print"
                , "journal set 5 to the terminal using,\n"
-               , "    jsets read jsets2019.txt --key=5\n"
-               , "You can use the <read> command to convert between journal set"
-               , "formats. For example, if you want to generate a csv file of"
-               , "the journal sets use,\n"
-               , "    jsets read jsets2019.txt --output=jsets2019.csv\n"
-               , "The output format is determined by the output file extension;"
-               , "however, it can be over-ridden using the --format/-f command."
-               , "The default output format is text."
+               , "    jsets read jsets2019.txt --key=5"
+               -- , "You can use the <read> command to convert between journal set"
+               -- , "formats. For example, if you want to generate a csv file of"
+               -- , "the journal sets use,\n"
+               -- , "    jsets read jsets2019.txt --output=jsets2019.csv\n"
+               -- , "The output format is determined by the output file extension;"
+               -- , "however, it can be over-ridden using the --format/-f command."
+               -- , "The default output format is text."
                ]
 
 readCmd :: [String] -> T.AppMonad ()
@@ -72,8 +69,8 @@ readCmd []     = throwError "A path to the journal sets file required!"
 readCmd (fp:_) = do
     keyProvided <- asks $ isJust . T.cJsetKey
     if keyProvided
-       then A.jsetFromFile fp  >>= finish
-       else A.jsetsFromFile fp >>= finish
+       then A.jsetFromFile fp  >>= display . F.jsetToTxt
+       else A.jsetsFromFile fp >>= display . F.jsetsToTxt
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
@@ -84,16 +81,16 @@ yearHelp = (s, Tx.unlines hs)
           hs = [ "The <year> command distributes all issues for all configured"
                , "journals in a given year into 26 journal sets. So, to create"
                , "a file with the default journal sets in 2019 use,\n"
-               , "    jsets year 2019 --output=jsets2019.txt\n"
-               , "You can also create a csv file by changing the extension to"
-               , ".csv or using the --format/-f option."
+               , "    jsets year 2019 --output=jsets2019.txt"
+               -- , "You can also create a csv file by changing the extension to"
+               -- , ".csv or using the --format/-f option."
                ]
 
 yearCmd :: [String] -> T.AppMonad ()
 yearCmd []    = throwError "A valid year must be specified!"
-yearCmd (x:_) = maybe err go (readMaybe x) >>= finish
+yearCmd (x:_) = maybe err go (readMaybe x) >>= display
     where err  = throwError "Invalid year."
-          go y = A.references >>= pure . T.Result [C.tshow y] . J.yearly26Sets y
+          go y = A.references >>= pure . F.jsetsToTxt . J.yearly26Sets y
 
 ---------------------------------------------------------------------
 -- Handling issue selections
@@ -113,7 +110,7 @@ groupCmd fps = do
     mbSel <- mapM readSelection fps >>= pure . J.groupSelections
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
-         Just sel -> A.issueRefKeys >>= finish . flip T.Result sel
+         Just sel -> display . F.selectionToTxt $ sel
 
 readSelection :: FilePath -> T.AppMonad T.SelectionSet
 readSelection fp = do
@@ -133,8 +130,7 @@ refsHelp = (s, Tx.unlines hs)
                ]
 
 refsCmd :: [String] -> T.AppMonad ()
-refsCmd _ = A.references >>= display . map F.referenceToTxt
-    where display = liftIO . Tx.putStr . Tx.unlines
+refsCmd _ = A.references >>= display . Tx.unlines . map F.referenceToTxt
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
@@ -147,27 +143,23 @@ tocHelp = (s, Tx.unlines hs)
                , "of contents for each issue in the set with key 6 using,\n"
                , "    jsets toc jsets2019.txt --key=6"
                  <> " --output=toc2019-5.mkd\n"
-               , "Note that the default output format is text and will be"
-               , "printed to the terminal. So, you need to either specify an"
-               , "output path with the desired extension and/or use the"
-               , "--format/-f option with 'mkd' or 'md' to indicate markdown."
+               -- , "Note that the default output format is text and will be"
+               -- , "printed to the terminal. So, you need to either specify an"
+               -- , "output path with the desired extension and/or use the"
+               -- , "--format/-f option with 'mkd' or 'md' to indicate markdown."
                ]
 
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    jset <- T.result <$> A.jsetFromFile fp
+    jset <- A.jsetFromFile fp
     tocs <- mapM A.downloadIssueToc . T.jsIssues $ jset
-    finish $ T.Result [C.tshow $ T.jsKey jset]
-             $ T.JSetToC (T.jsKey jset) tocs
-
--- =============================================================== --
--- Handling output
-
-finish :: F.Formattable a => T.Result a -> T.AppMonad ()
-finish (T.Result hdr x) = do
     fmt  <- A.getFormat
-    path <- asks T.cOutputPath
-    case path of
-         Nothing -> liftIO . Tx.putStrLn . F.format fmt hdr $ x
-         Just fp -> lift . C.writeFileErr fp . F.format fmt hdr $ x
+    display . F.tocsToMkd $ T.JSetToC (T.jsKey jset) tocs
+
+display :: Text -> T.AppMonad ()
+display xs = do
+    mbPath <- asks T.cOutputPath
+    case mbPath of
+         Nothing -> liftIO . Tx.putStrLn $ xs
+         Just fp -> lift . C.writeFileErr fp $ xs

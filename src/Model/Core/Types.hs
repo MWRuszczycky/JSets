@@ -5,9 +5,7 @@ module Model.Core.Types
       ErrString
     , ErrMonad
     , AppMonad
-    , Result            (..)
     , Config            (..)
-    , Format            (..)
     , Command           (..)
       -- Journal sets
     , JournalSet        (..)
@@ -44,26 +42,13 @@ type ErrMonad  = ExceptT ErrString IO
 -- |AppMonad a = IO ( Either ErrString ( Reader Config a ) )
 type AppMonad  = ReaderT Config ErrMonad
 
-data Result a = Result {
-      header :: [Text]
-    , result :: a
-    }
-
 ---------------------------------------------------------------------
 -- Program configuration
-
--- |Data type for output formats
-data Format =
-      CSV   -- comma separated values
-    | TXT   -- text
-    | MKD   -- markdown
-      deriving ( Show, Eq )
 
 -- |Application configuration
 data Config = Config {
       cOutputPath :: Maybe FilePath -- file output path
     , cJsetKey    :: Maybe Int      -- journal set key
-    , cFormat     :: Maybe Format   -- output format
     , cHelp       :: Bool           -- user requested help
     , cReferences :: [Issue]        -- reference issues
     } deriving ( Show )

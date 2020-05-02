@@ -41,27 +41,25 @@ import           Control.Monad.Except               ( liftIO
 ---------------------------------------------------------------------
 -- Acquiring journal sets
 
-jsetsFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSets)
+jsetsFromFile :: FilePath -> T.AppMonad T.JournalSets
 jsetsFromFile fp = do
     content <- lift . C.readFileErr $ fp
     refs    <- references
     case P.parseJsets refs content of
          Left err    -> throwError err
-         Right jsets -> do keys <- issueRefKeys
-                           pure $ T.Result keys jsets
+         Right jsets -> pure jsets
 
 ---------------------------------------------------------------------
 -- Read a single journal set from a file
 
-jsetFromFile :: FilePath -> T.AppMonad (T.Result T.JournalSet)
+jsetFromFile :: FilePath -> T.AppMonad T.JournalSet
 -- ^Get a journal set based on the configuration.
 jsetFromFile fp = do
-    jsets <- T.result <$> jsetsFromFile fp
+    jsets <- jsetsFromFile fp
     key   <- requireKey
     case J.lookupJSet key jsets of
          Nothing   -> throwError "Cannot find requested journal set."
-         Just jset -> do keys <- issueRefKeys
-                         pure $ T.Result keys jset
+         Just jset -> pure jset
 
 -- =============================================================== --
 -- Working with configured reference issues
@@ -106,17 +104,17 @@ downloadIssueToc x = do
 -- =============================================================== --
 -- General Helper Commands
 
-getFormat :: T.AppMonad T.Format
-getFormat = do
-    mbFmt <- asks T.cFormat
-    path  <- asks T.cOutputPath
-    case ( mbFmt, C.extension <$> path ) of
-         (Just fmt, _         ) -> pure fmt
-         (Nothing , Just "txt") -> pure T.TXT
-         (Nothing , Just "md" ) -> pure T.MKD
-         (Nothing , Just "mkd") -> pure T.MKD
-         (Nothing , Just "csv") -> pure T.CSV
-         _                      -> pure T.TXT
+getFormat :: T.AppMonad (Maybe String)
+getFormat = pure Nothing
+    -- mbFmt <- asks T.cFormat
+    -- path  <- asks T.cOutputPath
+    -- case ( mbFmt, C.extension <$> path ) of
+    --      (Just fmt, _         ) -> pure fmt
+    --      (Nothing , Just "txt") -> pure T.TXT
+    --      (Nothing , Just "md" ) -> pure T.MKD
+    --      (Nothing , Just "mkd") -> pure T.MKD
+    --      (Nothing , Just "csv") -> pure T.CSV
+    --      _                      -> pure T.TXT
 
 requireKey :: T.AppMonad Int
 requireKey = asks T.cJsetKey >>= maybe err pure
