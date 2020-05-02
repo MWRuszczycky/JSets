@@ -14,7 +14,6 @@ import qualified Model.Formatting          as F
 import qualified Model.Parsers.JournalSets as P
 import qualified AppMonad                  as A
 import           Data.Text                          ( Text           )
-import           Data.Maybe                         ( isJust         )
 import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
 import           Control.Monad.Reader               ( asks           )
@@ -53,23 +52,26 @@ readHelp = (s, Tx.unlines hs)
                , "option. For example, if <jsets2019.txt> is a file containing"
                , "all the journal sets for the year 2019, then you can print"
                , "journal set 5 to the terminal using,\n"
-               , "    jsets read jsets2019.txt --key=5"
-               -- , "You can use the <read> command to convert between journal set"
-               -- , "formats. For example, if you want to generate a csv file of"
-               -- , "the journal sets use,\n"
-               -- , "    jsets read jsets2019.txt --output=jsets2019.csv\n"
-               -- , "The output format is determined by the output file extension;"
-               -- , "however, it can be over-ridden using the --format/-f command."
-               -- , "The default output format is text."
+               , "    jsets read jsets2019.txt --key=5\n"
+               , "The default output is formatted as text. You can use the"
+               , "<read> command to convert between journal set formats. For"
+               , "example, if you want to generate a csv file of the journal"
+               , "sets use,\n"
+               , "    jsets read jsets2019.txt --output=jsets2019.csv\n"
+               , "The output format is determined by the output file extension."
                ]
 
 readCmd :: [String] -> T.AppMonad ()
 readCmd []     = throwError "A path to the journal sets file required!"
 readCmd (fp:_) = do
-    keyProvided <- asks $ isJust . T.cJsetKey
-    if keyProvided
-       then A.jsetFromFile fp  >>= display . F.jsetToTxt
-       else A.jsetsFromFile fp >>= display . F.jsetsToTxt
+    fmt   <- A.getFormat
+    mbKey <- asks T.cJsetKey
+    keys  <- A.issueRefKeys
+    case (mbKey, fmt) of
+         (Just _, T.CSV) -> A.jsetFromFile  fp >>= display . F.jsetToCsv keys
+         (Just _, _    ) -> A.jsetFromFile  fp >>= display . F.jsetToTxt
+         (_     , T.CSV) -> A.jsetsFromFile fp >>= display . F.jsetsToCsv keys
+         (_     , _    ) -> A.jsetsFromFile fp >>= display . F.jsetsToTxt
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
@@ -80,16 +82,23 @@ yearHelp = (s, Tx.unlines hs)
           hs = [ "The <year> command distributes all issues for all configured"
                , "journals in a given year into 26 journal sets. So, to create"
                , "a file with the default journal sets in 2019 use,\n"
-               , "    jsets year 2019 --output=jsets2019.txt"
-               -- , "You can also create a csv file by changing the extension to"
-               -- , ".csv or using the --format/-f option."
+               , "    jsets year 2019 --output=jsets2019.txt\n"
+               , "The default output format is text. To format the file as csv,"
+               , "set an output path with a 'csv' extension. For example,\n"
+               , "    jsets year 2019 --output=jsets2019.csv\n"
                ]
 
 yearCmd :: [String] -> T.AppMonad ()
 yearCmd []    = throwError "A valid year must be specified!"
-yearCmd (x:_) = maybe err go (readMaybe x) >>= display
-    where err  = throwError "Invalid year."
-          go y = A.references >>= pure . F.jsetsToTxt . J.yearly26Sets y
+yearCmd (x:_) = do
+    case readMaybe x of
+         Nothing -> throwError "Invalid year."
+         Just y  -> do jsets <- A.references >>= pure . J.yearly26Sets y
+                       keys  <- A.issueRefKeys
+                       fmt   <- A.getFormat
+                       case fmt of
+                            T.CSV -> display . F.jsetsToCsv keys $ jsets
+                            _     -> display . F.jsetsToTxt $ jsets
 
 ---------------------------------------------------------------------
 -- Handling issue selections
@@ -138,14 +147,13 @@ tocHelp :: (Text, Text)
 tocHelp = (s, Tx.unlines hs)
     where s  = "toc : generate tables of contents for a journal set"
           hs = [ "If jsets2019.txt is a collection of journal sets (see <read>"
-               , "command), then you can generate a markdown file of the tables"
-               , "of contents for each issue in the set with key 6 using,\n"
+               , "command), then you can generate a file of the tables of"
+               , "contents for each issue in the set with key 6 using,\n"
                , "    jsets toc jsets2019.txt --key=6"
-                 <> " --output=toc2019-5.mkd\n"
-               -- , "Note that the default output format is text and will be"
-               -- , "printed to the terminal. So, you need to either specify an"
-               -- , "output path with the desired extension and/or use the"
-               -- , "--format/-f option with 'mkd' or 'md' to indicate markdown."
+               , "The default output is text and will be printed to the"
+               , "terminal. To generate the html output for easy selection, set"
+               , "the extension of the output file to 'html', for example,\n"
+               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.html"
                ]
 
 tocCmd :: [String] -> T.AppMonad ()
@@ -154,7 +162,9 @@ tocCmd (fp:_) = do
     jset <- A.jsetFromFile fp
     tocs <- mapM A.downloadIssueToc . T.jsIssues $ jset
     fmt  <- A.getFormat
-    display . F.tocsToMkd (T.jsKey jset) $ tocs
+    case fmt of
+         T.HTML -> display . F.tocsToMkd (T.jsKey jset) $ tocs
+         _      -> display . F.tocsToTxt $ tocs
 
 display :: Text -> T.AppMonad ()
 display xs = do

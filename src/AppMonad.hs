@@ -21,6 +21,7 @@ import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
+import qualified Model.Core.Core           as C
 import qualified Model.Journals            as J
 import qualified Model.Formatting          as F
 import qualified Model.Parsers.PubMed      as P
@@ -103,17 +104,14 @@ downloadIssueToc x = do
 -- =============================================================== --
 -- General Helper Commands
 
-getFormat :: T.AppMonad (Maybe String)
-getFormat = pure Nothing
-    -- mbFmt <- asks T.cFormat
-    -- path  <- asks T.cOutputPath
-    -- case ( mbFmt, C.extension <$> path ) of
-    --      (Just fmt, _         ) -> pure fmt
-    --      (Nothing , Just "txt") -> pure T.TXT
-    --      (Nothing , Just "md" ) -> pure T.MKD
-    --      (Nothing , Just "mkd") -> pure T.MKD
-    --      (Nothing , Just "csv") -> pure T.CSV
-    --      _                      -> pure T.TXT
+getFormat :: T.AppMonad T.Format
+getFormat = do
+    path <- asks T.cOutputPath
+    case C.extension <$> path of
+         Just "txt"  -> pure T.TXT
+         Just "csv"  -> pure T.CSV
+         Just "html" -> pure T.HTML
+         _           -> pure T.TXT
 
 requireKey :: T.AppMonad Int
 requireKey = asks T.cJsetKey >>= maybe err pure

@@ -7,6 +7,7 @@ module Model.Core.Types
     , AppMonad
     , Config            (..)
     , Command           (..)
+    , Format            (..)
       -- Journal sets
     , JournalSet        (..)
     , JournalSets       (..)
@@ -57,6 +58,12 @@ data Command = Command {
     , cmdAction :: [String] -> AppMonad ()
     , cmdHelp   :: (Text, Text)
     }
+
+data Format =
+      TXT
+    | HTML
+    | CSV
+      deriving ( Show, Eq )
 
 -- =============================================================== --
 -- Journal sets
