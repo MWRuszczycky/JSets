@@ -17,7 +17,6 @@ module Model.Core.Types
       -- Journal issues
     , Issue             (..)
       -- Table of contents and citations
-    , JournalSetToC     (..)
     , IssueToC          (..)
     , Citation          (..)
     , PageNumber        (..)
@@ -112,10 +111,6 @@ data Issue = Issue {
 
 -- =============================================================== --
 -- Table of contents and citations
-
--- |Journal set in terms of tables of contents. The first value is
--- the journal set key.
-data JournalSetToC = JSetToC Int [IssueToC]
 
 data IssueToC = IssueToC Issue [Citation] deriving ( Show , Eq )
 

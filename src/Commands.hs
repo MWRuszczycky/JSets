@@ -9,7 +9,6 @@ import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
-import qualified Model.Core.Core           as C
 import qualified Model.Journals            as J
 import qualified Model.Formatting          as F
 import qualified Model.Parsers.JournalSets as P
@@ -155,7 +154,7 @@ tocCmd (fp:_) = do
     jset <- A.jsetFromFile fp
     tocs <- mapM A.downloadIssueToc . T.jsIssues $ jset
     fmt  <- A.getFormat
-    display . F.tocsToMkd $ T.JSetToC (T.jsKey jset) tocs
+    display . F.tocsToMkd (T.jsKey jset) $ tocs
 
 display :: Text -> T.AppMonad ()
 display xs = do

@@ -115,8 +115,8 @@ volIssToTxt x = Tx.intercalate ":" volIss
 ---------------------------------------------------------------------
 -- As Text
 
-tocsToTxt :: [Text] -> T.JournalSetToC -> Text
-tocsToTxt _ (T.JSetToC _ tocs) = Tx.unlines . map tocToTxt $ tocs
+tocsToTxt :: [T.IssueToC] -> Text
+tocsToTxt = Tx.unlines . map tocToTxt
 
 tocToTxt :: T.IssueToC -> Text
 tocToTxt (T.IssueToC x cs) = Tx.unlines
@@ -138,9 +138,9 @@ citationToTxt iss x = Tx.unlines parts
 ---------------------------------------------------------------------
 -- As Markdown
 
-tocsToMkd :: T.JournalSetToC -> Text
-tocsToMkd ( T.JSetToC k ts ) = Tx.unlines . (:) hdr . map tocToMkd $ ts
-    where hdr = "# Journal Set " <> C.tshow k
+tocsToMkd :: Int -> [T.IssueToC] -> Text
+tocsToMkd setNumber = Tx.unlines . (:) hdr . map tocToMkd
+    where hdr = "# Journal Set " <> C.tshow setNumber
 
 tocToMkd :: T.IssueToC -> Text
 tocToMkd (T.IssueToC x []) = issueToMkdHeader x
