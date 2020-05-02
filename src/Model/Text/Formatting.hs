@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Formatting
+module Model.Text.Formatting
     ( -- Formatting journal sets
       -- As CSV
       jsetsToCsv

@@ -23,7 +23,7 @@ import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
 import qualified Model.Journals            as J
-import qualified Model.Formatting          as F
+import qualified Model.Text.Formatting     as F
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
 import           Data.Text                          ( Text           )

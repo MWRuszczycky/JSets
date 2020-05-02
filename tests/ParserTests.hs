@@ -7,7 +7,7 @@ import qualified Data.Text.IO              as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Journals            as J
 import qualified Model.Parsers.JournalSets as P
-import qualified Model.Formatting          as F
+import qualified Model.Text.Formatting     as F
 import qualified TestReferences            as TR
 import           Test.Hspec                       ( Spec (..)
                                                   , hspec

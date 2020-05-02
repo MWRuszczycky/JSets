@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Help
+module Model.Text.Help
     ( helpText
     ) where
 

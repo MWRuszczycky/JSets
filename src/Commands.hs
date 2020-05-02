@@ -10,7 +10,7 @@ import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
-import qualified Model.Formatting          as F
+import qualified Model.Text.Formatting     as F
 import qualified Model.Parsers.JournalSets as P
 import qualified AppMonad                  as A
 import           Data.Text                          ( Text           )

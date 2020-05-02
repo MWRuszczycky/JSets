@@ -8,7 +8,7 @@ module Controller
 import qualified System.Console.GetOpt     as Opt
 import qualified Data.Text.IO              as Tx
 import qualified Model.Core.Types          as T
-import qualified Model.Help                as H
+import qualified Model.Text.Help           as H
 import           System.Environment                 ( getArgs               )
 import           Text.Read                          ( readMaybe             )
 import           Data.List                          ( intercalate           )
