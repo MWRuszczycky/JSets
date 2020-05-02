@@ -85,7 +85,7 @@ yearHelp = (s, Tx.unlines hs)
                , "    jsets year 2019 --output=jsets2019.txt\n"
                , "The default output format is text. To format the file as csv,"
                , "set an output path with a 'csv' extension. For example,\n"
-               , "    jsets year 2019 --output=jsets2019.csv\n"
+               , "    jsets year 2019 --output=jsets2019.csv"
                ]
 
 yearCmd :: [String] -> T.AppMonad ()
@@ -105,7 +105,7 @@ yearCmd (x:_) = do
 
 groupHelp :: (Text, Text)
 groupHelp = (s, Tx.unlines hs)
-    where s  = "group : group issue selects for review"
+    where s  = "group : group issue selections for review"
           hs = [ "Usage: jsets group file1.txt file2.txt file3.txt\n"
                , "Selection file formats are the same as journal set text files"
                , "with the first page of each selected article immediately"
