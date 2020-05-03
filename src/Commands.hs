@@ -12,13 +12,15 @@ import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
 import qualified Model.Text.Formatting     as F
 import qualified Model.Parsers.JournalSets as P
+import qualified Model.Parsers.PubMed      as P
 import qualified AppMonad                  as A
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
+import           Control.Monad                      ( zipWithM       )
 import           Control.Monad.Reader               ( asks           )
-import           Control.Monad.Except               ( liftIO
-                                                    , lift
+import           Control.Monad.Except               ( liftIO, lift
+                                                    , liftEither
                                                     , throwError     )
 
 -- =============================================================== --
@@ -149,21 +151,28 @@ tocHelp = (s, Tx.unlines hs)
           hs = [ "If jsets2019.txt is a collection of journal sets (see <read>"
                , "command), then you can generate a file of the tables of"
                , "contents for each issue in the set with key 6 using,\n"
-               , "    jsets toc jsets2019.txt --key=6"
+               , "    jsets toc jsets2019.txt --key=6\n"
                , "The default output is text and will be printed to the"
                , "terminal. To generate the html output for easy selection, set"
                , "the extension of the output file to 'html', for example,\n"
-               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.html"
+               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.html\n"
+               , "The tables of contents are downloaded from PubMed. To obtain"
+               , "the raw, unparsed PubMed data, use the extension 'raw',"
+               , "for example,\n"
+               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.raw"
                ]
 
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
     jset <- A.jsetFromFile fp
-    tocs <- mapM A.downloadIssueToc . T.jsIssues $ jset
+    raw  <- mapM A.downloadPubMed (T.jsIssues jset)
+    let makeToC x t = T.IssueToC x <$> P.parseCitations x t
+    tocs <- liftEither $ zipWithM makeToC (T.jsIssues jset) raw
     fmt  <- A.getFormat
     case fmt of
          T.HTML -> display . F.tocsToHtml (T.jsKey jset) $ tocs
+         T.RAW  -> display . Tx.unlines $ raw
          _      -> display . F.tocsToTxt $ tocs
 
 ---------------------------------------------------------------------

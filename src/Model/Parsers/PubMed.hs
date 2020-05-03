@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Parsers.PubMed
     ( parseCitations
+    , noCitations
     ) where
 
 import qualified Model.Core.Types     as T
@@ -17,6 +18,10 @@ parseCitations :: T.Issue -> Text -> Either String [T.Citation]
 parseCitations iss = bimap err sortByPage . At.parseOnly (citations iss)
     where err x = "Cannot parse PubMed table of contents: " ++ x
 
+noCitations :: Text -> Either String Bool
+noCitations = bimap err id . At.parseOnly isEmpty
+    where err x = "Cannot parse PubMed table of contents: " ++ x
+
 citations :: T.Issue -> At.Parser [T.Citation]
 citations iss = do
     At.skipSpace *> skipXML
@@ -27,6 +32,14 @@ citations iss = do
     At.skipSpace *> At.string "</pre>"
     At.skipSpace *> At.endOfInput
     pure xs
+
+isEmpty :: At.Parser Bool
+isEmpty = do
+    At.skipSpace *> skipXML
+    At.skipSpace *> skipXML
+    At.skipSpace *> At.string "<pre>"
+    x <- At.choice [ At.string "</pre>", pure Tx.empty ]
+    pure $ x == "</pre>"
 
 ---------------------------------------------------------------------
 -- Helper functions

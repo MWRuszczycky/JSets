@@ -11,7 +11,7 @@ module AppMonad
     , issueRefKeys
     , getIssue
       -- Internet requests
-    , downloadIssueToc
+    , downloadPubMed
       -- General helper functions
     , getFormat
     , requireKey
@@ -87,19 +87,21 @@ getIssue key v n = references >>= maybe err pure . go
 -- =============================================================== --
 -- Internet requests
 
-downloadIssueToc ::  T.Issue -> T.AppMonad T.IssueToC
+downloadPubMed :: T.Issue -> T.AppMonad Text
 -- ^Download the table of contents for a journal issue from PubMed.
+-- The download format is the raw PubMed text.
 -- Display progress messages for each ToC download.
-downloadIssueToc x = do
+downloadPubMed x = do
     let addr = "https://www.ncbi.nlm.nih.gov/pubmed"
         opts = J.tocQuery x
-    liftIO . Tx.putStr $ "Downloading toc for " <> F.issueToTxt x <> "..."
+    liftIO . Tx.putStr $ "Downloading " <> F.issueToTxt x <> " from PubMed..."
     liftIO . hFlush $ stdout
-    cs <- lift $ C.webRequest opts addr >>= liftEither . P.parseCitations x
-    if null cs
+    result      <- lift $ C.webRequest opts addr
+    noCitations <- liftEither . P.noCitations $ result
+    if noCitations
        then liftIO . Tx.putStrLn $ "No articles listed at PubMed"
        else liftIO . Tx.putStrLn $ "OK"
-    pure $ T.IssueToC x cs
+    pure result
 
 -- =============================================================== --
 -- General Helper Commands
