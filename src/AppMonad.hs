@@ -111,6 +111,7 @@ getFormat = do
          Just "txt"  -> pure T.TXT
          Just "csv"  -> pure T.CSV
          Just "html" -> pure T.HTML
+         Just "raw"  -> pure T.RAW
          _           -> pure T.TXT
 
 requireKey :: T.AppMonad Int
