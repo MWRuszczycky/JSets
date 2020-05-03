@@ -45,6 +45,13 @@ spaceToUnder = Tx.map go
     where go x | isSpace x = '_'
                | otherwise = x
 
+fixReserved :: Text -> Text
+fixReserved = Tx.concatMap go
+    where go '<' = "&lt"
+          go '>' = "&gt"
+          go '&' = "&amp"
+          go x   = Tx.singleton x
+
 -- --------------------------------------------------------------- --
 -- Page components
 
@@ -238,8 +245,8 @@ citationHtml indent iss c = Tx.unlines xs
                          <> "\">"
                , ind n "<label>"
                , ind n $ "    <b><a href=\"" <> T.doi c <> "\" target=\"_blank\">"
-               , ind n $ "    " <> T.title c <> "</a></b><br>"
-               , ind n $ "    " <> T.authors c <> "<br>"
+               , ind n $ "    " <> (fixReserved . T.title)   c <> "</a></b><br>"
+               , ind n $ "    " <> (fixReserved . T.authors) c <> "<br>"
                , ind n $ "    <i>" <> T.name jn <> "</i> "
                          <> (C.tshow . T.volNo) iss <> ":"
                          <> (C.tshow . T.issNo) iss
