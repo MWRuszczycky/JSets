@@ -56,11 +56,13 @@ readHelp = (s, Tx.unlines hs)
                , "journal set 5 to the terminal using,\n"
                , "    jsets read jsets2019.txt --key=5\n"
                , "The default output is formatted as text. You can use the"
-               , "<read> command to convert between journal set formats. For"
-               , "example, if you want to generate a csv file of the journal"
-               , "sets use,\n"
+               , "<read> command to convert between journal set formats by"
+               , "using an explicit output path and indicating the format with"
+               , "the output file extension. So, if you want to convert a text"
+               , "file to csv, then you would run,\n"
                , "    jsets read jsets2019.txt --output=jsets2019.csv\n"
-               , "The output format is determined by the output file extension."
+               , "If you want to convert the csv file to text, then run,\n"
+               , "    jsets read jsets2019.csv --output=jsets2019.txt"
                ]
 
 readCmd :: [String] -> T.AppMonad ()
