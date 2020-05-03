@@ -95,14 +95,13 @@ yearHelp = (s, Tx.unlines hs)
 yearCmd :: [String] -> T.AppMonad ()
 yearCmd []    = throwError "A valid year must be specified!"
 yearCmd (x:_) = do
-    case readMaybe x of
-         Nothing -> throwError "Invalid year."
-         Just y  -> do jsets <- A.references >>= pure . J.yearly26Sets y
-                       keys  <- A.issueRefKeys
-                       fmt   <- A.getFormat
-                       case fmt of
-                            T.CSV -> display . F.jsetsToCsv keys $ jsets
-                            _     -> display . F.jsetsToTxt $ jsets
+    theYear <- maybe (throwError "Invalid year.") pure . readMaybe $ x
+    jsets   <- A.references >>= pure . J.yearly26Sets theYear
+    keys    <- A.issueRefKeys
+    fmt     <- A.getFormat
+    case fmt of
+         T.CSV -> display . F.jsetsToCsv keys $ jsets
+         _     -> display . F.jsetsToTxt $ jsets
 
 ---------------------------------------------------------------------
 -- Handling issue selections
