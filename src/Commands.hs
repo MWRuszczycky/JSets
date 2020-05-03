@@ -160,7 +160,9 @@ tocHelp = (s, Tx.unlines hs)
                , "The tables of contents are downloaded from PubMed. To obtain"
                , "the raw, unparsed PubMed data, use the extension 'raw',"
                , "for example,\n"
-               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.raw"
+               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.raw\n"
+               , "Markdown formatting is available with the 'mkd' extension,\n"
+               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.mkd"
                ]
 
 tocCmd :: [String] -> T.AppMonad ()
@@ -173,6 +175,7 @@ tocCmd (fp:_) = do
     fmt  <- A.getFormat
     case fmt of
          T.HTML -> display . F.tocsToHtml (T.jsKey jset) $ tocs
+         T.MKD  -> display . F.tocsToMkd  (T.jsKey jset) $ tocs
          T.RAW  -> display . Tx.unlines $ raw
          _      -> display . F.tocsToTxt $ tocs
 
