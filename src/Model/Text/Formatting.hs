@@ -19,6 +19,7 @@ module Model.Text.Formatting
     , tocToTxt
     , citationToTxt
       -- As Markdown
+    , tocsToHtml
     , tocsToMkd
     , tocToMkd
     , citationToMkd
@@ -32,6 +33,7 @@ import qualified Data.Text          as Tx
 import qualified Model.Core.Core    as C
 import qualified Model.Core.Types   as T
 import qualified Model.Journals     as J
+import qualified Model.Text.Html    as Html
 import           Data.Text                  ( Text      )
 import           Data.List                  ( sortBy    )
 import           Data.Ord                   ( comparing )
@@ -164,6 +166,15 @@ citationToMkd iss x = Tx.unlines parts
                                , pagesToTxt x
                                ]
                   ]
+
+---------------------------------------------------------------------
+-- As HTML
+
+tocsToHtml :: Int -> [T.IssueToC] -> Text
+tocsToHtml setNumber tocs = Tx.unlines xs
+    where xs = [ Html.htmlHeader setNumber tocs
+               , Html.htmlBody setNumber tocs
+               ]
 
 -- =============================================================== --
 -- Formatting selection sets

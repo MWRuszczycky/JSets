@@ -119,7 +119,10 @@ data Issue = Issue {
 -- =============================================================== --
 -- Table of contents and citations
 
-data IssueToC = IssueToC Issue [Citation] deriving ( Show , Eq )
+data IssueToC = IssueToC {
+      tocIssue  :: Issue
+    , citations :: [Citation]
+    } deriving ( Show , Eq )
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {

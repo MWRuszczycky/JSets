@@ -163,8 +163,11 @@ tocCmd (fp:_) = do
     tocs <- mapM A.downloadIssueToc . T.jsIssues $ jset
     fmt  <- A.getFormat
     case fmt of
-         T.HTML -> display . F.tocsToMkd (T.jsKey jset) $ tocs
+         T.HTML -> display . F.tocsToHtml (T.jsKey jset) $ tocs
          _      -> display . F.tocsToTxt $ tocs
+
+---------------------------------------------------------------------
+-- Output handling
 
 display :: Text -> T.AppMonad ()
 display xs = do
