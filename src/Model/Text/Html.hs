@@ -73,27 +73,26 @@ htmlBody setNumber tocs = Tx.unlines xs
                , ind 1 "<body>\n"
                , ind 2 "<h1>Journal Set " <> C.tshow setNumber <> "</h1>\n"
                , sectionBreak "Tables of Contents"
-               , ind 1 "</body>"
-               , Tx.unlines . map (issToCHtml 3) $ tocs
+               , Tx.unlines . map (issToCHtml 2) $ tocs
                , sectionBreak "Selection"
-               , ind 2 "<h2>Create your selection, save it and send it to Mark!</h2>"
-               , ind 2 "<ol id=\"inst\" style=\"display:none\">"
-               , ind 2 "    <li>Your selection has been created.</li>"
-               , ind 2 "    <li>There are <b><span id=\"count\"></span></b> articles in the selection.</li>"
-               , ind 2 "    <li>If you want to change your selection, refresh the webpage.</li>"
-               , ind 2 "    <li>If you want to save your selection <a id=\"saveLink\"><b>click here</b></a>.</li>"
-               , ind 2 "    <li>Your selection should be saved in your <b>Downloads</b> folder.</li>"
-               , ind 2 "    <li>The file name of your selection is <b><span id=\"fileNameWgt\"><span></b>.</li>"
-               , ind 2 "    <li>Email your selection file to Mark.</li>"
-               , ind 2 "    <li>Afterwards, you can delete this html file and the selection file.</li>"
-               , ind 2 "</ol>\n"
-               , ind 2 "<div id=\"createWgt\">"
-               , ind 2 "    <label for=\"initials\">Enter your initials here:</label>"
-               , ind 2 "    <input type=\"text\" id=\"initials\">"
-               , ind 2 "    <button type=\"button\" id=\"createBtn\" onclick=\"createSelection()\">"
-               , ind 2 "        Create Selection!"
-               , ind 2 "    </button>"
-               , ind 2 "</div>"
+               , ind 2 "<h2>Create your selection, save it and send it to Mark!</h2>\n"
+               , ind 3 "<ol id=\"inst\" style=\"display:none\">"
+               , ind 3 "    <li>Your selection has been created.</li>"
+               , ind 3 "    <li>There are <b><span id=\"count\"></span></b> articles in the selection.</li>"
+               , ind 3 "    <li>If you want to change your selection, refresh the webpage.</li>"
+               , ind 3 "    <li>If you want to save your selection <a id=\"saveLink\"><b>click here</b></a>.</li>"
+               , ind 3 "    <li>Your selection should be saved in your <b>Downloads</b> folder.</li>"
+               , ind 3 "    <li>The file name of your selection is <b><span id=\"fileNameWgt\"></span></b>.</li>"
+               , ind 3 "    <li>Email your selection file to Mark.</li>"
+               , ind 3 "    <li>Afterwards, you can delete this html file and the selection file.</li>"
+               , ind 3 "</ol>\n"
+               , ind 3 "<div id=\"createWgt\">"
+               , ind 3 "    <label for=\"initials\">Enter your initials here:</label>"
+               , ind 3 "    <input type=\"text\" id=\"initials\">"
+               , ind 3 "    <button type=\"button\" id=\"createBtn\" onclick=\"createSelection()\">"
+               , ind 3 "        Create Selection!"
+               , ind 3 "    </button>"
+               , ind 3 "</div>"
                , ind 1 "</body>"
                , "</html>"
                ]
@@ -218,8 +217,11 @@ setInfo setNumber tocs = [ Tx.concat hdr, Tx.concat pre ]
                  ]
 
 issToCHtml :: Int -> T.IssueToC -> Text
-issToCHtml indent (T.IssueToC iss cs) = Tx.unlines xs
-    where xs = ind indent (issueHeader iss) : map ( citationHtml indent iss ) cs
+issToCHtml indent (T.IssueToC iss cs) = Tx.unlines $ hdr : bdy
+    where hdr = ind indent (issueHeader iss)
+          msg = "<p>There are no articles listed for this issue at PubMed!</p>"
+          bdy | null cs   = [ ind (indent + 1) msg ]
+              | otherwise = map ( citationHtml indent iss ) cs
 
 issueHeader :: T.Issue -> Text
 issueHeader iss = Tx.concat xs
