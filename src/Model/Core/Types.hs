@@ -62,6 +62,7 @@ data Command = Command {
 data Format =
       TXT
     | HTML
+    | MKD
     | CSV
     | RAW
       deriving ( Show, Eq )

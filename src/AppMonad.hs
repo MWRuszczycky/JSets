@@ -113,6 +113,8 @@ getFormat = do
          Just "txt"  -> pure T.TXT
          Just "csv"  -> pure T.CSV
          Just "html" -> pure T.HTML
+         Just "mkd"  -> pure T.MKD
+         Just "md"   -> pure T.MKD
          Just "raw"  -> pure T.RAW
          _           -> pure T.TXT
 
