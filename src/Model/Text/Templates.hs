@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Parsers.Substitution
+module Model.Text.Templates
     ( substitute
     , parseAtBraced
     ) where
