@@ -1,43 +1,69 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Text.Templates
-    ( substitute
-    , parseAtBraced
+    ( fillIn
+    , parseTemplate
     ) where
 
 import qualified Data.Text            as Tx
 import qualified Data.Attoparsec.Text as At
 import qualified Data.Map.Strict      as Map
-import           Data.Text                   ( Text        )
-import           Control.Applicative         ( (<|>), many )
+import           Data.Text                   ( Text               )
+import           Control.Applicative         ( (<|>), empty, many )
 
-data AtBraced =
-      FreeAt
-    | Braced Text
-    | Unbraced Text deriving ( Eq, Show )
+-- =============================================================== --
+-- Local types
 
-substitute :: Text -> Map.Map Text Text -> Text -> Text
-substitute d xys = Tx.concat . map go . parseAtBraced
-    where go FreeAt       = "@"
-          go (Unbraced y) = y
-          go (Braced   x) = Map.findWithDefault d x xys
+data Template = FreeAt | Var Text | Raw Text deriving ( Eq, Show )
 
-parseAtBraced :: Text -> [AtBraced]
--- ^This parser never fails, so we have a dummy value in the either
--- expression that just returns and empty list.
-parseAtBraced = either (const []) id . At.parseOnly ( many atBraced )
+-- =============================================================== --
+-- Text interpolation for Templated Text strings
 
-atBraced :: At.Parser AtBraced
-atBraced = At.peekChar' >>= go
-    where go '@' = braced <|> freeAt
-          go  _  = unbraced
+fillIn :: Text -> Map.Map Text Text -> [Template] -> Text
+fillIn def dict = Tx.concat . map go
+    where go FreeAt  = "@"
+          go (Var x) = Map.findWithDefault def x dict
+          go (Raw x) = x
 
-freeAt :: At.Parser AtBraced
-freeAt = At.char '@' *> pure FreeAt
+-- =============================================================== --
+-- Parser
 
-unbraced :: At.Parser AtBraced
-unbraced = Unbraced <$> At.takeTill (=='@')
+parseTemplate :: String -> Text -> Either String [Template]
+-- ^Parses at-braced text. Anything in "@{key}" is parsed out as
+-- 'AtVar'. The open brace must immediately follow the @ symbol,
+-- otherwise it is parsed as an @-symbol (FreeAt). Everything else
+-- parses as AtRaw. Fails on unclosed braces after @{ open braces.
+parseTemplate fp txt = go . At.parse atText $ txt
+    where go (At.Partial cont  ) = go . cont $ Tx.empty
+          go (At.Done xs r     ) | Tx.null xs = pure r
+                                 | otherwise  = go $ At.Fail xs [] ""
+          go (At.Fail xs _    _) = let n = length . Tx.lines $ txt
+                                       m = length . Tx.lines $ xs
+                                   in  Left $ templateFailStr fp $ n - m + 1
 
-braced :: At.Parser AtBraced
-braced = Braced <$> go
+templateFailStr :: String -> Int -> String
+templateFailStr fp n = unwords hs
+    where hs = [ "parseAt failed to parse!"
+               , fp <> ", line " <> show n <> ":"
+               , "likely unclosed at-brace."
+               ]
+
+atText :: At.Parser [Template]
+atText = many ( At.peekChar' >>= go ) <* At.endOfInput
+    where go '@' = freeAt <|> var
+          go  _  = raw
+
+raw :: At.Parser Template
+raw = Raw <$> At.takeTill (=='@')
+
+var :: At.Parser Template
+var = Var <$> go
     where go = At.string "@{" *> At.takeTill (=='}') <* At.char '}'
+
+freeAt :: At.Parser Template
+freeAt = do
+    At.char '@'
+    nxt <- At.peekChar
+    case nxt of
+         Just '{' -> empty
+         _        -> pure FreeAt
