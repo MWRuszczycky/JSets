@@ -106,8 +106,14 @@ tNewIssueHtml :: Template
 -- vol    : issue volume
 -- number : issue number
 -- date   : issue date
-tNewIssueHtml = parseTemplate' "res/html/newIssueTemplate.html"
-                $(FE.embedStringFile "res/html/newIssueTemplate.html")
+tNewIssueHtml = parseTemplate' "tNewIssueHtml-template" . Tx.unwords $ t
+    where t = [ Tx.replicate 24 " "
+               , "new Journal(\"@{class}\","
+               , "\"@{title}\","
+               , "\"@{vol}\","
+               , "\"@{number}\","
+               , "\"@{date}\")"
+               ]
 
 tTocHtml :: Template
 -- table of contents for a give issue
@@ -124,7 +130,8 @@ tArticleHtml :: Template
 -- title   : article title
 -- authors : article authors
 -- journal : journal name
--- volIss  : volume and issue string
+-- volume  : issue volume
+-- number  : issue number
 -- pages   : pages string
 tArticleHtml = parseTemplate' "res/html/articleTemplate.html"
                $(FE.embedStringFile "res/html/articleTemplate.html")

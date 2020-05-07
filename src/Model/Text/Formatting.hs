@@ -171,10 +171,7 @@ citationToMkd iss x = Tx.unlines parts
 -- As HTML
 
 tocsToHtml :: Int -> [T.IssueToC] -> Text
-tocsToHtml setNumber tocs = Tx.unlines xs
-    where xs = [ Html.htmlHeader setNumber tocs
-               , Html.htmlBody setNumber tocs
-               ]
+tocsToHtml = Html.htmlToC
 
 -- =============================================================== --
 -- Formatting selection sets
