@@ -49,6 +49,7 @@ library lab-schedule-internal
                       , microlens
                       , mtl
                       , text
+                      , file-embed
                       , time
                       , wreq
 

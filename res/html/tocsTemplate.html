@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>@{jsetTitle}</title>
+        <meta charset="UTF-8">
+
+<!-- ============================================================ -->
+<!-- STYLES -->
+
+        <style>
+            body { background-color: white;
+                   color: #101010;
+                   font-family: sans-serif;
+                   font-size: 100%; }
+            a:link { color: steelblue; }
+            a:visited { color: darkslateblue; }
+            div.selectedPages { text-indent: 4em; }
+            p { display: block;
+                padding-left: 2.5em;
+                text-indent: -1.7em; }
+        </style>
+
+<!-- ============================================================ -->
+<!-- SCRIPTS -->
+
+        <script>
+
+            jsetHeader = "@{jsetHeader}";
+            savePrefix = "@{savePrefix}";
+
+            class Journal {
+                constructor(key, name, volume, issue, published){
+                    this.key = key;
+                    this.name = name;
+                    this.volume = volume;
+                    this.issue = issue;
+                    this.published = published;
+                };
+                header(){
+                    var volNo   = this.volume + " " + this.issue;
+                    var pubdate = "(" + this.published + ")";
+                    return this.name + " " + volNo + " " + pubdate;
+               };
+            };
+
+            journals = [
+@{newIssues}
+                       ];
+
+            function pageNumber(journalObj, articleObj) {
+            // Parse the page numbers from a article id.
+                var p = articleObj.id.slice(journalObj.key.length + 1);
+                return "    " + p + "\n"
+            };
+
+            function isAlphaNum(x) {
+            // Determine if character is alpha-numeric.
+                if (x.length === 1) {
+                    var v     = x.charCodeAt(0);
+                    var isNum = (v > 47 && v < 58);
+                    var isCap = (v > 64 && v < 91);
+                    var isLow = (v > 96 && v < 123);
+                    return isNum || isCap || isLow;
+                };
+                return false;
+            };
+
+            function makeFileName(prefix, xs) {
+            // Generate a file name for the selection.
+                var suffix = "";
+                for (i = 0; i < xs.length; i++) {
+                    if (isAlphaNum(xs[i])) {
+                        suffix += xs[i];
+                    };
+                };
+                if (suffix) {
+                    return prefix + "-" + suffix + ".txt";
+                };
+                return prefix + "-" + "none.txt";
+            };
+
+            function createSelection() {
+            // Create selection content for saving and update page.
+                var selection = jsetHeader + "\n";
+                var count     = 0;
+                for (i = 0; i < journals.length; i++ ){
+                    selection += journals[i].header() + "\n";
+                    var xs = document.getElementsByClassName(journals[i].key);
+                    var pages = ""
+                    for (j = 0; j < xs.length; j++){
+                        if (xs[j].checked) {
+                            pages += pageNumber(journals[i], xs[j]);
+                            count += 1;
+                        };
+                    };
+                    selection += pages;
+                };
+
+                var inst          = document.getElementById('inst');
+                var saveLink      = document.getElementById('saveLink');
+                var createWgt     = document.getElementById('createWgt');
+                var initials      = document.getElementById('initials');
+                var fileNameWgt   = document.getElementById('fileNameWgt');
+                var countWgt      = document.getElementById('count');
+                var payload       = encodeURIComponent(selection);
+                var fileName      = makeFileName(savePrefix, initials.value);
+
+                saveLink.href     = "data:text/plain;charset=utf-8," + payload;
+                saveLink.download = fileName;
+
+                fileNameWgt.innerHTML = fileName;
+                countWgt.innerHTML    = count;
+                inst.style            = "display:block";
+                createWgt.style       = "display:none";
+            };
+
+        </script>
+
+    </head>
+
+<!-- ============================================================ -->
+<!-- CONTENT -->
+
+    <body id="body">
+
+<!-- ============================================================ -->
+<!-- Tables of Contents -->
+
+        <h1>@{jsetTitle}</h1>
+
+@{tocs}
+
+<!-- ============================================================ -->
+<!-- Selection -->
+
+        <h2>Create your selection, save it and send it to Mark!</h2>
+
+        <ol id="inst" style="display:none">
+            <li>Your selection has been created.</li>
+            <li>There are <b><span id="count"></span></b> articles in the selection.</li>
+            <li>If you want to change your selection, refresh the webpage.</li>
+            <li>If you want to save your selection <a id="saveLink"><b>click here</b></a>.</li>
+            <li>Your selection should be saved in your <b>Downloads</b> folder.</li>
+            <li>The file name of your selection is <b><span id="fileNameWgt"><span></b>.</li>
+            <li>Email your selection file to Mark.</li>
+            <li>Afterwards, you can delete this html file and the selection file.</li>
+        </ol>
+
+        <div id="createWgt">
+            <label for="initials">Enter your initials here:</label>
+            <input type="text" id="initials">
+            <button type="button" id="createBtn" onclick="createSelection()">
+                Create Selection!
+            </button>
+        </div>
+
+    </body>
+
+</html>
