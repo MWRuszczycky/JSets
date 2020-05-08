@@ -17,10 +17,13 @@ import           Data.Text                      ( Text    )
 import           Data.Char                      ( isSpace )
 import           Model.Text.Templates           ( fill    )
 
--- --------------------------------------------------------------- --
--- Helpers
+-- =============================================================== --
+-- Helper functions
 
 className :: T.Issue -> Text
+-- ^Generate a class name for a journal issue. The basic format is
+-- _JournalName-Volume-Number
+-- where the journal name has all spaces converted to underscores.
 className iss = Tx.intercalate "-" xs
     where xs = [ ("_" <>) . spaceToUnder . T.key . T.journal $ iss
                , C.tshow . T.volNo $ iss
@@ -28,25 +31,32 @@ className iss = Tx.intercalate "-" xs
                ]
 
 citationID :: T.Issue -> T.Citation -> Text
+-- ^Generate an article citation for an article issue. The basic
+-- format is: _JournalClassName-FirstPageNumber
 citationID iss c = className iss <> "-" <> C.tshow p1
     where (p1,_) = T.pages c
 
 spaceToUnder :: Text -> Text
+-- ^Convert spaces to underscores.
 spaceToUnder = Tx.map go
     where go x | isSpace x = '_'
                | otherwise = x
 
 fixReserved :: Text -> Text
+-- ^Convert html reserved characters to html compatible counterparts.
 fixReserved = Tx.concatMap go
     where go '<' = "&lt"
           go '>' = "&gt"
           go '&' = "&amp"
           go x   = Tx.singleton x
 
--- --------------------------------------------------------------- --
--- Page components
+-- =============================================================== --
+-- Exported html document compositors
 
 htmlToC :: Int -> [T.IssueToC] -> Text
+-- ^Generate the complete html web document for a table of contents.
+-- This webpage allows check-box selection of article citations and
+-- autogeneration of the selection text file.
 htmlToC setNumber tocs = fill "" (Map.fromList xys) Temp.tTocsHtml
     where jset = J.issueTocsToJSet setNumber tocs
           xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNumber )
@@ -56,16 +66,11 @@ htmlToC setNumber tocs = fill "" (Map.fromList xys) Temp.tTocsHtml
                  , ( "tocs",       Tx.unlines . map issToCHtml $ tocs  )
                  ]
 
-jsetHeader :: Int -> T.JournalSet -> Text
-jsetHeader setNumber jset = Tx.unwords xs
-    where xs = [ C.tshow setNumber
-               , "|"
-               , C.tshow . J.dateOfJSet $ jset
-               ]
+-- =============================================================== --
+-- html component compositors
 
-savePrefix :: Int -> T.JournalSet -> Text
-savePrefix setNumber jset = "sel" <> C.tshow y <> "-" <> C.tshow setNumber
-    where y = D.getYear . J.dateOfJSet $ jset
+-- --------------------------------------------------------------- --
+-- Javascript issue variables
 
 issuesArray :: [T.IssueToC] -> Text
 issuesArray = Tx.intercalate ",\n" . map (issueElement . T.tocIssue)
@@ -78,6 +83,9 @@ issueElement iss = fill "" (Map.fromList xys) Temp.tIssueHtml
                 , ("number", (C.tshow . T.issNo) iss )
                 , ("date",   (C.tshow . T.date ) iss )
                 ]
+
+-- --------------------------------------------------------------- --
+-- html for compositing the table of contents for a single issue
 
 issToCHtml :: T.IssueToC -> Text
 issToCHtml (T.IssueToC iss cs) = fill "" (Map.fromList xys) Temp.tTocHtml
@@ -110,3 +118,19 @@ citationHtml iss c = fill "" (Map.fromList xys) Temp.tCitationHtml
                     , ("number",  C.tshow . T.issNo $ iss         )
                     , ("pages",   C.tshow p0 <> "-" <> C.tshow pn )
                     ]
+
+-- --------------------------------------------------------------- --
+-- Javascript elements for building the selection text file
+
+jsetHeader :: Int -> T.JournalSet -> Text
+-- ^Journal set header for generation of the selection text file.
+jsetHeader setNumber jset = Tx.unwords xs
+    where xs = [ C.tshow setNumber
+               , "|"
+               , C.tshow . J.dateOfJSet $ jset
+               ]
+
+savePrefix :: Int -> T.JournalSet -> Text
+-- ^Filename prefix for the selection text file.
+savePrefix setNumber jset = "sel" <> C.tshow y <> "-" <> C.tshow setNumber
+    where y = D.getYear . J.dateOfJSet $ jset
