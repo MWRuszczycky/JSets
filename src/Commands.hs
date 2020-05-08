@@ -169,15 +169,17 @@ tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
     jset <- A.jsetFromFile fp
+    sset <- asks T.cSelectPath >>= traverse readSelection
     raw  <- mapM A.downloadPubMed (T.jsIssues jset)
     let makeToC x t = T.IssueToC x <$> P.parseCitations x t
+        key         = T.jsKey jset
     tocs <- liftEither $ zipWithM makeToC (T.jsIssues jset) raw
     fmt  <- A.getFormat
     case fmt of
-         T.HTML -> display . F.tocsToHtml (T.jsKey jset) $ tocs
-         T.MKD  -> display . F.tocsToMkd  (T.jsKey jset) $ tocs
-         T.RAW  -> display . Tx.unlines $ raw
-         _      -> display . F.tocsToTxt $ tocs
+         T.HTML -> display . F.tocsToHtml sset key $ tocs
+         T.MKD  -> display . F.tocsToMkd       key $ tocs
+         T.RAW  -> display . Tx.unlines            $ raw
+         _      -> display . F.tocsToTxt           $ tocs
 
 ---------------------------------------------------------------------
 -- Output handling

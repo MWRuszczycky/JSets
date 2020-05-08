@@ -2,8 +2,7 @@
 
 module Model.Text.Html
     ( htmlToC
-    --  htmlHeader
-    --, htmlBody
+    , htmlToCSel
     ) where
 
 import qualified Data.Text             as Tx
@@ -62,7 +61,20 @@ htmlToC setNumber tocs = fill (Map.fromList xys) Temp.tocsTemplate
           xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNumber )
                  , ( "jsetHeader", jsetHeader setNumber jset           )
                  , ( "savePrefix", savePrefix setNumber jset           )
-                 , ( "issues",     issuesArray tocs                 )
+                 , ( "issues",     issuesArray tocs                    )
+                 , ( "tocs",       Tx.unlines . map issToCHtml $ tocs  )
+                 ]
+
+htmlToCSel :: T.SelectionSet -> Int -> [T.IssueToC] -> Text
+-- ^Generate the complete html web document for a table of contents.
+-- This webpage allows check-box selection of article citations and
+-- autogeneration of the selection text file.
+htmlToCSel _ setNumber tocs = fill (Map.fromList xys) Temp.tocsTemplate
+    where jset = J.issueTocsToJSet setNumber tocs
+          xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNumber )
+                 , ( "jsetHeader", jsetHeader setNumber jset           )
+                 , ( "savePrefix", savePrefix setNumber jset           )
+                 , ( "issues",     issuesArray tocs                    )
                  , ( "tocs",       Tx.unlines . map issToCHtml $ tocs  )
                  ]
 

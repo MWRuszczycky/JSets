@@ -170,8 +170,9 @@ citationToMkd iss x = Tx.unlines parts
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: Int -> [T.IssueToC] -> Text
-tocsToHtml = Html.htmlToC
+tocsToHtml :: Maybe T.SelectionSet -> Int -> [T.IssueToC] -> Text
+tocsToHtml Nothing       setNumber tocs = Html.htmlToC setNumber tocs
+tocsToHtml (Just selSet) setNumber tocs = Html.htmlToCSel selSet setNumber tocs
 
 -- =============================================================== --
 -- Formatting selection sets
