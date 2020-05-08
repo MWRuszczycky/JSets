@@ -51,6 +51,7 @@ data Config = Config {
     , cJsetKey    :: Maybe Int      -- journal set key
     , cHelp       :: Bool           -- user requested help
     , cReferences :: [Issue]        -- reference issues
+    , cSelectPath :: Maybe FilePath -- file path to a selection text file
     } deriving ( Show )
 
 data Command = Command {

@@ -41,6 +41,7 @@ initConfig = T.Config { T.cOutputPath = Nothing
                       , T.cJsetKey    = Nothing
                       , T.cHelp       = False
                       , T.cReferences = issueRefs
+                      , T.cSelectPath = Nothing
                       }
 
 -- =============================================================== --
@@ -59,6 +60,10 @@ options =
     , Opt.Option "k" [ "key" ]
       ( Opt.ReqArg configKey "KEY" )
       "Set the journal set key to KEY (positive integer)"
+
+    , Opt.Option "s" [ "select" ]
+      ( Opt.ReqArg ( \ arg s -> pure $ s { T.cSelectPath = Just arg } ) "PATH" )
+      "Set the selection file path to PATH"
     ]
 
 configKey :: String -> T.Config -> T.ErrMonad T.Config
