@@ -8,7 +8,7 @@ module Model.Text.Templates
     , parseTemplate
       -- Templates
       -- html
-    , tArticleHtml
+    , tCitationHtml
     , tIssueHtml
     , tTocsHtml
     , tTocHtml
@@ -122,8 +122,8 @@ tTocHtml :: Template
 tTocHtml = parseTemplate' "res/html/tocTemplate.html"
            $(FE.embedStringFile "res/html/tocTemplate.html")
 
-tArticleHtml :: Template
--- <p> environment for a single article
+tCitationHtml :: Template
+-- <p> environment for a single article citation
 -- id      : article id
 -- class   : issue class
 -- href    : article doi link
@@ -133,5 +133,5 @@ tArticleHtml :: Template
 -- volume  : issue volume
 -- number  : issue number
 -- pages   : pages string
-tArticleHtml = parseTemplate' "res/html/articleTemplate.html"
-               $(FE.embedStringFile "res/html/articleTemplate.html")
+tCitationHtml = parseTemplate' "res/html/citationTemplate.html"
+                $(FE.embedStringFile "res/html/citationTemplate.html")

@@ -88,8 +88,8 @@ issToCHtml (T.IssueToC iss cs) = fill "" (Map.fromList xys) Temp.tTocHtml
     where msg = "<p>There are no articles listed for this issue at PubMed</p>"
           bdy | null cs   = Tx.replicate 12 " " <> msg
               | otherwise = Tx.intercalate "\n" . map ( citationHtml iss ) $ cs
-          xys = [ ("issue",    issueHeader iss )
-                , ("articles", bdy             )
+          xys = [ ("issue",     issueHeader iss )
+                , ("citations", bdy             )
                 ]
 
 issueHeader :: T.Issue -> Text
@@ -102,7 +102,7 @@ issueHeader iss = Tx.concat xs
                ]
 
 citationHtml :: T.Issue -> T.Citation -> Text
-citationHtml iss c = fill "" (Map.fromList xys) Temp.tArticleHtml
+citationHtml iss c = fill "" (Map.fromList xys) Temp.tCitationHtml
     where (p0,pn) = T.pages c
           xys     = [ ("id",      citationID iss c                )
                     , ("class",   className iss                   )
