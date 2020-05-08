@@ -28,7 +28,7 @@
             jsetHeader = "@{jsetHeader}";
             savePrefix = "@{savePrefix}";
 
-            class Journal {
+            class JournalIssue {
                 constructor(key, name, volume, issue, published){
                     this.key = key;
                     this.name = name;
@@ -43,9 +43,9 @@
                };
             };
 
-            journals = [
-@{newIssues}
-                       ];
+            issues = [
+@{issues}
+                     ];
 
             function pageNumber(journalObj, articleObj) {
             // Parse the page numbers from a article id.
@@ -83,13 +83,13 @@
             // Create selection content for saving and update page.
                 var selection = jsetHeader + "\n";
                 var count     = 0;
-                for (i = 0; i < journals.length; i++ ){
-                    selection += journals[i].header() + "\n";
-                    var xs = document.getElementsByClassName(journals[i].key);
+                for (i = 0; i < issues.length; i++ ){
+                    selection += issues[i].header() + "\n";
+                    var xs = document.getElementsByClassName(issues[i].key);
                     var pages = ""
                     for (j = 0; j < xs.length; j++){
                         if (xs[j].checked) {
-                            pages += pageNumber(journals[i], xs[j]);
+                            pages += pageNumber(issues[i], xs[j]);
                             count += 1;
                         };
                     };

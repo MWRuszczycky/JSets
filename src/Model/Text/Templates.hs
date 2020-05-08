@@ -9,7 +9,7 @@ module Model.Text.Templates
       -- Templates
       -- html
     , tArticleHtml
-    , tNewIssueHtml
+    , tIssueHtml
     , tTocsHtml
     , tTocHtml
     ) where
@@ -99,16 +99,16 @@ tTocsHtml :: Template
 tTocsHtml = parseTemplate' "res/html/tocsTemplate.html"
             $(FE.embedStringFile "res/html/tocsTemplate.html")
 
-tNewIssueHtml :: Template
--- element of the 'journals array'
+tIssueHtml :: Template
+-- element of the 'issues array'
 -- class  : issue class
 -- title  : Journal title
 -- vol    : issue volume
 -- number : issue number
 -- date   : issue date
-tNewIssueHtml = parseTemplate' "tNewIssueHtml-template" . Tx.unwords $ t
-    where t = [ Tx.replicate 24 " "
-               , "new Journal(\"@{class}\","
+tIssueHtml = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
+    where t = [ Tx.replicate 22 " "
+               , "new JournalIssue(\"@{class}\","
                , "\"@{title}\","
                , "\"@{vol}\","
                , "\"@{number}\","

@@ -56,7 +56,7 @@ htmlToC setNumber tocs = fill "" (Map.fromList xys) Temp.tTocsHtml
           xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNumber )
                  , ( "jsetHeader", jsetHeader setNumber jset           )
                  , ( "savePrefix", savePrefix setNumber jset           )
-                 , ( "newIssues",  newIssuesArray tocs                 )
+                 , ( "issues",     issuesArray tocs                 )
                  , ( "tocs",       Tx.unlines . map issToCHtml $ tocs  )
                  ]
 
@@ -71,11 +71,11 @@ savePrefix :: Int -> T.JournalSet -> Text
 savePrefix setNumber jset = "sel" <> C.tshow y <> "-" <> C.tshow setNumber
     where y = D.getYear . J.dateOfJSet $ jset
 
-newIssuesArray :: [T.IssueToC] -> Text
-newIssuesArray = Tx.intercalate ",\n" . map (newIssue . T.tocIssue)
+issuesArray :: [T.IssueToC] -> Text
+issuesArray = Tx.intercalate ",\n" . map (issueElement . T.tocIssue)
 
-newIssue :: T.Issue -> Text
-newIssue iss = fill "" (Map.fromList xys) Temp.tNewIssueHtml
+issueElement :: T.Issue -> Text
+issueElement iss = fill "" (Map.fromList xys) Temp.tIssueHtml
     where xys = [ ("class",  className           iss )
                 , ("title",  (T.key . T.journal) iss )
                 , ("vol",    (C.tshow . T.volNo) iss )
