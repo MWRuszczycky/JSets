@@ -6,6 +6,7 @@ module Model.Journals
     , unpack
     , emptyJSets
     , lookupJSet
+    , issueTocsToJSet
     , yearly26Sets
     , splitByFreq
     , dateOfJSet
@@ -56,6 +57,12 @@ emptyJSets = T.JSets Map.empty
 
 lookupJSet :: Int -> T.JournalSets -> Maybe T.JournalSet
 lookupJSet k (T.JSets m) = T.JSet k <$> Map.lookup k m
+
+issueTocsToJSet :: Int -> [T.IssueToC] -> T.JournalSet
+-- ^Convert a list of issue tables of contents to a journal set with
+-- a specified journal set number key.
+issueTocsToJSet setNumber = T.JSet setNumber . map go
+    where go ( T.IssueToC x _ ) = x
 
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets

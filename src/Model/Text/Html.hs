@@ -20,10 +20,6 @@ import           Model.Text.Templates           ( fill    )
 -- --------------------------------------------------------------- --
 -- Helpers
 
-issueToCToJSet :: Int -> [T.IssueToC] -> T.JournalSet
-issueToCToJSet setNumber = T.JSet setNumber . map go
-    where go ( T.IssueToC x _ ) = x
-
 className :: T.Issue -> Text
 className iss = Tx.intercalate "-" xs
     where xs = [ ("_" <>) . spaceToUnder . T.key . T.journal $ iss
@@ -52,7 +48,7 @@ fixReserved = Tx.concatMap go
 
 htmlToC :: Int -> [T.IssueToC] -> Text
 htmlToC setNumber tocs = fill "" (Map.fromList xys) Temp.tTocsHtml
-    where jset = issueToCToJSet setNumber tocs
+    where jset = J.issueTocsToJSet setNumber tocs
           xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNumber )
                  , ( "jsetHeader", jsetHeader setNumber jset           )
                  , ( "savePrefix", savePrefix setNumber jset           )
