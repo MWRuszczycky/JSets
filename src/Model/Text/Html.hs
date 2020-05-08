@@ -57,7 +57,7 @@ htmlToC :: Int -> [T.IssueToC] -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
-htmlToC setNumber tocs = fill "" (Map.fromList xys) Temp.tTocsHtml
+htmlToC setNumber tocs = fill "" (Map.fromList xys) Temp.tocsTemplate
     where jset = J.issueTocsToJSet setNumber tocs
           xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNumber )
                  , ( "jsetHeader", jsetHeader setNumber jset           )
@@ -76,7 +76,7 @@ issuesArray :: [T.IssueToC] -> Text
 issuesArray = Tx.intercalate ",\n" . map (issueElement . T.tocIssue)
 
 issueElement :: T.Issue -> Text
-issueElement iss = fill "" (Map.fromList xys) Temp.tIssueHtml
+issueElement iss = fill "" (Map.fromList xys) Temp.issueTemplate
     where xys = [ ("class",  className           iss )
                 , ("title",  (T.key . T.journal) iss )
                 , ("vol",    (C.tshow . T.volNo) iss )
@@ -88,7 +88,7 @@ issueElement iss = fill "" (Map.fromList xys) Temp.tIssueHtml
 -- html for compositing the table of contents for a single issue
 
 issToCHtml :: T.IssueToC -> Text
-issToCHtml (T.IssueToC iss cs) = fill "" (Map.fromList xys) Temp.tTocHtml
+issToCHtml (T.IssueToC iss cs) = fill "" (Map.fromList xys) Temp.tocTemplate
     where msg = "<p>There are no articles listed for this issue at PubMed</p>"
           bdy | null cs   = Tx.replicate 12 " " <> msg
               | otherwise = Tx.intercalate "\n" . map ( citationHtml iss ) $ cs
@@ -106,7 +106,7 @@ issueHeader iss = Tx.concat xs
                ]
 
 citationHtml :: T.Issue -> T.Citation -> Text
-citationHtml iss c = fill "" (Map.fromList xys) Temp.tCitationHtml
+citationHtml iss c = fill "" (Map.fromList xys) Temp.citationTemplate
     where (p0,pn) = T.pages c
           xys     = [ ("id",      citationID iss c                )
                     , ("class",   className iss                   )

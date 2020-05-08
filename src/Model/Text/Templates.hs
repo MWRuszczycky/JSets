@@ -8,10 +8,10 @@ module Model.Text.Templates
     , parseTemplate
       -- Templates
       -- html
-    , tCitationHtml
-    , tIssueHtml
-    , tTocsHtml
-    , tTocHtml
+    , citationTemplate
+    , issueTemplate
+    , tocsTemplate
+    , tocTemplate
     ) where
 
 import qualified Data.Text            as Tx
@@ -87,26 +87,26 @@ freeAt = do
 -- Templates
 
 ---------------------------------------------------------------------
--- html
+-- html templates for building tables of contents web documents
 
-tTocsHtml :: Template
+tocsTemplate :: Template
 -- full html document for table of contents selections
 -- jsetTitle  : title of html document
 -- jsetHeader : header for te journal set (number and date)
 -- savePrefix : file name prefix for saving
 -- newIssues  : new issue elements for the 'journals' array
 -- tocs       : table of contents html for all issues
-tTocsHtml = parseTemplate' "res/html/tocsTemplate.html"
-            $(FE.embedStringFile "res/html/tocsTemplate.html")
+tocsTemplate = parseTemplate' "res/html/tocsTemplate.html"
+               $(FE.embedStringFile "res/html/tocsTemplate.html")
 
-tIssueHtml :: Template
+issueTemplate :: Template
 -- element of the 'issues array'
 -- class  : issue class
 -- title  : Journal title
 -- vol    : issue volume
 -- number : issue number
 -- date   : issue date
-tIssueHtml = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
+issueTemplate = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
     where t = [ Tx.replicate 22 " "
                , "new JournalIssue(\"@{class}\","
                , "\"@{title}\","
@@ -115,14 +115,14 @@ tIssueHtml = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
                , "\"@{date}\")"
                ]
 
-tTocHtml :: Template
+tocTemplate :: Template
 -- table of contents for a give issue
 -- issue    : issue header
 -- articles : html for all articles in the issue
-tTocHtml = parseTemplate' "res/html/tocTemplate.html"
-           $(FE.embedStringFile "res/html/tocTemplate.html")
+tocTemplate = parseTemplate' "res/html/tocTemplate.html"
+              $(FE.embedStringFile "res/html/tocTemplate.html")
 
-tCitationHtml :: Template
+citationTemplate :: Template
 -- <p> environment for a single article citation
 -- id      : article id
 -- class   : issue class
@@ -133,5 +133,5 @@ tCitationHtml :: Template
 -- volume  : issue volume
 -- number  : issue number
 -- pages   : pages string
-tCitationHtml = parseTemplate' "res/html/citationTemplate.html"
-                $(FE.embedStringFile "res/html/citationTemplate.html")
+citationTemplate = parseTemplate' "res/html/citationTemplate.html"
+                   $(FE.embedStringFile "res/html/citationTemplate.html")
