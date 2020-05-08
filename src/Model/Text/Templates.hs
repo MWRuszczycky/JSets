@@ -5,6 +5,7 @@ module Model.Text.Templates
     ( TemplateText (..)
     , Template
     , fill
+    , fillDef
     , parseTemplate
       -- Templates
       -- html
@@ -31,8 +32,11 @@ type Template = [TemplateText]
 -- =============================================================== --
 -- Text interpolation for Templated Text strings
 
-fill :: Text -> Map.Map Text Text -> Template -> Text
-fill def dict = Tx.concat . map go
+fill :: Map.Map Text Text -> Template -> Text
+fill = fillDef Tx.empty
+
+fillDef :: Text -> Map.Map Text Text -> Template -> Text
+fillDef def dict = Tx.concat . map go
     where go FreeAt  = "@"
           go (Var x) = Map.findWithDefault def x dict
           go (Raw x) = x
