@@ -10,15 +10,17 @@ module Model.Core.Types
     , Format            (..)
       -- Journal sets
     , JournalSet        (..)
-    , JournalSets       (..)
-    , SelectionSet      (..)
+    , Collection        (..)
       -- Journals
     , Journal           (..)
     , Frequency         (..)
       -- Journal issues
     , Issue             (..)
+    , SelIssue          (..)
+    , CitedIssue        (..)
+    , IsIssue           (..)
       -- Table of contents and citations
-    , IssueToC          (..)
+    , Selection         (..)
     , Citation          (..)
     , PageNumber        (..)
     ) where
@@ -73,26 +75,20 @@ data Format =
 
 -- |A JournalSet is a list of all journal issues to be reviewed in
 -- a single along with an identifying INT key.
-data JournalSet  = JSet {
-      jsKey    :: Int
-    , jsIssues :: [Issue]
+data JournalSet  a = JournalSet {
+      setNo  :: Int
+    , issues :: [a]
     } deriving Show
 
--- |Same as JournalSet but with page numbers for selected articles.
-data SelectionSet = SelSet {
-      selKey    :: Int
-    , selIssues :: [(Issue, [PageNumber])]
-    } deriving Show
-
--- |A JournalSets is a collection of journal sets mapped by key.
-newtype JournalSets = JSets (Map Int [Issue])
+-- |A Collection basic journal sets mapped by set number.
+type Collection = Map Int [JournalSet Issue]
 
 -- =============================================================== --
 -- Journals
 
 -- |Information about a journal
 data Journal = Journal {
-      key    :: Text      -- Unique abbreviated title of journal
+      abbr   :: Text      -- Abbreviated title of journal
     , name   :: Text      -- Long name of journal
     , pubmed :: Text      -- Name of journal used by PubMed
     , freq   :: Frequency -- Issue frequency
@@ -112,20 +108,50 @@ data Frequency =
 
 -- |Information about a given issue of a journal
 data Issue = Issue {
-      date    :: Day
-    , refNo   :: Int
-    , volNo   :: Int
-    , issNo   :: Int
-    , journal :: Journal
+      theDate    :: Day
+    , theVolNo   :: Int
+    , theIssNo   :: Int
+    , theJournal :: Journal
     } deriving ( Show, Eq )
 
--- =============================================================== --
--- Table of contents and citations
+data SelIssue = SelIssue {
+      pIssue    :: Issue
+    , selection :: Selection
+    } deriving ( Show, Eq )
 
-data IssueToC = IssueToC {
-      tocIssue  :: Issue
+data CitedIssue = CitedIssue {
+      sIssue    :: SelIssue
     , citations :: [Citation]
-    } deriving ( Show , Eq )
+    } deriving ( Show, Eq )
+
+class IsIssue a where
+    issue   :: a -> Issue
+    journal :: a -> Journal
+    date    :: a -> Day
+    volNo   :: a -> Int
+    issNo   :: a -> Int
+    journal = theJournal . issue
+    date    = theDate . issue
+    volNo   = theVolNo . issue
+    issNo   = theIssNo . issue
+
+instance IsIssue Issue where
+    issue = id
+
+instance IsIssue SelIssue where
+    issue = pIssue
+
+instance IsIssue CitedIssue where
+    issue = pIssue . sIssue
+
+-- =============================================================== --
+-- Citations and selections
+
+data Selection =
+      All
+    | None
+    | Only [PageNumber]
+      deriving ( Eq, Show )
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {
