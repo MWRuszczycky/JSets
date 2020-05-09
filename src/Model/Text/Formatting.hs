@@ -8,7 +8,7 @@ module Model.Text.Formatting
       -- As Text
     , jsetsToTxt
     , jsetToTxt
-    , jsetKeyToTxt
+    , jsetHeader
       -- Formatting Issues
       -- As Text
     , issueToTxt
@@ -18,8 +18,10 @@ module Model.Text.Formatting
     , tocsToTxt
     , tocToTxt
     , citationToTxt
-      -- As Markdown
+      -- As html
     , tocsToHtml
+    , tocsSelToHtml
+      -- As Markdown
     , tocsToMkd
     , tocToMkd
     , citationToMkd
@@ -44,50 +46,50 @@ import           Data.Ord                   ( comparing )
 ---------------------------------------------------------------------
 -- As CSV
 
-jsetsToCsv :: [Text] -> T.JournalSets -> Text
--- ^Convert a list of journal sets to CSV. Every element is enclosed
--- in double quotes. The first line is the list of journals by
--- journal key as specified by the first argument. Every subsequent
--- line is a journal set with issues for a given journal separated by
--- new line characters.
-jsetsToCsv keys jsets = hdr <> "\n" <> tbl
-        where tbl  = Tx.unlines . map (jsetToCsv keys) . J.unpack $ jsets
-              hdr  = Tx.intercalate "," $ "No. & Date" : keys
+jsetsToCsv :: [Text] -> T.Collection -> Text
+-- ^Convert a collection of journal sets to CSV. Every element is
+-- enclosed in double quotes. The first line is the list of journals
+-- by journal abbreviation as specified by the first argument. Every
+-- subsequent line is a journal set with issues for a given journal
+-- separated by new line characters.
+jsetsToCsv abbrs col = hdr <> "\n" <> tbl
+        where tbl  = Tx.unlines . map (jsetToCsv abbrs) . J.unpack $ col
+              hdr  = Tx.intercalate "," $ "No. & Date" : abbrs
 
-jsetToCsv :: [Text] -> T.JournalSet -> Text
+jsetToCsv :: T.IsIssue a => [Text] -> T.JournalSet a -> Text
 -- ^Convert a journal set to a single line of CSV. The first argument
--- is the list of journals in the order they will be tabulated. The
--- second argument is the journal set. The first cell will be the
--- key associated with the journal set. Subsequent cells will list
--- the issues for the corresponding journal separated by newline
--- characters. All elements are enclosed in double quotes.
-jsetToCsv keys jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ keys
-    where go k xs = (volIss . J.issuesByKey k . T.jsIssues) jset : xs
+-- is the list of journal abbreviations in the order they will be
+-- tabulated. The second argument is the journal set. The first cell
+-- will be the key associated with the journal set. Subsequent cells
+-- will list the issues for the corresponding journal separated by
+-- newline characters. All elements are enclosed in double quotes.
+jsetToCsv abbrs jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ abbrs
+    where go k xs = (volIss . J.issuesByAbbr k . T.issues) jset : xs
           volIss  = bracket '\"' '\"' . Tx.intercalate "\n" . map volIssToTxt
-          hdr     = bracket '\"' '\"' (keyStr <> "\n" <> date) <> ","
+          hdr     = bracket '\"' '\"' ( setNo <> "\n" <> date ) <> ","
           date    = C.tshow . J.dateOfJSet $ jset
-          keyStr  = C.tshow . T.jsKey $ jset
+          setNo   = C.tshow . T.setNo $ jset
 
 ---------------------------------------------------------------------
 -- As Text
 
-jsetsToTxt :: T.JournalSets -> Text
-jsetsToTxt jsets = Tx.unlines . map jsetToTxt . J.unpack $ jsets
+jsetsToTxt :: T.Collection -> Text
+jsetsToTxt = Tx.unlines . map jsetToTxt . J.unpack
 
-jsetToTxt :: T.JournalSet -> Text
+jsetToTxt :: T.IsIssue a => T.JournalSet a -> Text
 -- ^Convert a journal set to easily readable, formatted text.
-jsetToTxt js = jsetKeyToTxt js <> "\n" <> Tx.unlines xs
-    where xs    = map issueToTxt . sortBy (comparing jName) . T.jsIssues $ js
+jsetToTxt jset = jsetHeader jset <> "\n" <> Tx.unlines xs
+    where xs    = map issueToTxt . sortBy (comparing jName) . T.issues $ jset
           jName = T.name . T.journal
 
 ---------------------------------------------------------------------
 -- Helpers
 
-jsetKeyToTxt :: T.JournalSet -> Text
+jsetHeader :: T.IsIssue a => T.JournalSet a -> Text
 -- ^Convert a journal set key to text formatted as year-number.
-jsetKeyToTxt js = Tx.unwords [ (C.tshow . T.jsKey) js
+jsetHeader jset = Tx.unwords [ (C.tshow . T.setNo) jset
                              , "|"
-                             , C.tshow . J.dateOfJSet $ js
+                             , C.tshow . J.dateOfJSet $ jset
                              ]
 
 -- =============================================================== --
@@ -96,20 +98,20 @@ jsetKeyToTxt js = Tx.unwords [ (C.tshow . T.jsKey) js
 ---------------------------------------------------------------------
 -- As Text
 
-issueToTxt :: T.Issue -> Text
+issueToTxt :: T.IsIssue a => a -> Text
 -- ^Convert a journal issue to easily readable, formatted text.
-issueToTxt x = Tx.unwords us
-    where us = [ T.key . T.journal $ x
-               , C.tshow . T.volNo $ x
-               , C.tshow . T.issNo $ x
-               , Tx.pack $ "(" ++ show (T.date x) ++ ")"
+issueToTxt iss = Tx.unwords us
+    where us = [ T.abbr . T.journal $ iss
+               , C.tshow . T.volNo  $ iss
+               , C.tshow . T.issNo  $ iss
+               , Tx.pack $ "(" ++ show (T.date iss) ++ ")"
                ]
 
-volIssToTxt :: T.Issue -> Text
+volIssToTxt :: T.IsIssue a => a -> Text
 -- ^Construct a vol:iss text string for the volume and issue of a
 -- journal issue.
-volIssToTxt x = Tx.intercalate ":" volIss
-    where volIss = map C.tshow [ T.volNo x, T.issNo x ]
+volIssToTxt iss = Tx.intercalate ":" volIss
+    where volIss = map C.tshow [ T.volNo iss, T.issNo iss ]
 
 -- =============================================================== --
 -- Formatting tables of contents
@@ -117,46 +119,46 @@ volIssToTxt x = Tx.intercalate ":" volIss
 ---------------------------------------------------------------------
 -- As Text
 
-tocsToTxt :: [T.IssueToC] -> Text
-tocsToTxt = Tx.unlines . map tocToTxt
+tocsToTxt :: T.JournalSet T.CitedIssue -> Text
+tocsToTxt (T.JSet _ iss) = Tx.unlines . map tocToTxt $ iss
 
-tocToTxt :: T.IssueToC -> Text
-tocToTxt (T.IssueToC x cs) = Tx.unlines
-                             . (issueToTxt x <> "\n" :)
-                             . map (citationToTxt x) $ cs
+tocToTxt :: T.CitedIssue -> Text
+tocToTxt (T.CitedIssue iss cs) = Tx.unlines
+                                 . (issueToTxt iss <> "\n" :)
+                                 . map ( citationToTxt iss ) $ cs
 
 pagesToTxt :: T.Citation -> Text
 pagesToTxt x = C.tshow p1 <> "-" <> C.tshow p2
     where (p1,p2) = T.pages x
 
-citationToTxt :: T.Issue -> T.Citation -> Text
-citationToTxt iss x = Tx.unlines parts
+citationToTxt :: T.IsIssue a => a -> T.Citation -> Text
+citationToTxt iss c = Tx.unlines parts
     where jrnl  = T.journal iss
-          parts = [ T.title x
-                  , T.authors x
-                  , Tx.unwords [ T.name jrnl,  volIssToTxt iss, pagesToTxt x ]
+          parts = [ T.title c
+                  , T.authors c
+                  , Tx.unwords [ T.name jrnl,  volIssToTxt iss, pagesToTxt c ]
                   ]
 
 ---------------------------------------------------------------------
 -- As Markdown
 
-tocsToMkd :: Int -> [T.IssueToC] -> Text
-tocsToMkd setNumber = Tx.unlines . (:) hdr . map tocToMkd
-    where hdr = "# Journal Set " <> C.tshow setNumber
+tocsToMkd :: T.JournalSet T.CitedIssue -> Text
+tocsToMkd (T.JSet setNo cs) = Tx.unlines . (:) hdr . map tocToMkd $ cs
+    where hdr = "# Journal Set " <> C.tshow setNo
 
-tocToMkd :: T.IssueToC -> Text
-tocToMkd (T.IssueToC x []) = issueToMkdHeader x
-tocToMkd (T.IssueToC x cs) = Tx.unlines
-                             . (issueToMkdHeader x :)
-                             . map (citationToMkd x) $ cs
+tocToMkd :: T.CitedIssue -> Text
+tocToMkd (T.CitedIssue x []) = issueToMkdHeader x
+tocToMkd (T.CitedIssue x cs) = Tx.unlines
+                               . (issueToMkdHeader x :)
+                               . map (citationToMkd x) $ cs
 
-issueToMkdHeader :: T.Issue -> Text
+issueToMkdHeader :: T.IsIssue a => a -> Text
 issueToMkdHeader iss = Tx.unwords [ "##"
                                   , T.name . T.journal $ iss
                                   , volIssToTxt iss <> "\n"
                                   ]
 
-citationToMkd :: T.Issue -> T.Citation -> Text
+citationToMkd :: T.SelIssue -> T.Citation -> Text
 citationToMkd iss x = Tx.unlines parts
     where jrnl  = T.journal iss
           parts = [ (mkdBd $ mkdLink (fixMkd $ T.title x) (T.doi x)) <> "\\"
@@ -170,9 +172,11 @@ citationToMkd iss x = Tx.unlines parts
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: Maybe T.SelectionSet -> Int -> [T.IssueToC] -> Text
-tocsToHtml Nothing       setNumber tocs = Html.htmlToC setNumber tocs
-tocsToHtml (Just selSet) setNumber tocs = Html.htmlToCSel selSet setNumber tocs
+tocsToHtml :: T.JournalSet T.CitedIssue -> Text
+tocsToHtml = Html.htmlToC
+
+tocsSelToHtml :: T.JournalSet T.CitedIssue -> Text
+tocsSelToHtml = Html.htmlToC
 
 -- =============================================================== --
 -- Formatting selection sets
@@ -180,11 +184,10 @@ tocsToHtml (Just selSet) setNumber tocs = Html.htmlToCSel selSet setNumber tocs
 ---------------------------------------------------------------------
 -- As text
 
-selectionToTxt :: T.SelectionSet -> Text
-selectionToTxt sel = Tx.unlines $ jsetKeyToTxt jset : concatMap go xs
-    where jset      = T.JSet (T.selKey sel) (fst . unzip $ xs)
-          xs        = T.selIssues sel
-          go (x,ps) = issueToTxt x : map ( \ n -> "    " <> C.tshow n ) ps
+selectionToTxt :: T.JournalSet T.SelIssue -> Text
+selectionToTxt jset@(T.JSet _ xs) =
+    let go x = issueToTxt x : map ( \ n -> "    " <> C.tshow n ) (T.selection x)
+    in  Tx.unlines $ jsetHeader jset : concatMap go xs
 
 -- =============================================================== --
 -- Formatting journals and reference issues
@@ -193,7 +196,7 @@ referenceToTxt :: T.Issue -> Text
 referenceToTxt x = Tx.unlines hs
     where j  = T.journal x
           hs = [ T.name j
-               , "  key:       " <> T.key j
+               , "  abbr:      " <> T.abbr j
                , "  pubmed:    " <> T.pubmed j
                , "  frequency: " <> (freqToTxt . T.freq) j
                , "  resets:    " <> (resetsToTxt . T.resets) j

@@ -14,7 +14,7 @@ import           Data.Bifunctor              ( bimap      )
 import           Control.Applicative         ( many, some )
 import           Data.Ord                    ( comparing  )
 
-parseCitations :: T.Issue -> Text -> Either String [T.Citation]
+parseCitations :: T.IsIssue a => a -> Text -> Either String [T.Citation]
 parseCitations iss = bimap err sortByPage . At.parseOnly (citations iss)
     where err x = "Cannot parse PubMed table of contents: " ++ x
 
@@ -22,7 +22,7 @@ noCitations :: Text -> Either String Bool
 noCitations = bimap err id . At.parseOnly isEmpty
     where err x = "Cannot parse PubMed table of contents: " ++ x
 
-citations :: T.Issue -> At.Parser [T.Citation]
+citations :: T.IsIssue a => a -> At.Parser [T.Citation]
 citations iss = do
     At.skipSpace *> skipXML
     At.skipSpace *> skipXML
@@ -53,7 +53,7 @@ dotSep = At.char '.' *> At.skipSpace
 stripNewLines :: Tx.Text -> Tx.Text
 stripNewLines = Tx.unwords . Tx.words
 
-matchesTitle :: T.Issue -> Text -> Bool
+matchesTitle :: T.IsIssue a => a -> Text -> Bool
 matchesTitle iss = (==) $ (T.pubmed . T.journal) iss
 
 sortByPage :: [T.Citation] -> [T.Citation]
@@ -63,7 +63,7 @@ sortByPage = sortBy (comparing pageNumbers)
 ---------------------------------------------------------------------
 -- Parsers
 
-citation :: T.Issue -> At.Parser T.Citation
+citation :: T.IsIssue a => a -> At.Parser T.Citation
 citation iss = do
     At.skipSpace
     some At.digit *> At.char ':' *> At.skipSpace
@@ -78,13 +78,13 @@ citation iss = do
                       , T.doi     = doi
                       }
 
-authorsAndTitle :: T.Issue -> At.Parser (Text, Text)
+authorsAndTitle :: T.IsIssue a => a -> At.Parser (Text, Text)
 authorsAndTitle iss = go <$> frontMatter iss
     where go []     = ( "No authors listed", "No title" )
           go (x:[]) = ( "No authors listed", stripNewLines x )
           go (x:xs) = ( x, Tx.unwords $ xs )
 
-frontMatter :: T.Issue -> At.Parser [Text]
+frontMatter :: T.IsIssue a => a -> At.Parser [Text]
 frontMatter iss = do
     x <- stripNewLines <$> At.takeTill (At.inClass ".?!")
     p <- At.satisfy  (At.inClass ".?!") <* At.skipSpace

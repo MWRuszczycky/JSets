@@ -10,7 +10,8 @@ module Model.Core.Types
     , Format            (..)
       -- Journal sets
     , JournalSet        (..)
-    , Collection        (..)
+    , Collection
+    , References
       -- Journals
     , Journal           (..)
     , Frequency         (..)
@@ -20,7 +21,6 @@ module Model.Core.Types
     , CitedIssue        (..)
     , IsIssue           (..)
       -- Table of contents and citations
-    , Selection         (..)
     , Citation          (..)
     , PageNumber        (..)
     ) where
@@ -75,13 +75,16 @@ data Format =
 
 -- |A JournalSet is a list of all journal issues to be reviewed in
 -- a single along with an identifying INT key.
-data JournalSet  a = JournalSet {
+data JournalSet  a = JSet {
       setNo  :: Int
     , issues :: [a]
     } deriving Show
 
 -- |A Collection basic journal sets mapped by set number.
-type Collection = Map Int [JournalSet Issue]
+type Collection = Map Int [Issue]
+
+-- |A list of reference issues
+type References = [Issue]
 
 -- =============================================================== --
 -- Journals
@@ -115,12 +118,12 @@ data Issue = Issue {
     } deriving ( Show, Eq )
 
 data SelIssue = SelIssue {
-      pIssue    :: Issue
-    , selection :: Selection
+      theIssue  :: Issue
+    , selection :: [PageNumber]
     } deriving ( Show, Eq )
 
 data CitedIssue = CitedIssue {
-      sIssue    :: SelIssue
+      selIssue  :: SelIssue
     , citations :: [Citation]
     } deriving ( Show, Eq )
 
@@ -139,19 +142,13 @@ instance IsIssue Issue where
     issue = id
 
 instance IsIssue SelIssue where
-    issue = pIssue
+    issue = theIssue
 
 instance IsIssue CitedIssue where
-    issue = pIssue . sIssue
+    issue = theIssue . selIssue
 
 -- =============================================================== --
 -- Citations and selections
-
-data Selection =
-      All
-    | None
-    | Only [PageNumber]
-      deriving ( Eq, Show )
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {

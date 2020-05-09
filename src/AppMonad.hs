@@ -2,13 +2,13 @@
 
 module AppMonad
     ( -- Data structer construction & aquisition
-      jsetsFromFile
-    , jsetFromFile
+      getJsets
+    , getJset
       -- Working with configured reference issues
     , isAvailable
     , references
     , refIssue
-    , issueRefKeys
+    , issueRefAbbrs
     , getIssue
       -- Internet requests
     , downloadPubMed
@@ -41,21 +41,21 @@ import           Control.Monad.Except               ( liftIO
 ---------------------------------------------------------------------
 -- Acquiring journal sets
 
-jsetsFromFile :: FilePath -> T.AppMonad T.JournalSets
-jsetsFromFile fp = do
+getJsets :: FilePath -> T.AppMonad T.Collection
+getJsets fp = do
     content <- lift . C.readFileErr $ fp
     refs    <- references
-    case P.parseJsets refs content of
+    case P.parseCollection refs content of
          Left err    -> throwError err
          Right jsets -> pure jsets
 
 ---------------------------------------------------------------------
 -- Read a single journal set from a file
 
-jsetFromFile :: FilePath -> T.AppMonad T.JournalSet
+getJset :: FilePath -> T.AppMonad (T.JournalSet T.Issue)
 -- ^Get a journal set based on the configuration.
-jsetFromFile fp = do
-    jsets <- jsetsFromFile fp
+getJset fp = do
+    jsets <- getJsets fp
     key   <- requireKey
     case J.lookupJSet key jsets of
          Nothing   -> throwError "Cannot find requested journal set."
@@ -66,28 +66,28 @@ jsetFromFile fp = do
 
 isAvailable :: Text -> T.AppMonad Bool
 -- ^Determine whether a given journal has a reference issue.
-isAvailable key = issueRefKeys >>= pure . elem key
+isAvailable abbr = issueRefAbbrs >>= pure . elem abbr
 
-references :: T.AppMonad [T.Issue]
+references :: T.AppMonad T.References
 references = asks T.cReferences
 
 refIssue :: Text -> T.AppMonad (Maybe T.Issue)
--- ^Find a reference issue by its journal key.
-refIssue key = references >>= pure . find ( (== key) . T.key . T.journal )
+-- ^Find a reference issue by its journal abbreviation.
+refIssue abbr = references >>= pure . find ( (== abbr) . T.abbr . T.journal )
 
-issueRefKeys :: T.AppMonad [Text]
-issueRefKeys = references >>= pure . map ( T.key . T.journal )
+issueRefAbbrs :: T.AppMonad [Text]
+issueRefAbbrs = references >>= pure . map ( T.abbr . T.journal )
 
 getIssue :: Text -> Int -> Int -> T.AppMonad T.Issue
-getIssue key v n = references >>= maybe err pure . go
-    where issMsg = Tx.unpack key <> " " <> show v <> ":" <> show n
+getIssue abbr v n = references >>= maybe err pure . go
+    where issMsg = Tx.unpack abbr <> " " <> show v <> ":" <> show n
           err    = throwError $ "Invalid issue: " <> issMsg
-          go rs  = J.lookupIssue rs key (v,n)
+          go rs  = J.lookupIssue rs abbr (v,n)
 
 -- =============================================================== --
 -- Internet requests
 
-downloadPubMed :: T.Issue -> T.AppMonad Text
+downloadPubMed :: T.IsIssue a => a -> T.AppMonad Text
 -- ^Download the table of contents for a journal issue from PubMed.
 -- The download format is the raw PubMed text.
 -- Display progress messages for each ToC download.

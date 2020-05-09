@@ -70,12 +70,12 @@ readCmd []     = throwError "A path to the journal sets file required!"
 readCmd (fp:_) = do
     fmt   <- A.getFormat
     mbKey <- asks T.cJsetKey
-    keys  <- A.issueRefKeys
+    abbrs <- A.issueRefAbbrs
     case (mbKey, fmt) of
-         (Just _, T.CSV) -> A.jsetFromFile  fp >>= display . F.jsetToCsv keys
-         (Just _, _    ) -> A.jsetFromFile  fp >>= display . F.jsetToTxt
-         (_     , T.CSV) -> A.jsetsFromFile fp >>= display . F.jsetsToCsv keys
-         (_     , _    ) -> A.jsetsFromFile fp >>= display . F.jsetsToTxt
+         (Just _, T.CSV) -> A.getJset       fp >>= display . F.jsetToCsv abbrs
+         (Just _, _    ) -> A.getJset       fp >>= display . F.jsetToTxt
+         (_     , T.CSV) -> A.getJsets fp >>= display . F.jsetsToCsv abbrs
+         (_     , _    ) -> A.getJsets fp >>= display . F.jsetsToTxt
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
@@ -97,10 +97,10 @@ yearCmd []    = throwError "A valid year must be specified!"
 yearCmd (x:_) = do
     theYear <- maybe (throwError "Invalid year.") pure . readMaybe $ x
     jsets   <- A.references >>= pure . J.yearly26Sets theYear
-    keys    <- A.issueRefKeys
+    abbrs   <- A.issueRefAbbrs
     fmt     <- A.getFormat
     case fmt of
-         T.CSV -> display . F.jsetsToCsv keys $ jsets
+         T.CSV -> display . F.jsetsToCsv abbrs $ jsets
          _     -> display . F.jsetsToTxt $ jsets
 
 ---------------------------------------------------------------------
@@ -123,7 +123,7 @@ groupCmd fps = do
          Nothing  -> throwError "No Issues in selection!"
          Just sel -> display . F.selectionToTxt $ sel
 
-readSelection :: FilePath -> T.AppMonad T.SelectionSet
+readSelection :: FilePath -> T.AppMonad (T.JournalSet T.SelIssue)
 readSelection fp = do
     content <- lift . C.readFileErr $ fp
     refs    <- A.references
@@ -168,18 +168,35 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    jset <- A.jsetFromFile fp
-    sset <- asks T.cSelectPath >>= traverse readSelection
-    raw  <- mapM A.downloadPubMed (T.jsIssues jset)
-    let makeToC x t = T.IssueToC x <$> P.parseCitations x t
-        key         = T.jsKey jset
-    tocs <- liftEither $ zipWithM makeToC (T.jsIssues jset) raw
+    jset  <- selectNone <$> A.getJset fp
+    raw   <- mapM A.downloadPubMed (T.issues jset)
+    cits  <- liftEither . zipWithM P.parseCitations (T.issues jset) $ raw
+    let jset' = T.JSet (T.setNo jset) . zipWith T.CitedIssue (T.issues jset) $ cits
     fmt  <- A.getFormat
     case fmt of
-         T.HTML -> display . F.tocsToHtml sset key $ tocs
-         T.MKD  -> display . F.tocsToMkd       key $ tocs
-         T.RAW  -> display . Tx.unlines            $ raw
-         _      -> display . F.tocsToTxt           $ tocs
+         T.HTML -> display . F.tocsToHtml $ jset'
+         T.MKD  -> display . F.tocsToMkd  $ jset'
+         T.RAW  -> display . Tx.unlines   $ raw
+         _      -> display . F.tocsToTxt  $ jset'
+
+selectNone :: T.JournalSet T.Issue -> T.JournalSet T.SelIssue
+selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.SelIssue []) $ xs
+
+-- tocCmd :: [String] -> T.AppMonad ()
+-- tocCmd []     = throwError "Path to the journal sets file is needed!"
+-- tocCmd (fp:_) = do
+--     jset <- A.getJset fp
+--     sset <- asks T.cSelectPath >>= traverse readSelection
+--     raw  <- mapM A.downloadPubMed (T.issues jset)
+--     let makeToC x t = T.IssueToC x <$> P.parseCitations x t
+--         key         = T.jsKey jset
+--     tocs <- liftEither $ zipWithM makeToC (T.jsIssues jset) raw
+--     fmt  <- A.getFormat
+--     case fmt of
+--          T.HTML -> display . F.tocsToHtml sset key $ tocs
+--          T.MKD  -> display . F.tocsToMkd       key $ tocs
+--          T.RAW  -> display . Tx.unlines            $ raw
+--          _      -> display . F.tocsToTxt           $ tocs
 
 ---------------------------------------------------------------------
 -- Output handling
