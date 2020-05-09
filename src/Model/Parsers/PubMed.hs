@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Parsers.PubMed
     ( parseCitations
+    , parseCited
     , noCitations
     ) where
 
@@ -14,9 +15,13 @@ import           Data.Bifunctor              ( bimap      )
 import           Control.Applicative         ( many, some )
 import           Data.Ord                    ( comparing  )
 
+
 parseCitations :: T.IsIssue a => a -> Text -> Either String [T.Citation]
 parseCitations iss = bimap err sortByPage . At.parseOnly (citations iss)
     where err x = "Cannot parse PubMed table of contents: " ++ x
+
+parseCited :: T.SelIssue -> Text -> Either String T.CitedIssue
+parseCited iss ts = parseCitations iss ts >>= pure . T.CitedIssue iss
 
 noCitations :: Text -> Either String Bool
 noCitations = bimap err id . At.parseOnly isEmpty

@@ -20,7 +20,6 @@ module Model.Text.Formatting
     , citationToTxt
       -- As html
     , tocsToHtml
-    , tocsSelToHtml
       -- As Markdown
     , tocsToMkd
     , tocToMkd
@@ -31,14 +30,16 @@ module Model.Text.Formatting
     , referenceToTxt
     ) where
 
-import qualified Data.Text          as Tx
-import qualified Model.Core.Core    as C
-import qualified Model.Core.Types   as T
-import qualified Model.Journals     as J
-import qualified Model.Text.Html    as Html
-import           Data.Text                  ( Text      )
-import           Data.List                  ( sortBy    )
-import           Data.Ord                   ( comparing )
+import qualified Data.Text            as Tx
+import qualified Model.Core.Core      as C
+import qualified Model.Core.Types     as T
+import qualified Model.Journals       as J
+import qualified Model.Text.Html      as Html
+import qualified Model.Text.Templates as Temp
+import           Data.Text                      ( Text      )
+import           Data.List                      ( sortBy    )
+import           Data.Ord                       ( comparing )
+import           Model.Text.Templates           ( fillNone  )
 
 -- =============================================================== --
 -- Formatting journal sets
@@ -172,11 +173,10 @@ citationToMkd iss x = Tx.unlines parts
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: T.JournalSet T.CitedIssue -> Text
-tocsToHtml = Html.htmlToC
-
-tocsSelToHtml :: T.JournalSet T.CitedIssue -> Text
-tocsSelToHtml = Html.htmlToC
+tocsToHtml :: Bool -> T.JournalSet T.CitedIssue -> Text
+tocsToHtml selected jset = Html.htmlToC jset . fillNone $ instr
+    where instr | selected  = Temp.instrRTemplate
+                | otherwise = Temp.instrCTemplate
 
 -- =============================================================== --
 -- Formatting selection sets

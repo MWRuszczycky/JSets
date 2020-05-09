@@ -4,6 +4,8 @@ module AppMonad
     ( -- Data structer construction & aquisition
       getJsets
     , getJset
+    , getSelJset
+    , readSelJset
       -- Working with configured reference issues
     , isAvailable
     , references
@@ -60,6 +62,21 @@ getJset fp = do
     case J.lookupJSet key jsets of
          Nothing   -> throwError "Cannot find requested journal set."
          Just jset -> pure jset
+
+readSelJset :: FilePath -> T.AppMonad (T.JournalSet T.SelIssue)
+readSelJset fp = do
+    content <- lift . C.readFileErr $ fp
+    refs    <- references
+    case P.parseSelection refs content of
+         Left err  -> throwError err
+         Right sel -> pure sel
+
+getSelJset :: FilePath -> T.AppMonad (T.JournalSet T.SelIssue)
+getSelJset fp = do
+    isSelected <- asks T.cIsSelected
+    if isSelected
+       then readSelJset fp
+       else J.selectNone <$> getJset fp
 
 -- =============================================================== --
 -- Working with configured reference issues

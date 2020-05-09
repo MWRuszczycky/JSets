@@ -11,9 +11,9 @@ import qualified Model.Core.Core       as C
 import qualified Model.Journals        as J
 import qualified Model.Core.Dates      as D
 import qualified Model.Text.Templates  as Temp
-import           Data.Text                      ( Text           )
-import           Data.Char                      ( isSpace        )
-import           Model.Text.Templates           ( fill, fillNone )
+import           Data.Text                      ( Text      )
+import           Data.Char                      ( isSpace   )
+import           Model.Text.Templates           ( fill      )
 
 -- =============================================================== --
 -- Helper functions
@@ -51,15 +51,15 @@ fixReserved = Tx.concatMap go
 -- =============================================================== --
 -- Exported html document compositors
 
-htmlToC :: T.JournalSet T.CitedIssue -> Text
+htmlToC :: T.JournalSet T.CitedIssue -> Text -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
-htmlToC jset = fill (Map.fromList xys) Temp.tocsTemplate
+htmlToC jset instr = fill (Map.fromList xys) Temp.tocsTemplate
     where xys = [ ( "jsetTitle",  "Journal Set " <> C.tshow (T.setNo jset)     )
                 , ( "jsetHeader", jsetHeader jset                              )
                 , ( "savePrefix", savePrefix jset                              )
-                , ( "instr",      fillNone Temp.instrCTemplate                 )
+                , ( "instr",      instr                                        )
                 , ( "issues",     issuesArray . T.issues $ jset                )
                 , ( "tocs",       Tx.unlines . map issueHtml . T.issues $ jset )
                 ]

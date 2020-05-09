@@ -11,7 +11,6 @@ import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
 import qualified Model.Text.Formatting     as F
-import qualified Model.Parsers.JournalSets as P
 import qualified Model.Parsers.PubMed      as P
 import qualified AppMonad                  as A
 import           Data.Text                          ( Text           )
@@ -118,18 +117,10 @@ groupHelp = (s, Tx.unlines hs)
 groupCmd :: [String] -> T.AppMonad ()
 groupCmd []  = throwError "A selection file must be sepecified!"
 groupCmd fps = do
-    mbSel <- mapM readSelection fps >>= pure . J.groupSelections
+    mbSel <- mapM A.readSelJset fps >>= pure . J.groupSelections
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
          Just sel -> display . F.selectionToTxt $ sel
-
-readSelection :: FilePath -> T.AppMonad (T.JournalSet T.SelIssue)
-readSelection fp = do
-    content <- lift . C.readFileErr $ fp
-    refs    <- A.references
-    case P.parseSelection refs content of
-         Left err  -> throwError err
-         Right sel -> pure sel
 
 ---------------------------------------------------------------------
 -- View configured journals
@@ -168,32 +159,17 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    jset  <- J.selectNone <$> A.getJset fp
-    raw   <- mapM A.downloadPubMed (T.issues jset)
-    cits  <- liftEither . zipWithM P.parseCitations (T.issues jset) $ raw
-    let jset' = T.JSet (T.setNo jset) . zipWith T.CitedIssue (T.issues jset) $ cits
+    jset  <- A.getSelJset fp
+    raw   <- mapM A.downloadPubMed . T.issues $ jset
+    ciss  <- liftEither . zipWithM P.parseCited (T.issues jset) $ raw
+    isSel <- asks T.cIsSelected
+    let cjset = T.JSet (T.setNo jset) ciss
     fmt  <- A.getFormat
     case fmt of
-         T.HTML -> display . F.tocsToHtml $ jset'
-         T.MKD  -> display . F.tocsToMkd  $ jset'
-         T.RAW  -> display . Tx.unlines   $ raw
-         _      -> display . F.tocsToTxt  $ jset'
-
--- tocCmd :: [String] -> T.AppMonad ()
--- tocCmd []     = throwError "Path to the journal sets file is needed!"
--- tocCmd (fp:_) = do
---     jset <- A.getJset fp
---     sset <- asks T.cSelectPath >>= traverse readSelection
---     raw  <- mapM A.downloadPubMed (T.issues jset)
---     let makeToC x t = T.IssueToC x <$> P.parseCitations x t
---         key         = T.jsKey jset
---     tocs <- liftEither $ zipWithM makeToC (T.jsIssues jset) raw
---     fmt  <- A.getFormat
---     case fmt of
---          T.HTML -> display . F.tocsToHtml sset key $ tocs
---          T.MKD  -> display . F.tocsToMkd       key $ tocs
---          T.RAW  -> display . Tx.unlines            $ raw
---          _      -> display . F.tocsToTxt           $ tocs
+         T.HTML -> display . F.tocsToHtml isSel $ cjset
+         T.MKD  -> display . F.tocsToMkd        $ cjset
+         T.RAW  -> display . Tx.unlines         $ raw
+         _      -> display . F.tocsToTxt        $ cjset
 
 ---------------------------------------------------------------------
 -- Output handling
