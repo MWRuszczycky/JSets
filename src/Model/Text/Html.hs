@@ -12,9 +12,9 @@ import qualified Model.Core.Core       as C
 import qualified Model.Journals        as J
 import qualified Model.Core.Dates      as D
 import qualified Model.Text.Templates  as Temp
-import           Data.Text                      ( Text    )
-import           Data.Char                      ( isSpace )
-import           Model.Text.Templates           ( fill    )
+import           Data.Text                      ( Text           )
+import           Data.Char                      ( isSpace        )
+import           Model.Text.Templates           ( fill, fillNone )
 
 -- =============================================================== --
 -- Helper functions
@@ -56,26 +56,29 @@ htmlToC :: Int -> [T.IssueToC] -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
-htmlToC setNumber tocs = fill (Map.fromList xys) Temp.tocsTemplate
-    where jset = J.issueTocsToJSet setNumber tocs
-          xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNumber )
-                 , ( "jsetHeader", jsetHeader setNumber jset           )
-                 , ( "savePrefix", savePrefix setNumber jset           )
-                 , ( "issues",     issuesArray tocs                    )
-                 , ( "tocs",       Tx.unlines . map issToCHtml $ tocs  )
+htmlToC setNo tocs = fill (Map.fromList xys) Temp.tocsTemplate
+    where jset = J.issueTocsToJSet setNo tocs
+          xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNo           )
+                 , ( "jsetHeader", jsetHeader setNo jset                     )
+                 , ( "savePrefix", savePrefix setNo jset                     )
+                 , ( "instr",      fillNone Temp.instrCTemplate              )
+                 , ( "issues",     issuesArray tocs                          )
+                 , ( "tocs",       Tx.unlines . map ( issToCHtml [] ) $ tocs )
                  ]
 
 htmlToCSel :: T.SelectionSet -> Int -> [T.IssueToC] -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
-htmlToCSel _ setNumber tocs = fill (Map.fromList xys) Temp.tocsTemplate
-    where jset = J.issueTocsToJSet setNumber tocs
-          xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNumber )
-                 , ( "jsetHeader", jsetHeader setNumber jset           )
-                 , ( "savePrefix", savePrefix setNumber jset           )
-                 , ( "issues",     issuesArray tocs                    )
-                 , ( "tocs",       Tx.unlines . map issToCHtml $ tocs  )
+htmlToCSel selection setNo tocs = fill (Map.fromList xys) Temp.tocsTemplate
+    where jset = J.issueTocsToJSet setNo tocs
+          ss   = T.selIssues selection
+          xys  = [ ( "jsetTitle",  "Journal Set " <> C.tshow setNo         )
+                 , ( "jsetHeader", jsetHeader setNo jset                   )
+                 , ( "savePrefix", savePrefix setNo jset                   )
+                 , ( "instr",      fillNone Temp.instrRTemplate            )
+                 , ( "issues",     issuesArray tocs                        )
+                 , ( "tocs",       Tx.unlines . map (issToCHtml ss) $ tocs )
                  ]
 
 -- =============================================================== --
@@ -99,14 +102,14 @@ issueElement iss = fill (Map.fromList xys) Temp.issueTemplate
 -- --------------------------------------------------------------- --
 -- html for compositing the table of contents for a single issue
 
-issToCHtml :: T.IssueToC -> Text
-issToCHtml (T.IssueToC iss cs) = fill (Map.fromList xys) Temp.tocTemplate
-    where msg = "<p>There are no articles listed for this issue at PubMed</p>"
-          bdy | null cs   = Tx.replicate 12 " " <> msg
-              | otherwise = Tx.intercalate "\n" . map ( citationHtml iss ) $ cs
-          xys = [ ("issue",     issueHeader iss )
-                , ("citations", bdy             )
-                ]
+issToCHtml :: [(T.Issue, [T.PageNumber])] -> T.IssueToC -> Text
+issToCHtml selected (T.IssueToC iss cs) =
+    let msg = "<p>There are no articles listed for this issue at PubMed</p>"
+        ps  = maybe [] id . lookup iss $ selected
+        bdy | null cs   = Tx.replicate 12 " " <> msg
+            | otherwise = Tx.intercalate "\n" . map (citationHtml ps iss) $ cs
+        xys = [ ("issue", issueHeader iss), ("citations", bdy) ]
+    in  fill (Map.fromList xys) Temp.tocTemplate
 
 issueHeader :: T.Issue -> Text
 issueHeader iss = Tx.concat xs
@@ -117,18 +120,20 @@ issueHeader iss = Tx.concat xs
                , C.tshow . T.issNo $ iss
                ]
 
-citationHtml :: T.Issue -> T.Citation -> Text
-citationHtml iss c = fill (Map.fromList xys) Temp.citationTemplate
+citationHtml :: [T.PageNumber] -> T.Issue -> T.Citation -> Text
+citationHtml selPages iss c = fill (Map.fromList xys) Temp.citationTemplate
     where (p0,pn) = T.pages c
-          xys     = [ ("id",      citationID iss c                )
-                    , ("class",   className iss                   )
-                    , ("href",    T.doi c                         )
-                    , ("title",   fixReserved . T.title $ c       )
-                    , ("authors", fixReserved . T.authors $ c     )
-                    , ("journal", T.name . T.journal $ iss        )
-                    , ("volume",  C.tshow . T.volNo $ iss         )
-                    , ("number",  C.tshow . T.issNo $ iss         )
-                    , ("pages",   C.tshow p0 <> "-" <> C.tshow pn )
+          selStr  = if elem p0 selPages then " class=\"selected\"" else Tx.empty
+          xys     = [ ("selected", selStr                          )
+                    , ("id",       citationID iss c                )
+                    , ("class",    className iss                   )
+                    , ("href",     T.doi c                         )
+                    , ("title",    fixReserved . T.title $ c       )
+                    , ("authors",  fixReserved . T.authors $ c     )
+                    , ("journal",  T.name . T.journal $ iss        )
+                    , ("volume",   C.tshow . T.volNo $ iss         )
+                    , ("number",   C.tshow . T.issNo $ iss         )
+                    , ("pages",    C.tshow p0 <> "-" <> C.tshow pn )
                     ]
 
 -- --------------------------------------------------------------- --

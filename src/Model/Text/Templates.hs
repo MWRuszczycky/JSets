@@ -5,6 +5,7 @@ module Model.Text.Templates
     ( TemplateText (..)
     , Template
     , fill
+    , fillNone
     , fillDef
     , parseTemplate
       -- Templates
@@ -13,6 +14,8 @@ module Model.Text.Templates
     , issueTemplate
     , tocsTemplate
     , tocTemplate
+    , instrCTemplate
+    , instrRTemplate
     ) where
 
 import qualified Data.Text            as Tx
@@ -34,6 +37,9 @@ type Template = [TemplateText]
 
 fill :: Map.Map Text Text -> Template -> Text
 fill = fillDef Tx.empty
+
+fillNone :: Template -> Text
+fillNone = fillDef Tx.empty Map.empty
 
 fillDef :: Text -> Map.Map Text Text -> Template -> Text
 fillDef def dict = Tx.concat . map go
@@ -128,14 +134,27 @@ tocTemplate = parseTemplate' "res/html/tocTemplate.html"
 
 citationTemplate :: Template
 -- <p> environment for a single article citation
--- id      : article id
--- class   : issue class
--- href    : article doi link
--- title   : article title
--- authors : article authors
--- journal : journal name
--- volume  : issue volume
--- number  : issue number
--- pages   : pages string
+-- selected : optional class for selected citations
+-- id       : article id
+-- class    : issue class
+-- href     : article doi link
+-- title    : article title
+-- authors  : article authors
+-- journal  : journal name
+-- volume   : issue volume
+-- number   : issue number
+-- pages    : pages string
 citationTemplate = parseTemplate' "res/html/citationTemplate.html"
                    $(FE.embedStringFile "res/html/citationTemplate.html")
+
+instrCTemplate :: Template
+-- Instructions for including articles for consideration.
+-- There are no no variables.
+instrCTemplate = parseTemplate' "res/html/instrCTemplate.html"
+                 $(FE.embedStringFile "res/html/instrCTemplate.html")
+
+instrRTemplate :: Template
+-- Instructions for including articles for review.
+-- There are no variables.
+instrRTemplate = parseTemplate' "res/html/instrRTemplate.html"
+                 $(FE.embedStringFile "res/html/instrRTemplate.html")

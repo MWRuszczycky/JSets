@@ -81,7 +81,7 @@ data JournalSet  = JSet {
 -- |Same as JournalSet but with page numbers for selected articles.
 data SelectionSet = SelSet {
       selKey    :: Int
-    , selIssues :: [(Issue, [Int])]
+    , selIssues :: [(Issue, [PageNumber])]
     } deriving Show
 
 -- |A JournalSets is a collection of journal sets mapped by key.

@@ -209,7 +209,7 @@ groupSelections ss@(x:_) = let key = T.selKey x
                                     . groupPages
                                     . concatMap T.selIssues $ ss
 
-groupPages :: [(T.Issue, [Int])] -> [(T.Issue, [Int])]
+groupPages :: [(T.Issue, [T.PageNumber])] -> [(T.Issue, [T.PageNumber])]
 groupPages = concatMap rewrap . C.collectBy go
     where go (x,_) (y,_) = x == y
           rewrap []      = []

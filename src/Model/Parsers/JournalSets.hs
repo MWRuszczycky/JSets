@@ -49,7 +49,7 @@ parseSelection refs t = let err = (<>) "Cannot parse selection: "
 -- =============================================================== --
 -- Local types
 
-type RawSelSet = ( Int, [(RawIssue, [Int])] )
+type RawSelSet = ( Int, [(RawIssue, [T.PageNumber])] )
 
 type RawIssue  = ( Text, Int, Int  )
 
@@ -84,7 +84,7 @@ jsetsTxtParser = At.skipSpace *> many jsetTxtParser <* At.endOfInput
 jsetTxtParser :: At.Parser RawJSet
 jsetTxtParser = do
     key <- jsetKeyParser
-    iss <- many issueTxtParser
+    iss <- many (issueTxtParser <* At.skipSpace)
     At.skipSpace
     pure (key, iss)
 
@@ -101,7 +101,6 @@ issueTxtParser = do
     volNo   <- intParser <* At.skipSpace
     issNo   <- intParser <* At.skipSpace
     At.char '(' *> dateParser *> At.char ')'
-    At.skipSpace
     pure (journal, volNo, issNo)
 
 intParser :: At.Parser Int
@@ -120,14 +119,32 @@ selParser = do
     At.skipSpace
     key <- jsetKeyParser <* At.skipSpace
     xs  <- many issueSel
+    At.skipSpace
     At.endOfInput
     pure (key, xs)
 
-issueSel :: At.Parser (RawIssue, [Int])
-issueSel = (,) <$> issueTxtParser <*> many pageParser <* At.skipSpace
+issueSel :: At.Parser (RawIssue, [T.PageNumber])
+issueSel = do
+    At.skipSpace
+    iss <- issueTxtParser
+    At.skipWhile At.isHorizontalSpace <* At.endOfLine
+    indent <- At.takeWhile At.isHorizontalSpace
+    if Tx.null indent
+       then pure (iss, [])
+       else do p  <- pageNumber
+               At.skipWhile At.isHorizontalSpace *> At.endOfLine
+               ps <- many (indentedPageNumber indent)
+               pure $ (iss, p : ps)
 
-pageParser :: At.Parser Int
-pageParser = intParser <* At.skipSpace
+indentedPageNumber :: Text -> At.Parser T.PageNumber
+indentedPageNumber indent = do
+    At.string indent
+    pageNumber <* At.skipWhile At.isHorizontalSpace <* At.endOfLine
+
+pageNumber :: At.Parser T.PageNumber
+pageNumber = T.PageNumber <$> prefix <*> digits
+    where prefix = Tx.unpack <$> At.takeTill isDigit
+          digits = read <$> some At.digit
 
 -- =============================================================== --
 -- Component parsers for CSV
