@@ -168,7 +168,7 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    jset  <- selectNone <$> A.getJset fp
+    jset  <- J.selectNone <$> A.getJset fp
     raw   <- mapM A.downloadPubMed (T.issues jset)
     cits  <- liftEither . zipWithM P.parseCitations (T.issues jset) $ raw
     let jset' = T.JSet (T.setNo jset) . zipWith T.CitedIssue (T.issues jset) $ cits
@@ -178,9 +178,6 @@ tocCmd (fp:_) = do
          T.MKD  -> display . F.tocsToMkd  $ jset'
          T.RAW  -> display . Tx.unlines   $ raw
          _      -> display . F.tocsToTxt  $ jset'
-
-selectNone :: T.JournalSet T.Issue -> T.JournalSet T.SelIssue
-selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.SelIssue []) $ xs
 
 -- tocCmd :: [String] -> T.AppMonad ()
 -- tocCmd []     = throwError "Path to the journal sets file is needed!"

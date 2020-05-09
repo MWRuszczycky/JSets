@@ -6,6 +6,7 @@ module Model.Journals
     , unpack
     , emptyCollection
     , lookupJSet
+    , selectNone
     , yearly26Sets
     , splitByFreq
     , dateOfJSet
@@ -56,6 +57,9 @@ emptyCollection = Map.empty
 
 lookupJSet :: Int -> T.Collection -> Maybe (T.JournalSet T.Issue)
 lookupJSet k col = T.JSet k <$> Map.lookup k col
+
+selectNone :: T.JournalSet T.Issue -> T.JournalSet T.SelIssue
+selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.SelIssue []) $ xs
 
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
