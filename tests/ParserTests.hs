@@ -23,9 +23,9 @@ spec = hspec $ do
 testGenParse2019 :: Spec
 testGenParse2019 = it "Parses JSet2019 to yearly26Sets 2019" $ do
     let refs     = TR.issueRefs
-        journals = map (T.key . T.journal) refs
+        journals = map (T.abbr . T.journal) refs
         expected = F.jsetsToCsv journals . J.yearly26Sets 2019 $ refs
-    etJSets <- P.parseJsets refs <$> Tx.readFile "tests/res/JSet2019.csv"
+    etJSets <- P.parseCollection refs <$> Tx.readFile "tests/res/JSet2019.csv"
     case etJSets of
          Left err    -> error err
          Right jSets -> F.jsetsToCsv journals jSets `shouldBe` expected

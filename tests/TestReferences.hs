@@ -4,7 +4,7 @@ module TestReferences
     ( -- Utilities
       isAvailable
     , refIssue
-    , issueRefKeys
+    , issueRefAbbrs
     , issueRefs
     ) where
 
@@ -21,11 +21,11 @@ isAvailable :: Text -> Bool
 isAvailable = maybe False (const True) . refIssue
 
 refIssue :: Text -> Maybe T.Issue
--- ^Find a reference issue by its journal key.
-refIssue key = find ( (== key) . T.key . T.journal ) issueRefs
+-- ^Find a reference issue by its journal abbreviation.
+refIssue abbr = find ( (== abbr) . T.abbr . T.journal ) issueRefs
 
-issueRefKeys :: [Text]
-issueRefKeys = map ( T.key . T.journal ) issueRefs
+issueRefAbbrs :: [Text]
+issueRefAbbrs = map ( T.abbr . T.journal ) issueRefs
 
 issueRefs :: [T.Issue]
 -- ^List of all available reference issues.
@@ -52,7 +52,7 @@ acie :: T.Journal
 -- day interval at the new year.
 acie = T.Journal {
       T.name   = "Angewandte Chemie International Edition"
-    , T.key    = "ACIE"
+    , T.abbr   = "ACIE"
     , T.pubmed = "Angew Chem Int Ed Engl"
     , T.freq   = T.Weekly
     , T.resets = True
@@ -60,11 +60,10 @@ acie = T.Journal {
 
 acieRef :: T.Issue
 acieRef = T.Issue {
-      T.date    = Tm.fromGregorian 2010 1 4
-    , T.refNo   = 1
-    , T.volNo   = 49
-    , T.issNo   = 1
-    , T.journal = acie
+      T.theDate    = Tm.fromGregorian 2010 1 4
+    , T.theVolNo   = 49
+    , T.theIssNo   = 1
+    , T.theJournal = acie
     }
 
 ---------------------------------------------------------------------
@@ -73,7 +72,7 @@ acieRef = T.Issue {
 biochemistry :: T.Journal
 biochemistry = T.Journal {
       T.name   = "Biochemistry"
-    , T.key    = "Biochemistry"
+    , T.abbr   = "Biochemistry"
     , T.pubmed = "Biochemistry"
     , T.freq   = T.WeeklyFirst
     , T.resets = True
@@ -81,11 +80,10 @@ biochemistry = T.Journal {
 
 biochemistryRef :: T.Issue
 biochemistryRef = T.Issue {
-      T.date    = Tm.fromGregorian 2018 1 9
-    , T.refNo   = 1
-    , T.volNo   = 57
-    , T.issNo   = 1
-    , T.journal = biochemistry
+      T.theDate    = Tm.fromGregorian 2018 1 9
+    , T.theVolNo   = 57
+    , T.theIssNo   = 1
+    , T.theJournal = biochemistry
     }
 
 ---------------------------------------------------------------------
@@ -94,7 +92,7 @@ biochemistryRef = T.Issue {
 cellChemBiol :: T.Journal
 cellChemBiol = T.Journal {
       T.name   = "Cell Chemical Biology"
-    , T.key    = "Cell Chem Biol"
+    , T.abbr   = "Cell Chem Biol"
     , T.pubmed = "Cell Chem Biol"
     , T.freq   = T.Monthly
     , T.resets = True
@@ -102,11 +100,10 @@ cellChemBiol = T.Journal {
 
 cellChemBiolRef :: T.Issue
 cellChemBiolRef = T.Issue {
-      T.date    = Tm.fromGregorian 2010 1 31
-    , T.refNo   = 1
-    , T.volNo   = 17
-    , T.issNo   = 1
-    , T.journal = cellChemBiol
+      T.theDate    = Tm.fromGregorian 2010 1 31
+    , T.theVolNo   = 17
+    , T.theIssNo   = 1
+    , T.theJournal = cellChemBiol
     }
 
 ---------------------------------------------------------------------
@@ -118,7 +115,7 @@ jacs :: T.Journal
 -- intervals. Thus, JACS is more predictable than ACIE.
 jacs = T.Journal {
       T.name   = "Journal of the American Chemical Society"
-    , T.key    = "JACS"
+    , T.abbr   = "JACS"
     , T.pubmed = "J Am Chem Soc"
     , T.freq   = T.WeeklyFirst
     , T.resets = True
@@ -126,11 +123,10 @@ jacs = T.Journal {
 
 jacsRef :: T.Issue
 jacsRef = T.Issue {
-      T.date    = Tm.fromGregorian 2010 1 13
-    , T.refNo   = 1
-    , T.volNo   = 132
-    , T.issNo   = 1
-    , T.journal = jacs
+      T.theDate    = Tm.fromGregorian 2010 1 13
+    , T.theVolNo   = 132
+    , T.theIssNo   = 1
+    , T.theJournal = jacs
     }
 
 ---------------------------------------------------------------------
@@ -139,7 +135,7 @@ jacsRef = T.Issue {
 nature :: T.Journal
 nature = T.Journal {
       T.name   = "Nature"
-    , T.key    = "Nature"
+    , T.abbr   = "Nature"
     , T.pubmed = "Nature"
     , T.freq   = T.WeeklyLast
     , T.resets = False
@@ -147,11 +143,10 @@ nature = T.Journal {
 
 natureRef :: T.Issue
 natureRef = T.Issue {
-      T.date    = Tm.fromGregorian 2010 1 7
-    , T.refNo   = 1
-    , T.volNo   = 2010
-    , T.issNo   = 7277
-    , T.journal = nature
+      T.theDate    = Tm.fromGregorian 2010 1 7
+    , T.theVolNo   = 2010
+    , T.theIssNo   = 7277
+    , T.theJournal = nature
     }
 
 ---------------------------------------------------------------------
@@ -160,7 +155,7 @@ natureRef = T.Issue {
 natChem :: T.Journal
 natChem = T.Journal {
       T.name   = "Nature Chemistry"
-    , T.key    = "Nat Chem"
+    , T.abbr   = "Nat Chem"
     , T.pubmed = "Nat Chem"
     , T.freq   = T.Monthly
     , T.resets = True
@@ -168,11 +163,10 @@ natChem = T.Journal {
 
 natChemRef :: T.Issue
 natChemRef = T.Issue {
-      T.date    = Tm.fromGregorian 2010 1 1
-    , T.refNo   = 1
-    , T.volNo   = 2
-    , T.issNo   = 1
-    , T.journal = natChem
+      T.theDate    = Tm.fromGregorian 2010 1 1
+    , T.theVolNo   = 2
+    , T.theIssNo   = 1
+    , T.theJournal = natChem
     }
 
 ---------------------------------------------------------------------
@@ -181,7 +175,7 @@ natChemRef = T.Issue {
 natChemBiol :: T.Journal
 natChemBiol = T.Journal {
       T.name   = "Nature Chemical Biology"
-    , T.key    = "Nat Chem Biol"
+    , T.abbr   = "Nat Chem Biol"
     , T.pubmed = "Nat Chem Biol"
     , T.freq   = T.Monthly
     , T.resets = True
@@ -189,11 +183,10 @@ natChemBiol = T.Journal {
 
 natChemBiolRef :: T.Issue
 natChemBiolRef = T.Issue {
-      T.date    = Tm.fromGregorian 2010 1 1
-    , T.refNo   = 1
-    , T.volNo   = 6
-    , T.issNo   = 1
-    , T.journal = natChemBiol
+      T.theDate    = Tm.fromGregorian 2010 1 1
+    , T.theVolNo   = 6
+    , T.theIssNo   = 1
+    , T.theJournal = natChemBiol
     }
 
 ---------------------------------------------------------------------
@@ -202,7 +195,7 @@ natChemBiolRef = T.Issue {
 pnas :: T.Journal
 pnas = T.Journal {
       T.name   = "Proceedings of the National Academy of Sciences U.S.A."
-    , T.key    = "PNAS"
+    , T.abbr   = "PNAS"
     , T.pubmed = "Proc Natl Acad Sci U S A"
     , T.freq   = T.Weekly
     , T.resets = True
@@ -210,11 +203,10 @@ pnas = T.Journal {
 
 pnasRef :: T.Issue
 pnasRef = T.Issue {
-      T.date    = Tm.fromGregorian 2015 1 6
-    , T.refNo   = 1
-    , T.volNo   = 112
-    , T.issNo   = 1
-    , T.journal = pnas
+      T.theDate    = Tm.fromGregorian 2015 1 6
+    , T.theVolNo   = 112
+    , T.theIssNo   = 1
+    , T.theJournal = pnas
     }
 
 ---------------------------------------------------------------------
@@ -223,7 +215,7 @@ pnasRef = T.Issue {
 science :: T.Journal
 science = T.Journal {
       T.name   = "Science"
-    , T.key    = "Science"
+    , T.abbr   = "Science"
     , T.pubmed = "Science"
     , T.freq   = T.WeeklyLast
     , T.resets = False
@@ -231,9 +223,8 @@ science = T.Journal {
 
 scienceRef :: T.Issue
 scienceRef = T.Issue {
-      T.date    = Tm.fromGregorian 2010 1 1
-    , T.refNo   = 1
-    , T.volNo   = 2010
-    , T.issNo   = 5961
-    , T.journal = science
+      T.theDate    = Tm.fromGregorian 2010 1 1
+    , T.theVolNo   = 2010
+    , T.theIssNo   = 5961
+    , T.theJournal = science
     }
