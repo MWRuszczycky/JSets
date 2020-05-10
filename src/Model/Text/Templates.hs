@@ -17,7 +17,6 @@ module Model.Text.Templates
     , instrCTemplate
     , instrRTemplate
     , ranksTemplate
-    , rankCiteTemplate
     ) where
 
 import qualified Data.Text            as Tx
@@ -168,17 +167,3 @@ ranksTemplate :: Template
 -- citations : Individual citations for ranking.
 ranksTemplate = parseTemplate' "res/html/ranksTemplate.html"
                 $(FE.embedStringFile "res/html/ranksTemplate.html")
-
-rankCiteTemplate :: Template
--- ^Paragraph environment for a single article citation for ranking.
--- index    : index number of the citation
--- length   : whether the article is long or short
--- href     : article doi link
--- title    : article title
--- authors  : article authors
--- journal  : journal name
--- volume   : issue volume
--- number   : issue number
--- pages    : pages string
-rankCiteTemplate = parseTemplate' "res/html/rankCiteTemplate.html"
-                   $(FE.embedStringFile "res/html/rankCiteTemplate.html")

@@ -23,6 +23,8 @@ module Model.Journals
     , nextMonthly
       -- Working with selection sets
     , groupSelections
+    , filterWithSelected
+    , selectedCitations
       -- Working with downloaded table of contents
     , tocQuery
     ) where
@@ -211,6 +213,17 @@ groupPages = concatMap rewrap . C.collectBy go
           rewrap []      = []
           rewrap (x:xs)  = [ T.SelIssue (T.issue x) . sort . nub
                              . concatMap T.selection $ (x:xs) ]
+
+filterWithSelected :: [T.CitedIssue] -> [T.CitedIssue]
+filterWithSelected = concatMap go
+    where go iss = case selectedCitations iss of
+                        [] -> []
+                        cs -> [ iss { T.citations = cs } ]
+
+selectedCitations :: T.CitedIssue -> [T.Citation]
+selectedCitations (T.CitedIssue iss cs) = filter go cs
+    where ps   = T.selection iss
+          go c = elem (fst . T.pages $ c) ps
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues
