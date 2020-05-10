@@ -35,11 +35,9 @@ import qualified Model.Core.Core      as C
 import qualified Model.Core.Types     as T
 import qualified Model.Journals       as J
 import qualified Model.Text.Html      as Html
-import qualified Model.Text.Templates as Temp
 import           Data.Text                      ( Text      )
 import           Data.List                      ( sortBy    )
 import           Data.Ord                       ( comparing )
-import           Model.Text.Templates           ( fillNone  )
 
 -- =============================================================== --
 -- Formatting journal sets
@@ -174,9 +172,9 @@ citationToMkd iss x = Tx.unlines parts
 -- As HTML
 
 tocsToHtml :: T.ToCStyle -> T.JournalSet T.CitedIssue -> Text
-tocsToHtml T.Propose jset = Html.htmlToC jset . fillNone $ Temp.instrCTemplate
-tocsToHtml T.Select  jset = Html.htmlToC jset . fillNone $ Temp.instrRTemplate
-tocsToHtml T.Rank    jset = undefined
+tocsToHtml T.Propose jset = Html.htmlToCPropose jset
+tocsToHtml T.Select  jset = Html.htmlToCSelect  jset
+tocsToHtml T.Rank    jset = Html.htmlToCRank    jset
 
 -- =============================================================== --
 -- Formatting selection sets
