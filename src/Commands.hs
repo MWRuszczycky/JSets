@@ -125,11 +125,11 @@ tocHelp = (s, Tx.unlines hs)
                , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.raw\n"
                , "Markdown formatting is available with the 'mkd' extension,\n"
                , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.mkd\n"
-               , "To indicate that a selected journal set is being read use"
-               , "the option --select/-s. This will ensure that the selected"
-               , "page numbers are correctly parsed. The resulting table of"
-               , "contents will have the selected citations highlighted and"
-               , "provide instructions for choosing citations for review."
+               , "When reading from a selection file you need to set a style"
+               , "flag to indicate that a selection file is being parsed and"
+               , "the type of table of contents information to generate:\n"
+               , "    --select/-s : toc for selecting citations for review"
+               , "    --rank/-r   : toc for ranking citations"
                ]
 
 tocCmd :: [String] -> T.AppMonad ()
