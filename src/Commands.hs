@@ -11,15 +11,12 @@ import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
 import qualified Model.Text.Formatting     as F
-import qualified Model.Parsers.PubMed      as P
 import qualified AppMonad                  as A
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
-import           Control.Monad                      ( zipWithM       )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO, lift
-                                                    , liftEither
                                                     , throwError     )
 
 -- =============================================================== --
@@ -91,8 +88,8 @@ readCmd (fp:_) = do
     mbKey <- asks T.cJsetKey
     abbrs <- A.issueRefAbbrs
     case (mbKey, fmt) of
-         (Just _, T.CSV) -> A.getJset       fp >>= display . F.jsetToCsv abbrs
-         (Just _, _    ) -> A.getJset       fp >>= display . F.jsetToTxt
+         (Just _, T.CSV) -> A.getJset  fp >>= display . F.jsetToCsv abbrs
+         (Just _, _    ) -> A.getJset  fp >>= display . F.jsetToTxt
          (_     , T.CSV) -> A.getJsets fp >>= display . F.jsetsToCsv abbrs
          (_     , _    ) -> A.getJsets fp >>= display . F.jsetsToTxt
 
@@ -127,23 +124,28 @@ tocHelp = (s, Tx.unlines hs)
                , "for example,\n"
                , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.raw\n"
                , "Markdown formatting is available with the 'mkd' extension,\n"
-               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.mkd"
+               , "    jsets toc jsets2019.txt --key=6 --output=toc2019-6.mkd\n"
+               , "To indicate that a selected journal set is being read use"
+               , "the option --select/-s. This will ensure that the selected"
+               , "page numbers are correctly parsed. The resulting table of"
+               , "contents will have the selected citations highlighted and"
+               , "provide instructions for choosing citations for review."
                ]
 
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    jset  <- A.getSelJset fp
-    raw   <- mapM A.downloadPubMed . T.issues $ jset
-    ciss  <- liftEither . zipWithM P.parseCited (T.issues jset) $ raw
-    isSel <- asks T.cIsSelected
-    let cjset = T.JSet (T.setNo jset) ciss
-    fmt  <- A.getFormat
+    T.JSet k xs <- A.getSelJset fp
+    (ts,cs)     <- unzip <$> mapM A.cite' xs
+    isSel       <- asks T.cIsSelected
+    fmt         <- A.getFormat
+    let jset = T.JSet k cs
+        raw  = Tx.unlines ts
     case fmt of
-         T.HTML -> display . F.tocsToHtml isSel $ cjset
-         T.MKD  -> display . F.tocsToMkd        $ cjset
-         T.RAW  -> display . Tx.unlines         $ raw
-         _      -> display . F.tocsToTxt        $ cjset
+         T.RAW  -> display raw
+         T.HTML -> display . F.tocsToHtml isSel $ jset
+         T.MKD  -> display . F.tocsToMkd        $ jset
+         _      -> display . F.tocsToTxt        $ jset
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year

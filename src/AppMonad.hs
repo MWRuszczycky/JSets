@@ -6,6 +6,8 @@ module AppMonad
     , getJset
     , getSelJset
     , readSelJset
+    , cite'
+    , cite
       -- Working with configured reference issues
     , isAvailable
     , references
@@ -77,6 +79,15 @@ getSelJset fp = do
     if isSelected
        then readSelJset fp
        else J.selectNone <$> getJset fp
+
+cite' :: T.SelIssue -> T.AppMonad (Text, T.CitedIssue)
+cite' iss = do
+    raw  <- downloadPubMed iss
+    ciss <- liftEither . P.parseCited iss $ raw
+    pure (raw, ciss)
+
+cite :: T.SelIssue -> T.AppMonad T.CitedIssue
+cite = fmap snd . cite'
 
 -- =============================================================== --
 -- Working with configured reference issues
