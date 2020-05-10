@@ -26,9 +26,9 @@ import           Control.Monad.Except               ( liftIO, lift
 -- Commands
 
 commands :: [ T.Command ]
-commands = [ T.Command "refs"  refsCmd  refsHelp
+commands = [ T.Command "group" groupCmd groupHelp
            , T.Command "read"  readCmd  readHelp
-           , T.Command "group" groupCmd groupHelp
+           , T.Command "refs"  refsCmd  refsHelp
            , T.Command "toc"   tocCmd   tocHelp
            , T.Command "year"  yearCmd  yearHelp
            ]
@@ -38,6 +38,26 @@ runCommands []     = pure ()
 runCommands (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
     where go  = flip T.cmdAction xs
           err = throwError $ "Unknown command: " <> x
+
+---------------------------------------------------------------------
+-- Grouping multiple issue selections
+
+groupHelp :: (Text, Text)
+groupHelp = (s, Tx.unlines hs)
+    where s  = "group : group issue selections for review"
+          hs = [ "Usage: jsets group file1.txt file2.txt file3.txt\n"
+               , "Selection file formats are the same as journal set text files"
+               , "with the first page of each selected article immediately"
+               , "following the issue header line."
+               ]
+
+groupCmd :: [String] -> T.AppMonad ()
+groupCmd []  = throwError "A selection file must be sepecified!"
+groupCmd fps = do
+    mbSel <- mapM A.readSelJset fps >>= pure . J.groupSelections
+    case mbSel of
+         Nothing  -> throwError "No Issues in selection!"
+         Just sel -> display . F.selectionToTxt $ sel
 
 ---------------------------------------------------------------------
 -- File format reading and conversion
@@ -75,52 +95,6 @@ readCmd (fp:_) = do
          (Just _, _    ) -> A.getJset       fp >>= display . F.jsetToTxt
          (_     , T.CSV) -> A.getJsets fp >>= display . F.jsetsToCsv abbrs
          (_     , _    ) -> A.getJsets fp >>= display . F.jsetsToTxt
-
----------------------------------------------------------------------
--- Construct journal set collections by year
-
-yearHelp :: (Text, Text)
-yearHelp = (s, Tx.unlines hs)
-    where s  = "year : build a collection of all journal sets in a given year"
-          hs = [ "The <year> command distributes all issues for all configured"
-               , "journals in a given year into 26 journal sets. So, to create"
-               , "a file with the default journal sets in 2019 use,\n"
-               , "    jsets year 2019 --output=jsets2019.txt\n"
-               , "The default output format is text. To format the file as csv,"
-               , "set an output path with a 'csv' extension. For example,\n"
-               , "    jsets year 2019 --output=jsets2019.csv"
-               ]
-
-yearCmd :: [String] -> T.AppMonad ()
-yearCmd []    = throwError "A valid year must be specified!"
-yearCmd (x:_) = do
-    theYear <- maybe (throwError "Invalid year.") pure . readMaybe $ x
-    jsets   <- A.references >>= pure . J.yearly26Sets theYear
-    abbrs   <- A.issueRefAbbrs
-    fmt     <- A.getFormat
-    case fmt of
-         T.CSV -> display . F.jsetsToCsv abbrs $ jsets
-         _     -> display . F.jsetsToTxt $ jsets
-
----------------------------------------------------------------------
--- Handling issue selections
-
-groupHelp :: (Text, Text)
-groupHelp = (s, Tx.unlines hs)
-    where s  = "group : group issue selections for review"
-          hs = [ "Usage: jsets group file1.txt file2.txt file3.txt\n"
-               , "Selection file formats are the same as journal set text files"
-               , "with the first page of each selected article immediately"
-               , "following the issue header line."
-               ]
-
-groupCmd :: [String] -> T.AppMonad ()
-groupCmd []  = throwError "A selection file must be sepecified!"
-groupCmd fps = do
-    mbSel <- mapM A.readSelJset fps >>= pure . J.groupSelections
-    case mbSel of
-         Nothing  -> throwError "No Issues in selection!"
-         Just sel -> display . F.selectionToTxt $ sel
 
 ---------------------------------------------------------------------
 -- View configured journals
@@ -170,6 +144,32 @@ tocCmd (fp:_) = do
          T.MKD  -> display . F.tocsToMkd        $ cjset
          T.RAW  -> display . Tx.unlines         $ raw
          _      -> display . F.tocsToTxt        $ cjset
+
+---------------------------------------------------------------------
+-- Construct journal set collections by year
+
+yearHelp :: (Text, Text)
+yearHelp = (s, Tx.unlines hs)
+    where s  = "year : build a collection of all journal sets in a given year"
+          hs = [ "The <year> command distributes all issues for all configured"
+               , "journals in a given year into 26 journal sets. So, to create"
+               , "a file with the default journal sets in 2019 use,\n"
+               , "    jsets year 2019 --output=jsets2019.txt\n"
+               , "The default output format is text. To format the file as csv,"
+               , "set an output path with a 'csv' extension. For example,\n"
+               , "    jsets year 2019 --output=jsets2019.csv"
+               ]
+
+yearCmd :: [String] -> T.AppMonad ()
+yearCmd []    = throwError "A valid year must be specified!"
+yearCmd (x:_) = do
+    theYear <- maybe (throwError "Invalid year.") pure . readMaybe $ x
+    jsets   <- A.references >>= pure . J.yearly26Sets theYear
+    abbrs   <- A.issueRefAbbrs
+    fmt     <- A.getFormat
+    case fmt of
+         T.CSV -> display . F.jsetsToCsv abbrs $ jsets
+         _     -> display . F.jsetsToTxt $ jsets
 
 ---------------------------------------------------------------------
 -- Output handling
