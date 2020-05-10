@@ -75,10 +75,10 @@ readSelJset fp = do
 
 getSelJset :: FilePath -> T.AppMonad (T.JournalSet T.SelIssue)
 getSelJset fp = do
-    isSelected <- asks T.cIsSelected
-    if isSelected
-       then readSelJset fp
-       else J.selectNone <$> getJset fp
+    style <- asks T.cToCStyle
+    case style of
+         T.Propose -> J.selectNone <$> getJset fp
+         _         -> readSelJset fp
 
 cite' :: T.SelIssue -> T.AppMonad (Text, T.CitedIssue)
 cite' iss = do

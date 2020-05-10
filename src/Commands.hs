@@ -137,13 +137,13 @@ tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
     T.JSet k xs <- A.getSelJset fp
     (ts,cs)     <- unzip <$> mapM A.cite' xs
-    isSel       <- asks T.cIsSelected
+    style       <- asks T.cToCStyle
     fmt         <- A.getFormat
     let jset = T.JSet k cs
         raw  = Tx.unlines ts
     case fmt of
          T.RAW  -> display raw
-         T.HTML -> display . F.tocsToHtml isSel $ jset
+         T.HTML -> display . F.tocsToHtml style $ jset
          T.MKD  -> display . F.tocsToMkd        $ jset
          _      -> display . F.tocsToTxt        $ jset
 

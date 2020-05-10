@@ -173,10 +173,10 @@ citationToMkd iss x = Tx.unlines parts
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: Bool -> T.JournalSet T.CitedIssue -> Text
-tocsToHtml selected jset = Html.htmlToC jset . fillNone $ instr
-    where instr | selected  = Temp.instrRTemplate
-                | otherwise = Temp.instrCTemplate
+tocsToHtml :: T.ToCStyle -> T.JournalSet T.CitedIssue -> Text
+tocsToHtml T.Propose jset = Html.htmlToC jset . fillNone $ Temp.instrCTemplate
+tocsToHtml T.Select  jset = Html.htmlToC jset . fillNone $ Temp.instrRTemplate
+tocsToHtml T.Rank    jset = undefined
 
 -- =============================================================== --
 -- Formatting selection sets

@@ -8,6 +8,7 @@ module Model.Core.Types
     , Config            (..)
     , Command           (..)
     , Format            (..)
+    , ToCStyle          (..)
       -- Journal sets
     , JournalSet        (..)
     , Collection
@@ -53,7 +54,7 @@ data Config = Config {
     , cJsetKey    :: Maybe Int      -- journal set key
     , cHelp       :: Bool           -- user requested help
     , cReferences :: [Issue]        -- reference issues
-    , cIsSelected :: Bool           -- file path to a selection text file
+    , cToCStyle   :: ToCStyle       -- table of content style
     } deriving ( Show )
 
 data Command = Command {
@@ -68,6 +69,12 @@ data Format =
     | MKD
     | CSV
     | RAW
+      deriving ( Show, Eq )
+
+data ToCStyle =
+      Propose
+    | Select
+    | Rank
       deriving ( Show, Eq )
 
 -- =============================================================== --

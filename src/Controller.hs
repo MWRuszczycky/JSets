@@ -41,7 +41,7 @@ initConfig = T.Config { T.cOutputPath = Nothing
                       , T.cJsetKey    = Nothing
                       , T.cHelp       = False
                       , T.cReferences = issueRefs
-                      , T.cIsSelected = False
+                      , T.cToCStyle   = T.Propose
                       }
 
 -- =============================================================== --
@@ -62,8 +62,12 @@ options =
       "Set the journal set key to KEY (positive integer)"
 
     , Opt.Option "s" [ "select" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cIsSelected = True } ) )
-      "The journal set file is a selection."
+      ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Select } ) )
+      "Use the 'select' style for html tables of contents."
+
+    , Opt.Option "r" [ "rank" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Rank } ) )
+      "Use the 'rank' style for html tables of contents."
     ]
 
 configKey :: String -> T.Config -> T.ErrMonad T.Config
