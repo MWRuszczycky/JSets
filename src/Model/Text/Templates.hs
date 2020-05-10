@@ -16,6 +16,8 @@ module Model.Text.Templates
     , tocTemplate
     , instrCTemplate
     , instrRTemplate
+    , ranksTemplate
+    , rankCiteTemplate
     ) where
 
 import qualified Data.Text            as Tx
@@ -100,7 +102,7 @@ freeAt = do
 -- html templates for building tables of contents web documents
 
 tocsTemplate :: Template
--- full html document for table of contents selections
+-- ^Full html document for table of contents selections
 -- jsetTitle  : title of html document
 -- jsetHeader : header for te journal set (number and date)
 -- savePrefix : file name prefix for saving
@@ -110,7 +112,7 @@ tocsTemplate = parseTemplate' "res/html/tocsTemplate.html"
                $(FE.embedStringFile "res/html/tocsTemplate.html")
 
 issueTemplate :: Template
--- element of the 'issues array'
+-- ^Element of the 'issues array'
 -- class  : issue class
 -- title  : Journal title
 -- vol    : issue volume
@@ -126,14 +128,14 @@ issueTemplate = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
                ]
 
 tocTemplate :: Template
--- table of contents for a give issue
+-- ^Table of contents for a given issue
 -- issue    : issue header
 -- articles : html for all articles in the issue
 tocTemplate = parseTemplate' "res/html/tocTemplate.html"
               $(FE.embedStringFile "res/html/tocTemplate.html")
 
 citationTemplate :: Template
--- <p> environment for a single article citation
+-- ^Paragraph environment for a single article citation
 -- selected : optional class for selected citations
 -- id       : article id
 -- class    : issue class
@@ -148,13 +150,35 @@ citationTemplate = parseTemplate' "res/html/citationTemplate.html"
                    $(FE.embedStringFile "res/html/citationTemplate.html")
 
 instrCTemplate :: Template
--- Instructions for including articles for consideration.
+-- ^Instructions for including articles for consideration.
 -- There are no no variables.
 instrCTemplate = parseTemplate' "res/html/instrCTemplate.html"
                  $(FE.embedStringFile "res/html/instrCTemplate.html")
 
 instrRTemplate :: Template
--- Instructions for including articles for review.
+-- ^Instructions for including articles for review.
 -- There are no variables.
 instrRTemplate = parseTemplate' "res/html/instrRTemplate.html"
                  $(FE.embedStringFile "res/html/instrRTemplate.html")
+
+ranksTemplate :: Template
+-- ^Full html template document for generating rankings for articles.
+-- selected for review.
+-- jsetTitle : Title of the journal set (e.g., Journal Set 6)
+-- citations : Individual citations for ranking.
+ranksTemplate = parseTemplate' "res/html/ranksTemplate.html"
+                $(FE.embedStringFile "res/html/ranksTemplate.html")
+
+rankCiteTemplate :: Template
+-- ^Paragraph environment for a single article citation for ranking.
+-- index    : index number of the citation
+-- length   : whether the article is long or short
+-- href     : article doi link
+-- title    : article title
+-- authors  : article authors
+-- journal  : journal name
+-- volume   : issue volume
+-- number   : issue number
+-- pages    : pages string
+rankCiteTemplate = parseTemplate' "res/html/rankCiteTemplate.html"
+                   $(FE.embedStringFile "res/html/rankCiteTemplate.html")
