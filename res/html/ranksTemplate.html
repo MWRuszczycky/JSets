@@ -60,8 +60,6 @@
                     }
                 };
 
-                console.log(ranks);
-
                 ranks.sort(compareRanks);
 
                 var inst     = document.getElementById('inst');
@@ -79,7 +77,7 @@
 <!-- ============================================================ -->
 <!-- CONTENT -->
 
-    <body id="body">
+    <body>
 
 <!-- ============================================================ -->
 <!-- Tables of Contents -->
@@ -110,7 +108,7 @@
         <h2>Create your ranks and send them to Mark!</h2>
 
         <div id="inst">
-            Press the button to create your rank list and email them to Mark.<br>
+            Press the button to create your rank list and email it to Mark.<br>
             If you have no preferences, you don't need to do anything.<br>
             <button type="button" id="rankBtn" onclick="createRanks()">
                 Create Ranks!
