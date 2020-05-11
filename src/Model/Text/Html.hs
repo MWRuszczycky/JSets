@@ -140,9 +140,11 @@ onlySelectedHtml iss = Tx.unlines . zipWith go [1..] $ ds
 
 citationLength :: T.Citation -> Text
 citationLength c
+    | diff < 0    = " (online)"
     | dn - d0 < 6 = " (short)"
     | otherwise   = " (long)"
     where (T.PageNumber _ d0, T.PageNumber _ dn) = T.pages c
+          diff = dn - d0
 
 selectedDict :: T.CitedIssue -> [Map.Map Text Text]
 selectedDict (T.CitedIssue iss cs) = map go cs

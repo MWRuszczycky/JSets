@@ -65,6 +65,15 @@ sortByPage :: [T.Citation] -> [T.Citation]
 sortByPage = sortBy (comparing pageNumbers)
     where pageNumbers = fst . T.pages
 
+correctPages :: Maybe (T.PageNumber, T.PageNumber) -> Text
+                -> (T.PageNumber, T.PageNumber)
+correctPages (Just ps) _ = ps
+correctPages Nothing doi = ( T.PageNumber t 1, T.PageNumber t 0 )
+    where t = Tx.unpack
+              . Tx.reverse
+              . Tx.takeWhile (/= '.')
+              . Tx.reverse $ doi
+
 ---------------------------------------------------------------------
 -- Parsers
 
@@ -79,7 +88,7 @@ citation iss = do
     pubmedData
     pure $ T.Citation { T.title   = title
                       , T.authors = authors
-                      , T.pages   = pages
+                      , T.pages   = correctPages pages doi
                       , T.doi     = doi
                       }
 
@@ -111,15 +120,15 @@ pageNumber = T.PageNumber <$> prefix <*> digits
     where prefix = Tx.unpack <$> At.takeTill Ch.isDigit
           digits = read <$> some At.digit
 
-pageNumbers :: At.Parser (T.PageNumber, T.PageNumber)
+pageNumbers :: At.Parser (Maybe (T.PageNumber, T.PageNumber) )
 pageNumbers = do
-    p1 <- At.option (T.PageNumber "Online" 0) (At.char ':' *> pageNumber)
+    p1 <- At.option Nothing $ Just <$> (At.char ':' *> pageNumber)
     x  <- At.choice [ At.char '-', At.char '.' ]
     if x == '.'
-       then At.skipSpace *> pure (p1, p1)
-       else do p2 <- pageNumber
+       then At.skipSpace *> pure ( (,) <$> p1 <*> p1 )
+       else do p2 <- Just <$> pageNumber
                dotSep
-               pure (p1, p2)
+               pure $ (,) <$> p1 <*> p2
 
 doiUrl :: At.Parser Tx.Text
 doiUrl = do

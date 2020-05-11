@@ -150,9 +150,14 @@ dateParser = (,,) <$> ( intParser <* At.char '-'  )
                   <*> ( intParser                 )
 
 pageNumber :: At.Parser T.PageNumber
-pageNumber = T.PageNumber <$> prefix <*> digits
-    where prefix = Tx.unpack <$> At.takeTill isDigit
-          digits = read <$> some At.digit
+pageNumber = do
+    prefix <- Tx.unpack <$> pageNumberPrefix
+    digits <- read <$> some At.digit
+    pure $ T.PageNumber prefix digits
+
+pageNumberPrefix :: At.Parser Text
+pageNumberPrefix = At.takeTill (At.inClass " :\n\r\t") <* At.char ':'
+                   <|> pure ""
 
 -- =============================================================== --
 -- Component parsers for CSV
