@@ -51,7 +51,7 @@ groupHelp = (s, Tx.unlines hs)
 groupCmd :: [String] -> T.AppMonad ()
 groupCmd []  = throwError "A selection file must be sepecified!"
 groupCmd fps = do
-    mbSel <- mapM A.readSelJset fps >>= pure . J.groupSelections
+    mbSel <- mapM A.readSelectionJset fps >>= pure . J.groupSelections
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
          Just sel -> display . F.selectionToTxt $ sel
@@ -135,7 +135,7 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    T.JSet k xs <- A.getSelJset fp
+    T.JSet k xs <- A.getSelectionJset fp
     (ts,cs)     <- unzip <$> mapM A.cite' xs
     style       <- asks T.cToCStyle
     fmt         <- A.getFormat
