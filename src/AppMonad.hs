@@ -65,7 +65,7 @@ getJset fp = do
          Nothing   -> throwError "Cannot find requested journal set."
          Just jset -> pure jset
 
-readSelJset :: FilePath -> T.AppMonad (T.JournalSet T.SelIssue)
+readSelJset :: FilePath -> T.AppMonad (T.JournalSet T.Selection)
 readSelJset fp = do
     content <- lift . C.readFileErr $ fp
     refs    <- references
@@ -73,20 +73,20 @@ readSelJset fp = do
          Left err  -> throwError err
          Right sel -> pure sel
 
-getSelJset :: FilePath -> T.AppMonad (T.JournalSet T.SelIssue)
+getSelJset :: FilePath -> T.AppMonad (T.JournalSet T.Selection)
 getSelJset fp = do
     style <- asks T.cToCStyle
     case style of
          T.Propose -> J.selectNone <$> getJset fp
          _         -> readSelJset fp
 
-cite' :: T.SelIssue -> T.AppMonad (Text, T.CitedIssue)
-cite' iss = do
-    raw  <- downloadPubMed iss
-    ciss <- liftEither . P.parseCited iss $ raw
-    pure (raw, ciss)
+cite' :: T.Selection -> T.AppMonad (Text, T.IssueContent)
+cite' sel = do
+    raw <- downloadPubMed sel
+    toc <- liftEither . P.parseCited sel $ raw
+    pure (raw, toc)
 
-cite :: T.SelIssue -> T.AppMonad T.CitedIssue
+cite :: T.Selection -> T.AppMonad T.IssueContent
 cite = fmap snd . cite'
 
 -- =============================================================== --
@@ -115,7 +115,7 @@ getIssue abbr v n = references >>= maybe err pure . go
 -- =============================================================== --
 -- Internet requests
 
-downloadPubMed :: T.IsIssue a => a -> T.AppMonad Text
+downloadPubMed :: T.HasIssue a => a -> T.AppMonad Text
 -- ^Download the table of contents for a journal issue from PubMed.
 -- The download format is the raw PubMed text.
 -- Display progress messages for each ToC download.

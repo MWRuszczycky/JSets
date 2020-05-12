@@ -23,8 +23,8 @@ module Model.Journals
     , nextMonthly
       -- Working with selection sets
     , groupSelections
-    , filterWithSelected
-    , selectedCitations
+    , selectContent
+    , selectCitations
       -- Working with downloaded table of contents
     , tocQuery
     ) where
@@ -60,8 +60,8 @@ emptyCollection = Map.empty
 lookupJSet :: Int -> T.Collection -> Maybe (T.JournalSet T.Issue)
 lookupJSet k col = T.JSet k <$> Map.lookup k col
 
-selectNone :: T.JournalSet T.Issue -> T.JournalSet T.SelIssue
-selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.SelIssue []) $ xs
+selectNone :: T.JournalSet T.Issue -> T.JournalSet T.Selection
+selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
 
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
@@ -99,14 +99,14 @@ monthly26InYear y refs = [] : [] : C.shuffleIn byqs byqrs
 ---------------------------------------------------------------------
 -- Helper functions
 
-dateOfJSet :: T.IsIssue a => T.JournalSet a -> Day
+dateOfJSet :: T.HasIssue a => T.JournalSet a -> Day
 dateOfJSet = maximum . map T.date . T.issues
 
-issuesByAbbr :: T.IsIssue a => Text -> [a] -> [a]
+issuesByAbbr :: T.HasIssue a => Text -> [a] -> [a]
 -- ^Pull all issues in a list for a given journal abbr.
 issuesByAbbr abbr = filter ( (== abbr) . T.abbr . T.journal )
 
-splitByFreq :: T.IsIssue a => [a] -> ([a], [a])
+splitByFreq :: T.HasIssue a => [a] -> ([a], [a])
 splitByFreq = foldr go ([],[])
     where go x (ws,ms) = case T.freq . T.journal $ x of
                               T.Monthly -> (ws, x:ms)
@@ -198,37 +198,40 @@ nextWeekly x1
 -- =============================================================== --
 -- Working with selection sets for review
 
-groupSelections :: [T.JournalSet T.SelIssue] -> Maybe (T.JournalSet T.SelIssue)
--- ^Fold multiple selections into a single selection by combining
--- page numbers for the same issues between the selection sets.
+groupSelections :: [T.JournalSet T.Selection]
+                   -> Maybe (T.JournalSet T.Selection)
+-- ^Fold multiple journal set selections into a single journal set
+-- selection by combining page numbers for the same issues between
+-- the selection sets.
 groupSelections []       = Nothing
 groupSelections ss@(x:_) = let setNo = T.setNo x
                            in  pure . T.JSet setNo
                                     . groupPages
                                     . concatMap T.issues $ ss
 
-groupPages :: [T.SelIssue] -> [T.SelIssue]
+groupPages :: [T.Selection] -> [T.Selection]
 groupPages = concatMap rewrap . C.collectBy go
     where go x y         = T.issue x == T.issue y
           rewrap []      = []
-          rewrap (x:xs)  = [ T.SelIssue (T.issue x) . sort . nub
-                             . concatMap T.selection $ (x:xs) ]
+          rewrap (x:xs)  = [ T.Selection (T.issue x) . sort . nub
+                             . concatMap T.selected $ (x:xs) ]
 
-filterWithSelected :: [T.CitedIssue] -> [T.CitedIssue]
-filterWithSelected = concatMap go
-    where go iss = case selectedCitations iss of
+selectContent :: [T.IssueContent] -> [T.IssueContent]
+selectContent = concatMap go
+    where go sel = case selectCitations sel of
                         [] -> []
-                        cs -> [ iss { T.citations = cs } ]
+                        cs -> [ sel { T.citations = cs } ]
 
-selectedCitations :: T.CitedIssue -> [T.Citation]
-selectedCitations (T.CitedIssue iss cs) = filter go cs
-    where ps   = T.selection iss
+selectCitations :: T.IssueContent -> [T.Citation]
+-- ^Filter the individual selected citations from a Citations value.
+selectCitations (T.IssueContent sel cs) = filter go cs
+    where ps   = T.selected sel
           go c = elem (fst . T.pages $ c) ps
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues
 
-tocQuery :: T.IsIssue a => a -> Wreq.Options
+tocQuery :: T.HasIssue a => a -> Wreq.Options
 -- ^Build a table of contents query for PubMed for a given journal
 -- issue. See https://www.ncbi.nlm.nih.gov/books/NBK3862/ for more
 -- detail about how these queries are formed.

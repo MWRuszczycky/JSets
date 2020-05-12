@@ -42,7 +42,8 @@ parseCollectionTxt refs t = let err = (<>) "Cannot parse TXT: "
                             in  bimap err id $ At.parseOnly collectionParser t
                                                >>= validate refs
 
-parseSelection :: [T.Issue] -> Text -> Either T.ErrString (T.JournalSet T.SelIssue)
+parseSelection :: [T.Issue] -> Text
+                  -> Either T.ErrString (T.JournalSet T.Selection)
 parseSelection refs t = let err = (<>) "Cannot parse selection: "
                         in  bimap err id $ At.parseOnly selParser t
                                            >>= validateSel refs
@@ -67,9 +68,9 @@ validate refs js = mapM go js >>= packCollection
     where go (setNo, iss) = T.JSet setNo <$> mapM (validateIssue refs) iss
 
 validateSel :: T.References -> RawSelSet
-               -> Either T.ErrString (T.JournalSet T.SelIssue)
+               -> Either T.ErrString (T.JournalSet T.Selection)
 validateSel refs (setNo,xs) = T.JSet <$> pure setNo <*> mapM go xs
-    where go (r,ys) = T.SelIssue <$> validateIssue refs r <*> pure ys
+    where go (r,ys) = T.Selection <$> validateIssue refs r <*> pure ys
 
 validateIssue :: T.References -> RawIssue -> Either T.ErrString T.Issue
 validateIssue refs (j,v,n) = maybe err pure . J.lookupIssue refs j $ (v,n)

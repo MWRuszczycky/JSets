@@ -20,7 +20,7 @@ import           Model.Text.Templates           ( fill, fillNone )
 -- =============================================================== --
 -- Helper functions
 
-className :: T.IsIssue a => a -> Text
+className :: T.HasIssue a => a -> Text
 -- ^Generate a class name for a journal issue. The basic format is
 -- _JournalName-Volume-Number
 -- where the journal name has all spaces converted to underscores.
@@ -30,7 +30,7 @@ className iss = Tx.intercalate "-" xs
                , C.tshow . T.issNo $ iss
                ]
 
-citationID :: T.IsIssue a => a -> T.Citation -> Text
+citationID :: T.HasIssue a => a -> T.Citation -> Text
 -- ^Generate an article citation for an article issue. The basic
 -- format is: _JournalClassName-FirstPageNumber
 citationID iss c = className iss <> "-" <> C.tshow p1
@@ -53,7 +53,7 @@ fixReserved = Tx.concatMap go
 -- =============================================================== --
 -- Exported html document compositors
 
-htmlToCPropose :: T.JournalSet T.CitedIssue -> Text
+htmlToCPropose :: T.JournalSet T.IssueContent -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
@@ -67,7 +67,7 @@ htmlToCPropose jset = fill (Map.fromList xys) Temp.tocsTemplate
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
-htmlToCSelect :: T.JournalSet T.CitedIssue -> Text
+htmlToCSelect :: T.JournalSet T.IssueContent -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
@@ -81,9 +81,9 @@ htmlToCSelect jset = fill (Map.fromList xys) Temp.tocsTemplate
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
-htmlToCRank :: T.JournalSet T.CitedIssue -> Text
+htmlToCRank :: T.JournalSet T.IssueContent -> Text
 htmlToCRank jset = fill (Map.fromList xys) Temp.ranksTemplate
-    where iss = J.filterWithSelected . T.issues $ jset
+    where iss = J.selectContent . T.issues $ jset
           xys = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
                 , ( "citations", onlySelectedHtml iss                     )
                 ]
@@ -94,10 +94,10 @@ htmlToCRank jset = fill (Map.fromList xys) Temp.ranksTemplate
 -- --------------------------------------------------------------- --
 -- Javascript issue variables
 
-issuesArray :: T.IsIssue a => [a] -> Text
+issuesArray :: T.HasIssue a => [a] -> Text
 issuesArray = Tx.intercalate ",\n" . map issueElement
 
-issueElement :: T.IsIssue a => a -> Text
+issueElement :: T.HasIssue a => a -> Text
 issueElement iss = fill xys Temp.issueTemplate
     where xys = Map.fromList [ ("class",  className            iss )
                              , ("title",  (T.abbr . T.journal) iss )
@@ -109,32 +109,32 @@ issueElement iss = fill xys Temp.issueTemplate
 -- --------------------------------------------------------------- --
 -- html for the tables of contents with all citations
 
-allCitationsHtml :: [T.CitedIssue] -> Text
+allCitationsHtml :: [T.IssueContent] -> Text
 allCitationsHtml = Tx.unlines . map allCitations
 
-allCitations :: T.CitedIssue -> Text
+allCitations :: T.IssueContent -> Text
 -- ^Display all citations in the issue, and provide a note if none.
-allCitations (T.CitedIssue iss cs) =
+allCitations (T.IssueContent sel cs) =
     let msg = "<p>There are no article listed for this issue at PubMed</p>"
         bdy | null cs   = Tx.replicate 12 " " <> msg
-            | otherwise = Tx.intercalate "\n" . map (citationHtml iss) $ cs
-        xys = Map.fromList [ ("issue", issueHeader iss), ("citations", bdy) ]
+            | otherwise = Tx.intercalate "\n" . map (citationHtml sel) $ cs
+        xys = Map.fromList [ ("issue", issueHeader sel), ("citations", bdy) ]
     in  fill xys Temp.tocTemplate
 
-citationHtml :: T.SelIssue -> T.Citation -> Text
-citationHtml iss@(T.SelIssue _ sel) c
-    | elem p0 sel = fill ( go " class=\"selected\"" ) Temp.citationTemplate
-    | otherwise   = fill ( go Tx.empty              ) Temp.citationTemplate
+citationHtml :: T.Selection -> T.Citation -> Text
+citationHtml sel@(T.Selection _ ps) c
+    | elem p0 ps = fill ( go " class=\"selected\"" ) Temp.citationTemplate
+    | otherwise  = fill ( go Tx.empty              ) Temp.citationTemplate
     where p0   = fst . T.pages $ c
-          go u = Map.insert "selected" u . citationDict iss $ c
+          go u = Map.insert "selected" u . citationDict sel $ c
 
 ---------------------------------------------------------------------
 -- html for tables of contents with only selected citations
 
-onlySelectedHtml :: [T.CitedIssue] -> Text
+onlySelectedHtml :: [T.IssueContent] -> Text
 -- ^Dispaly only selected citations, and nothing if none selected.
-onlySelectedHtml iss = Tx.unlines . zipWith go [1..] $ ds
-    where ds     = concatMap selectedDict iss
+onlySelectedHtml toc = Tx.unlines . zipWith go [1..] $ ds
+    where ds     = concatMap selectedDict toc
           go k d = fill ( Map.insert "index" (C.tshow k) d )
                         Temp.citationTemplate
 
@@ -146,9 +146,9 @@ citationLength c
     where (T.PageNumber _ d0, T.PageNumber _ dn) = T.pages c
           diff = dn - d0
 
-selectedDict :: T.CitedIssue -> [Map.Map Text Text]
-selectedDict (T.CitedIssue iss cs) = map go cs
-    where go c = Map.union ( ud c ) . citationDict iss $ c
+selectedDict :: T.IssueContent -> [Map.Map Text Text]
+selectedDict (T.IssueContent sel cs) = map go cs
+    where go c = Map.union ( ud c ) . citationDict sel $ c
           ud c = Map.fromList [ ( "length", citationLength c )
                               , ( "type",   "text")
                               , ( "class",  "_citation"      )
@@ -157,7 +157,7 @@ selectedDict (T.CitedIssue iss cs) = map go cs
 ---------------------------------------------------------------------
 -- html for all tables of contents
 
-issueHeader :: T.IsIssue a => a -> Text
+issueHeader :: T.HasIssue a => a -> Text
 issueHeader iss = Tx.concat xs
     where xs = [ T.name . T.journal $ iss
                , " "
@@ -166,8 +166,8 @@ issueHeader iss = Tx.concat xs
                , C.tshow . T.issNo $ iss
                ]
 
-citationDict :: T.SelIssue -> T.Citation -> Map.Map Text Text
-citationDict (T.SelIssue iss _) c = Map.fromList xys
+citationDict :: T.Selection -> T.Citation -> Map.Map Text Text
+citationDict (T.Selection iss _) c = Map.fromList xys
     where (p0,pn) = T.pages c
           xys     = [ ("id",       citationID iss c                )
                     , ("class",    className iss                   )
@@ -184,7 +184,7 @@ citationDict (T.SelIssue iss _) c = Map.fromList xys
 -- --------------------------------------------------------------- --
 -- Javascript elements for building the selection text file
 
-jsetHeader :: T.IsIssue a => T.JournalSet a -> Text
+jsetHeader :: T.HasIssue a => T.JournalSet a -> Text
 -- ^Journal set header for generation of the selection text file.
 jsetHeader jset = Tx.unwords xs
     where xs = [ C.tshow . T.setNo $ jset
@@ -192,7 +192,7 @@ jsetHeader jset = Tx.unwords xs
                , C.tshow . J.dateOfJSet $ jset
                ]
 
-savePrefix :: T.IsIssue a => T.JournalSet a -> Text
+savePrefix :: T.HasIssue a => T.JournalSet a -> Text
 -- ^Filename prefix for the selection text file.
 savePrefix jset = "sel" <> C.tshow y <> "-" <> ( C.tshow . T.setNo $ jset )
     where y = D.getYear . J.dateOfJSet $ jset

@@ -18,9 +18,9 @@ module Model.Core.Types
     , Frequency         (..)
       -- Journal issues
     , Issue             (..)
-    , SelIssue          (..)
-    , CitedIssue        (..)
-    , IsIssue           (..)
+    , Selection         (..)
+    , IssueContent      (..)
+    , HasIssue          (..)
       -- Table of contents and citations
     , Citation          (..)
     , PageNumber        (..)
@@ -124,17 +124,17 @@ data Issue = Issue {
     , theJournal :: Journal
     } deriving ( Show, Eq )
 
-data SelIssue = SelIssue {
-      theIssue  :: Issue
-    , selection :: [PageNumber]
+data Selection = Selection {
+      theIssue :: Issue
+    , selected :: [PageNumber]
     } deriving ( Show, Eq )
 
-data CitedIssue = CitedIssue {
-      selIssue  :: SelIssue
+data IssueContent = IssueContent {
+      selection :: Selection
     , citations :: [Citation]
     } deriving ( Show, Eq )
 
-class IsIssue a where
+class HasIssue a where
     issue   :: a -> Issue
     journal :: a -> Journal
     date    :: a -> Day
@@ -145,14 +145,14 @@ class IsIssue a where
     volNo   = theVolNo . issue
     issNo   = theIssNo . issue
 
-instance IsIssue Issue where
+instance HasIssue Issue where
     issue = id
 
-instance IsIssue SelIssue where
+instance HasIssue Selection where
     issue = theIssue
 
-instance IsIssue CitedIssue where
-    issue = theIssue . selIssue
+instance HasIssue IssueContent where
+    issue = theIssue . selection
 
 -- =============================================================== --
 -- Citations and selections
