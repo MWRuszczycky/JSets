@@ -6,8 +6,6 @@ module AppMonad
     , getJset
     , getSelectionJset
     , readSelectionJset
-    , cite'
-    , cite
       -- Working with configured reference issues
     , isAvailable
     , references
@@ -79,15 +77,6 @@ getSelectionJset fp = do
     case style of
          T.Propose -> J.selectNone <$> getJset fp
          _         -> readSelectionJset fp
-
-cite' :: T.Selection -> T.AppMonad (Text, T.IssueContent)
-cite' sel = do
-    raw <- downloadPubMed sel
-    toc <- liftEither . P.parseCited sel $ raw
-    pure (raw, toc)
-
-cite :: T.Selection -> T.AppMonad T.IssueContent
-cite = fmap snd . cite'
 
 -- =============================================================== --
 -- Working with configured reference issues
