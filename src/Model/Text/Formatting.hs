@@ -45,7 +45,7 @@ import           Data.Ord                       ( comparing )
 ---------------------------------------------------------------------
 -- As CSV
 
-jsetsToCsv :: [Text] -> T.Collection -> Text
+jsetsToCsv :: T.HasIssue a => [Text] -> T.Collection a -> Text
 -- ^Convert a collection of journal sets to CSV. Every element is
 -- enclosed in double quotes. The first line is the list of journals
 -- by journal abbreviation as specified by the first argument. Every
@@ -72,7 +72,7 @@ jsetToCsv abbrs jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ abbrs
 ---------------------------------------------------------------------
 -- As Text
 
-jsetsToTxt :: T.Collection -> Text
+jsetsToTxt :: T.HasIssue a => T.Collection a -> Text
 jsetsToTxt = Tx.unlines . map jsetToTxt . J.unpack
 
 jsetToTxt :: T.HasIssue a => T.JournalSet a -> Text

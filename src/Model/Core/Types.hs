@@ -88,7 +88,7 @@ data JournalSet  a = JSet {
     } deriving Show
 
 -- |A Collection basic journal sets mapped by set number.
-type Collection = Map Int [Issue]
+type Collection a = Map Int [a]
 
 -- |A list of reference issues
 type References = [Issue]

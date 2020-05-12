@@ -46,18 +46,18 @@ import           Lens.Micro                         ( (.~), (&)       )
 ---------------------------------------------------------------------
 -- Basic operations
 
-pack :: [T.JournalSet T.Issue] -> T.Collection
+pack :: [T.JournalSet a] -> T.Collection a
 pack = Map.fromList . map go
     where go (T.JSet k xs) = (k, xs)
 
-unpack :: T.Collection -> [T.JournalSet T.Issue]
+unpack :: T.Collection a -> [T.JournalSet a]
 unpack = map go . Map.toList
     where go (k, xs) = T.JSet k xs
 
-emptyCollection :: T.Collection
+emptyCollection :: T.Collection a
 emptyCollection = Map.empty
 
-lookupJSet :: Int -> T.Collection -> Maybe (T.JournalSet T.Issue)
+lookupJSet :: Int -> T.Collection T.Issue -> Maybe (T.JournalSet T.Issue)
 lookupJSet k col = T.JSet k <$> Map.lookup k col
 
 selectNone :: T.JournalSet T.Issue -> T.JournalSet T.Selection
@@ -66,7 +66,7 @@ selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
 
-yearly26Sets :: Int -> T.References -> T.Collection
+yearly26Sets :: Int -> T.References -> T.Collection T.Issue
 ---- ^Compute 26 journal sets that cover all issues published in a
 ---- given year. The first 24 sets account for all monthly issues and
 ---- the first 48 weekly issues. The 25-th set accounts for 49-th and

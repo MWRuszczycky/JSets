@@ -43,7 +43,7 @@ import           Control.Monad.Except               ( liftIO
 ---------------------------------------------------------------------
 -- Acquiring journal sets
 
-getJsets :: FilePath -> T.AppMonad T.Collection
+getJsets :: FilePath -> T.AppMonad (T.Collection T.Issue)
 getJsets fp = do
     content <- lift . C.readFileErr $ fp
     refs    <- references

@@ -21,11 +21,13 @@ import           Control.Applicative          ( some, many,  (<|>) )
 -- =============================================================== --
 -- Main parsers
 
-parseCollection :: [T.Issue] -> Text -> Either T.ErrString T.Collection
+parseCollection :: [T.Issue] -> Text
+                   -> Either T.ErrString (T.Collection T.Issue)
 parseCollection refs x = parseCollectionCsv refs x
                          <|> parseCollectionTxt refs x
 
-parseCollectionCsv :: [T.Issue] -> Text -> Either T.ErrString T.Collection
+parseCollectionCsv :: [T.Issue] -> Text
+                      -> Either T.ErrString (T.Collection T.Issue)
 -- ^Parse a properly formatted csv file to a Collection.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
@@ -35,7 +37,8 @@ parseCollectionCsv refs x = let err = (<>) "Cannot parse CSV: "
                                                >>= toRawCollection
                                                >>= validate refs
 
-parseCollectionTxt :: [T.Issue] -> Text -> Either T.ErrString T.Collection
+parseCollectionTxt :: [T.Issue] -> Text
+                      -> Either T.ErrString (T.Collection T.Issue)
 -- ^Parse a properly formatted text file to a Collection.
 -- All issues must be valid on lookup.
 parseCollectionTxt refs t = let err = (<>) "Cannot parse TXT: "
@@ -63,7 +66,8 @@ type RawIssue  = ( Text, Int, Int  )
 -- =============================================================== --
 -- Parse validation
 
-validate :: T.References -> [RawJSet] -> Either T.ErrString T.Collection
+validate :: T.References -> [RawJSet]
+            -> Either T.ErrString (T.Collection T.Issue)
 validate refs js = mapM go js >>= packCollection
     where go (setNo, iss) = T.JSet setNo <$> mapM (validateIssue refs) iss
 
@@ -76,7 +80,8 @@ validateIssue :: T.References -> RawIssue -> Either T.ErrString T.Issue
 validateIssue refs (j,v,n) = maybe err pure . J.lookupIssue refs j $ (v,n)
     where err = Left $ invalidIssErr j v n
 
-packCollection :: [T.JournalSet T.Issue] -> Either T.ErrString T.Collection
+packCollection :: [T.JournalSet T.Issue]
+                  -> Either T.ErrString (T.Collection T.Issue)
 packCollection js
     | duplicateSetNos js = Left "There are duplicated journal set keys."
     | otherwise          = pure . J.pack $ js
