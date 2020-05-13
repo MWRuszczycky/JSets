@@ -2,10 +2,9 @@
 
 module AppMonad
     ( -- Data structer construction & aquisition
-      getJsets
+      readJsets
+    , readJset
     , getJset
-    , getSelectionJset
-    , readSelectionJset
       -- Working with configured reference issues
     , isAvailable
     , references
@@ -21,6 +20,7 @@ module AppMonad
 
 import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
+import qualified Data.Map.Strict           as Map
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
@@ -43,8 +43,8 @@ import           Control.Monad.Except               ( liftIO
 ---------------------------------------------------------------------
 -- Acquiring journal sets
 
-getJsets :: FilePath -> T.AppMonad (T.Collection T.Issue)
-getJsets fp = do
+readJsets :: FilePath -> T.AppMonad (T.Collection T.Selection)
+readJsets fp = do
     content <- lift . C.readFileErr $ fp
     refs    <- references
     case P.parseCollection refs content of
@@ -54,29 +54,21 @@ getJsets fp = do
 ---------------------------------------------------------------------
 -- Read a single journal set from a file
 
-getJset :: FilePath -> T.AppMonad (T.JournalSet T.Issue)
+getJset :: T.Collection a -> T.AppMonad (T.JournalSet a)
+getJset jsets
+    | Map.null jsets      = throwError noJsetsMsg
+    | Map.size jsets == 1 = pure . uncurry T.JSet . Map.findMin $ jsets
+    | otherwise           = requested
+    where noJsetsMsg = "There are no journal sets in the collection!"
+          missingKey = "Cannot find requested journal set in this collection!"
+          requested  = do key <- requireKey
+                          case Map.lookup key jsets of
+                               Nothing  -> throwError missingKey
+                               Just sel -> pure $ T.JSet key sel
+
+readJset :: FilePath -> T.AppMonad (T.JournalSet T.Selection)
 -- ^Get a journal set based on the configuration.
-getJset fp = do
-    jsets <- getJsets fp
-    key   <- requireKey
-    case J.lookupJSet key jsets of
-         Nothing   -> throwError "Cannot find requested journal set."
-         Just jset -> pure jset
-
-readSelectionJset :: FilePath -> T.AppMonad (T.JournalSet T.Selection)
-readSelectionJset fp = do
-    content <- lift . C.readFileErr $ fp
-    refs    <- references
-    case P.parseSelection refs content of
-         Left err  -> throwError err
-         Right sel -> pure sel
-
-getSelectionJset :: FilePath -> T.AppMonad (T.JournalSet T.Selection)
-getSelectionJset fp = do
-    style <- asks T.cToCStyle
-    case style of
-         T.Propose -> J.selectNone <$> getJset fp
-         _         -> readSelectionJset fp
+readJset fp = readJsets fp >>= getJset
 
 -- =============================================================== --
 -- Working with configured reference issues

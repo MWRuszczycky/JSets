@@ -54,7 +54,7 @@ groupHelp = (s, Tx.unlines hs)
 groupCmd :: [String] -> T.AppMonad ()
 groupCmd []  = throwError "A selection file must be sepecified!"
 groupCmd fps = do
-    mbSel <- mapM A.readSelectionJset fps >>= pure . J.groupSelections
+    mbSel <- mapM A.readJset fps >>= pure . J.groupSelections
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
          Just sel -> display . F.selectionToTxt $ sel
@@ -91,10 +91,10 @@ readCmd (fp:_) = do
     mbKey <- asks T.cJsetKey
     abbrs <- A.issueRefAbbrs
     case (mbKey, fmt) of
-         (Just _, T.CSV) -> A.getJset  fp >>= display . F.jsetToCsv abbrs
-         (Just _, _    ) -> A.getJset  fp >>= display . F.jsetToTxt
-         (_     , T.CSV) -> A.getJsets fp >>= display . F.jsetsToCsv abbrs
-         (_     , _    ) -> A.getJsets fp >>= display . F.jsetsToTxt
+         (Just _, T.CSV) -> A.readJset  fp >>= display . F.jsetToCsv abbrs
+         (Just _, _    ) -> A.readJset  fp >>= display . F.jsetToTxt
+         (_     , T.CSV) -> A.readJsets fp >>= display . F.jsetsToCsv abbrs
+         (_     , _    ) -> A.readJsets fp >>= display . F.jsetsToTxt
 
 ---------------------------------------------------------------------
 -- View configured journals
@@ -138,7 +138,7 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    T.JSet k xs <- A.getSelectionJset fp
+    T.JSet k xs <- A.readJset fp
     ts    <- mapM A.downloadPubMed xs
     cs    <- liftEither . zipWithM P.parseCited xs $ ts
     style <- asks T.cToCStyle

@@ -2,9 +2,9 @@
 
 module Model.Parsers.JournalSets
     ( parseCollection
-    , parseCollectionCsv
-    , parseCollectionTxt
-    , parseSelection
+    -- , parseCollectionCsv
+    -- , parseCollectionTxt
+    -- , parseSelection
     ) where
 
 import qualified Data.Text             as Tx
@@ -22,12 +22,12 @@ import           Control.Applicative          ( some, many,  (<|>) )
 -- Main parsers
 
 parseCollection :: [T.Issue] -> Text
-                   -> Either T.ErrString (T.Collection T.Issue)
+                   -> Either T.ErrString (T.Collection T.Selection)
 parseCollection refs x = parseCollectionCsv refs x
-                         <|> parseCollectionTxt refs x
+                         <|> parseSelections refs x
 
 parseCollectionCsv :: [T.Issue] -> Text
-                      -> Either T.ErrString (T.Collection T.Issue)
+                      -> Either T.ErrString (T.Collection T.Selection)
 -- ^Parse a properly formatted csv file to a Collection.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
@@ -37,67 +37,49 @@ parseCollectionCsv refs x = let err = (<>) "Cannot parse CSV: "
                                                >>= toRawCollection
                                                >>= validate refs
 
-parseCollectionTxt :: [T.Issue] -> Text
-                      -> Either T.ErrString (T.Collection T.Issue)
--- ^Parse a properly formatted text file to a Collection.
--- All issues must be valid on lookup.
-parseCollectionTxt refs t = let err = (<>) "Cannot parse TXT: "
-                            in  bimap err id $ At.parseOnly collectionParser t
-                                               >>= validate refs
-
-parseSelection :: [T.Issue] -> Text
-                  -> Either T.ErrString (T.JournalSet T.Selection)
-parseSelection refs t = let err = (<>) "Cannot parse selection: "
-                        in  bimap err id $ At.parseOnly selParser t
-                                           >>= validateSel refs
+parseSelections :: [T.Issue] -> Text
+                   -> Either T.ErrString (T.Collection T.Selection)
+parseSelections refs t = let err = (<>) "Cannot parse selection: "
+                         in  bimap err id $ At.parseOnly rawJsets t
+                                            >>= validate refs
 
 -- =============================================================== --
 -- Local types
 
--- | Set number and raw issues
-type RawJSet   = ( Int, [RawIssue] )
+-- | Set number and raw selections
+type RawJset      = ( Int, [RawSelection] )
 
--- | Set numebr, raw issues and selected page numbers
-type RawSelSet = ( Int, [(RawIssue, [T.PageNumber])] )
+-- | Raw issues and selected page numbers from that issue
+type RawSelection = (RawIssue, [T.PageNumber])
 
 -- | Journal abbreviation, volume number and issue number
-type RawIssue  = ( Text, Int, Int  )
+type RawIssue     = ( Text, Int, Int )
 
 -- =============================================================== --
 -- Parse validation
 
-validate :: T.References -> [RawJSet]
-            -> Either T.ErrString (T.Collection T.Issue)
-validate refs js = mapM go js >>= packCollection
-    where go (setNo, iss) = T.JSet setNo <$> mapM (validateIssue refs) iss
+validate :: T.References -> [RawJset]
+            -> Either T.ErrString (T.Collection T.Selection)
+validate refs xs = mapM (validateSelection refs) xs >>= packCollection
+    -- where go (setNo, iss) = T.JSet setNo <$> mapM (validateSelection refs) iss
 
-validateSel :: T.References -> RawSelSet
-               -> Either T.ErrString (T.JournalSet T.Selection)
-validateSel refs (setNo,xs) = T.JSet <$> pure setNo <*> mapM go xs
+validateSelection :: T.References -> RawJset
+                     -> Either T.ErrString (T.JournalSet T.Selection)
+validateSelection refs (setNo,xs) = T.JSet <$> pure setNo <*> mapM go xs
     where go (r,ys) = T.Selection <$> validateIssue refs r <*> pure ys
 
 validateIssue :: T.References -> RawIssue -> Either T.ErrString T.Issue
 validateIssue refs (j,v,n) = maybe err pure . J.lookupIssue refs j $ (v,n)
     where err = Left $ invalidIssErr j v n
 
-packCollection :: [T.JournalSet T.Issue]
-                  -> Either T.ErrString (T.Collection T.Issue)
+packCollection :: [T.JournalSet T.Selection]
+                  -> Either T.ErrString (T.Collection T.Selection)
 packCollection js
     | duplicateSetNos js = Left "There are duplicated journal set keys."
     | otherwise          = pure . J.pack $ js
 
 -- =============================================================== --
 -- Component parsers for TXT
-
-collectionParser :: At.Parser [RawJSet]
-collectionParser = At.skipSpace *> many rawJSetParser <* At.endOfInput
-
-rawJSetParser :: At.Parser RawJSet
-rawJSetParser = do
-    setNo  <- setNoParser
-    issues <- many (rawIssueParser <* At.skipSpace)
-    At.skipSpace
-    pure (setNo, issues)
 
 setNoParser :: At.Parser Int
 setNoParser = do
@@ -106,8 +88,8 @@ setNoParser = do
     dateParser *> At.skipSpace
     pure setNo
 
-rawIssueParser :: At.Parser RawIssue
-rawIssueParser = do
+rawIssue :: At.Parser RawIssue
+rawIssue = do
     journal <- Tx.init <$> At.takeWhile1 ( not . isDigit )
     volNo   <- intParser <* At.skipSpace
     issNo   <- intParser <* At.skipSpace
@@ -117,19 +99,20 @@ rawIssueParser = do
 -- =============================================================== --
 -- Component parsers for issue selections
 
-selParser :: At.Parser RawSelSet
-selParser = do
-    At.skipSpace
-    key <- setNoParser <* At.skipSpace
-    xs  <- many issueSel
-    At.skipSpace
-    At.endOfInput
-    pure (key, xs)
+rawJsets :: At.Parser [RawJset]
+rawJsets = many rawJset <* At.endOfInput
 
-issueSel :: At.Parser (RawIssue, [T.PageNumber])
-issueSel = do
+rawJset :: At.Parser RawJset
+rawJset = do
     At.skipSpace
-    iss <- rawIssueParser
+    setNo <- setNoParser <* At.skipSpace
+    xs    <- many rawSelection
+    At.skipSpace
+    pure (setNo, xs)
+
+rawSelection :: At.Parser RawSelection
+rawSelection = do
+    iss <- rawIssue
     At.skipWhile At.isHorizontalSpace <* At.endOfLine
     indent <- At.takeWhile At.isHorizontalSpace
     if Tx.null indent
@@ -137,6 +120,7 @@ issueSel = do
        else do p  <- pageNumber
                At.skipWhile At.isHorizontalSpace *> At.endOfLine
                ps <- many (indentedPageNumber indent)
+               At.skipSpace
                pure $ (iss, p : ps)
 
 indentedPageNumber :: Text -> At.Parser T.PageNumber
@@ -168,14 +152,20 @@ pageNumberPrefix = At.takeTill (At.inClass " :\n\r\t") <* At.char ':'
 -- =============================================================== --
 -- Component parsers for CSV
 
-toRawCollection :: [[Text]] -> Either T.ErrString [RawJSet]
+toRawCollection :: [[Text]] -> Either T.ErrString [RawJset]
 -- ^Convert a parsed CSV file to a raw collection.
 -- The input is a list of lists of Text, where each sublist is a row
 -- in the CSV file and each Text is a cell in that row.
 toRawCollection []     = pure []
 toRawCollection (x:xs) = do
     abbrs <- toJournalAbbrs x
-    mapM (toRawJournalSet abbrs) xs
+    mapM (toRawJset abbrs) xs
+
+toRawJset :: [Text] -> [Text] -> Either T.ErrString RawJset
+-- ^Convert all csv cell Text values to a raw selection.
+-- The journal set must begin with a correctly formatted key.
+toRawJset _     []     = Left "Missing key for journal set."
+toRawJset abbrs (x:xs) = (,) <$> toSetNo x <*> toRawSelection abbrs xs
 
 ---------------------------------------------------------------------
 -- Journal abbreviations
@@ -191,31 +181,25 @@ toJournalAbbrs (_:ks) = pure ks
 ---------------------------------------------------------------------
 -- Individual journal sets and issues
 
-toRawJournalSet :: [Text] -> [Text] -> Either T.ErrString RawJSet
--- ^Convert all csv cell Text values to a raw journal set.
--- The journal set must begin with a correctly formatted key.
-toRawJournalSet _ []      = Left "Missing key for journal set."
-toRawJournalSet abbrs (x:xs) = (,) <$> toSetNo x <*> toRawIssues abbrs xs
-
 toSetNo :: Text -> Either String Int
 -- ^Parse the journal set number, which is just an integer.
 toSetNo t = maybe err pure . readMaybeTxt . Tx.takeWhile (not . isSpace) $ t
     where err = Left $ "Invalid journal set key: " ++ Tx.unpack t
 
-toRawIssues :: [Text] -> [Text] -> Either T.ErrString [RawIssue]
+toRawSelection :: [Text] -> [Text] -> Either T.ErrString [RawSelection]
 -- ^Generate the issues for each journal in a csv line corresponding
 -- to a single journal set. The first argument is the list of
 -- journal abbreviations. The second argument is the volume and issue numbers
 -- for the corresponding journal in the same order.
-toRawIssues abbrs xs = fmap concat . sequence . zipWith go abbrs $ ys
+toRawSelection abbrs xs = fmap concat . sequence . zipWith go abbrs $ ys
     where ys     = xs ++ replicate (length abbrs - length xs) Tx.empty
           go j y = (mapM toVolIssNo . Tx.lines) y
-                   >>= pure . map ( \ (v,n) -> (j,v,n) )
+                   >>= pure . map ( \ (v,n) -> ( (j,v,n), [] ) )
 
 -- =============================================================== --
 -- Helper functions
 
-duplicateSetNos :: [T.JournalSet T.Issue] -> Bool
+duplicateSetNos :: [T.JournalSet a] -> Bool
 -- ^Check for duplicated journal set numbers.
 duplicateSetNos = go . map T.setNo
     where go []     = False
