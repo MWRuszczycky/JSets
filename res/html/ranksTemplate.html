@@ -26,6 +26,12 @@
 
         <script>
 
+            function isAnInt(x) {
+                var intOK = !Number.isNaN(parseInt(x));
+                var numOK = !Number.isNaN(x);
+                return intOK && numOK;
+            };
+
             function compareRanks(r1, r2) {
                 return r1[1] - r2[1];
             };
@@ -54,9 +60,9 @@
                 var xs    = document.getElementsByClassName("_citation");
                 var ranks = [];
                 for (i = 0; i < xs.length; i++) {
-                    var r = Number(xs[i].value);
-                    if (!Number.isNaN(r)) {
-                        ranks.push([i + 1,r]);
+                    var v = xs[i].value;
+                    if (isAnInt(v)) {
+                        ranks.push([i + 1, Number(v)]);
                     }
                 };
 
