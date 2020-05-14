@@ -26,6 +26,7 @@ import           Control.Monad.Except               ( liftIO, lift
 -- Commands
 
 commands :: [ T.Command ]
+-- ^Commands should not be more than five characters long.
 commands = [ T.Command "group" groupCmd groupHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "refs"  refsCmd  refsHelp
@@ -44,7 +45,7 @@ runCommands (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
 
 groupHelp :: (Text, Text)
 groupHelp = (s, Tx.unlines hs)
-    where s  = "group : group issue selections for review"
+    where s  = "group issue selections for review"
           hs = [ "Usage: jsets group file1.txt file2.txt file3.txt\n"
                , "Selection file formats are the same as journal set text files"
                , "with the first page of each selected article immediately"
@@ -64,7 +65,7 @@ groupCmd fps = do
 
 readHelp :: (Text, Text)
 readHelp = (s, Tx.unlines hs)
-    where s  = "read : read journal sets from file"
+    where s  = "read journal sets from file"
           hs = [ "A journal set is a collection of journal issues for review."
                , "Collections of journal sets can be read from a file in either"
                , "text or csv format using the <read> command. A specific set"
@@ -101,7 +102,7 @@ readCmd (fp:_) = do
 
 refsHelp :: (Text, Text)
 refsHelp = (s, Tx.unlines hs)
-    where s  = "refs : list configured journals and reference issues"
+    where s  = "list configured journals and reference issues"
           hs = [ "Usage: jsets refs"
                ]
 
@@ -113,7 +114,7 @@ refsCmd _ = A.references >>= display . Tx.unlines . map F.referenceToTxt
 
 tocHelp :: (Text, Text)
 tocHelp = (s, Tx.unlines hs)
-    where s  = "toc : generate tables of contents for a journal set"
+    where s  = "generate tables of contents for a journal set"
           hs = [ "If jsets2019.txt is a collection of journal sets (see <read>"
                , "command), then you can generate a file of the tables of"
                , "contents for each issue in the set with key 6 using,\n"
@@ -156,7 +157,7 @@ tocCmd (fp:_) = do
 
 yearHelp :: (Text, Text)
 yearHelp = (s, Tx.unlines hs)
-    where s  = "year : build a collection of all journal sets in a given year"
+    where s  = "build a collection of all journal sets in a given year"
           hs = [ "The <year> command distributes all issues for all configured"
                , "journals in a given year into 26 journal sets. So, to create"
                , "a file with the default journal sets in 2019 use,\n"

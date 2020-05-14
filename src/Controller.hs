@@ -23,7 +23,7 @@ import           Model.Core.References              ( issueRefs             )
 
 runApp :: ([String], T.Config) -> T.ErrMonad ()
 runApp (cmds, config)
-    | T.cHelp config = liftIO . Tx.putStrLn . H.helpText commands $ options
+    | T.cHelp config = liftIO . Tx.putStrLn . H.helpSummary commands $ options
     | otherwise      = runReaderT ( runCommands cmds ) config
 
 -- =============================================================== --

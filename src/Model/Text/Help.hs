@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Text.Help
-    ( helpText
+    ( helpSummary
+    , helpDetails
+    , versionHelp
     ) where
 
 import qualified Data.Text             as Tx
@@ -15,24 +17,27 @@ import           Data.Text                      ( Text        )
 
 type Option = Opt.OptDescr (T.Config -> T.ErrMonad T.Config)
 
-helpText :: [T.Command] -> [Option] -> Text
-helpText cmds opts = Tx.intercalate "\n" hs
-    where hs = [ introHelp
+helpSummary :: [T.Command] -> [Option] -> Text
+helpSummary cmds opts = Tx.intercalate "\n" hs
+    where hs = [ versionHelp
+               , "Management of journal sets for lab meetings\n"
                , optionsHelp opts
-               , Tx.intercalate "\n" . map commandsHelp $ cmds
+               , "Commands summary:"
+               , Tx.intercalate "\n" . map (("  " <>) . cmdSummary) $ cmds
                ]
 
-introHelp :: Text
-introHelp = Tx.unlines hs
-    where hs = [ Tx.pack $ "jsets-" <> showVersion version
-               , "Management of journal sets for lab meetings"
-               ]
+versionHelp :: Text
+versionHelp = Tx.pack $ "jsets-" <> showVersion version
+
+cmdSummary :: T.Command -> Text
+cmdSummary ( T.Command name _ (hs,_) ) = paddedName <> " : " <> hs
+    where paddedName = Tx.pack name <> Tx.replicate (5 - length name) " "
+
+helpDetails :: T.Command -> Text
+helpDetails cmd = Tx.unlines [ cmdHeader cmd, snd . T.cmdHelp $ cmd ]
+
+cmdHeader :: T.Command -> Text
+cmdHeader cmd = Tx.replicate 60 "-" <> "\n-- " <> cmdSummary cmd <> "\n"
 
 optionsHelp :: [Opt.OptDescr (T.Config -> T.ErrMonad T.Config)] -> Text
 optionsHelp = Tx.pack . Opt.usageInfo "Options summary:"
-
-commandsHelp :: T.Command -> Text
-commandsHelp c = let (s,l) = T.cmdHelp c
-                 in  Tx.intercalate "\n" [ Tx.replicate 60 "-"
-                                           <> "\n-- " <> s <> "\n"
-                                         , l ]
