@@ -12,6 +12,7 @@ import qualified Model.Core.CoreIO         as C
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Journals            as J
 import qualified Model.Text.Formatting     as F
+import qualified Model.Text.Help           as H
 import qualified AppMonad                  as A
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
@@ -28,6 +29,7 @@ import           Control.Monad.Except               ( liftIO, lift
 commands :: [ T.Command ]
 -- ^Commands should not be more than five characters long.
 commands = [ T.Command "group" groupCmd groupHelp
+           , T.Command "help"  helpCmd  helpHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "refs"  refsCmd  refsHelp
            , T.Command "toc"   tocCmd   tocHelp
@@ -59,6 +61,24 @@ groupCmd fps = do
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
          Just sel -> display . F.selectionToTxt $ sel
+
+---------------------------------------------------------------------
+-- Grouping multiple issue selections
+
+helpHelp :: (Text, Text)
+helpHelp = (s, Tx.unlines hs)
+    where s  = "display help information for a command (e.g., help refs)"
+          hs = [ "Usage: help <command-name>"
+               , "Displays detailed information for a command."
+               , "To see a help information summary and complete list of"
+               , "available commands, use the --help/-h flag."
+               ]
+
+helpCmd :: [String] -> T.AppMonad ()
+helpCmd []    = helpCmd ["help"]
+helpCmd (c:_) = maybe err go . find ( (==c) . T.cmdName ) $ commands
+    where err = throwError $ "Unknown command: " <> c
+          go  = display . H.details
 
 ---------------------------------------------------------------------
 -- File format reading and conversion

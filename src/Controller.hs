@@ -23,8 +23,9 @@ import           Model.Core.References              ( issueRefs             )
 
 runApp :: ([String], T.Config) -> T.ErrMonad ()
 runApp (cmds, config)
-    | T.cHelp config = liftIO . Tx.putStrLn . H.helpSummary commands $ options
-    | otherwise      = runReaderT ( runCommands cmds ) config
+    | T.cHelp config    = liftIO . Tx.putStrLn . H.summary commands $ options
+    | T.cShowVer config = liftIO . Tx.putStrLn $ H.version
+    | otherwise         = runReaderT ( runCommands cmds ) config
 
 -- =============================================================== --
 -- Configuration
@@ -42,6 +43,7 @@ initConfig = T.Config { T.cOutputPath = Nothing
                       , T.cHelp       = False
                       , T.cReferences = issueRefs
                       , T.cToCStyle   = T.Propose
+                      , T.cShowVer    = False
                       }
 
 -- =============================================================== --
@@ -68,6 +70,10 @@ options =
     , Opt.Option "r" [ "rank" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Rank } ) )
       "Use the 'rank' style for html tables of contents."
+
+    , Opt.Option "v" [ "version" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )
+      "Just show the version number and quit."
     ]
 
 configKey :: String -> T.Config -> T.ErrMonad T.Config

@@ -55,6 +55,7 @@ data Config = Config {
     , cHelp       :: Bool           -- user requested help
     , cReferences :: [Issue]        -- reference issues
     , cToCStyle   :: ToCStyle       -- table of content style
+    , cShowVer    :: Bool           -- show version number flag
     } deriving ( Show )
 
 data Command = Command {
