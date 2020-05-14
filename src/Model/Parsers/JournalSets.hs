@@ -2,9 +2,6 @@
 
 module Model.Parsers.JournalSets
     ( parseCollection
-    -- , parseCollectionCsv
-    -- , parseCollectionTxt
-    -- , parseSelection
     ) where
 
 import qualified Data.Text             as Tx
@@ -23,25 +20,22 @@ import           Control.Applicative          ( some, many,  (<|>) )
 
 parseCollection :: [T.Issue] -> Text
                    -> Either T.ErrString (T.Collection T.Selection)
-parseCollection refs x = parseCollectionCsv refs x
-                         <|> parseSelections refs x
+parseCollection refs x = parseCsv refs x <|> parseTxt refs x
 
-parseCollectionCsv :: [T.Issue] -> Text
-                      -> Either T.ErrString (T.Collection T.Selection)
+parseCsv :: [T.Issue] -> Text -> Either T.ErrString (T.Collection T.Selection)
 -- ^Parse a properly formatted csv file to a Collection.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
 -- All issues must be valid and the first row must be the journals.
-parseCollectionCsv refs x = let err = (<>) "Cannot parse CSV: "
-                            in  bimap err id $ CSV.parseCSV x
-                                               >>= toRawCollection
-                                               >>= validate refs
+parseCsv refs x = let err = (<>) "Cannot parse CSV: "
+                  in  bimap err id $ CSV.parseCSV x
+                                     >>= toRawCollection
+                                     >>= validate refs
 
-parseSelections :: [T.Issue] -> Text
-                   -> Either T.ErrString (T.Collection T.Selection)
-parseSelections refs t = let err = (<>) "Cannot parse selection: "
-                         in  bimap err id $ At.parseOnly rawJsets t
-                                            >>= validate refs
+parseTxt :: [T.Issue] -> Text -> Either T.ErrString (T.Collection T.Selection)
+-- ^Parse a properly formatted text file to a Collection.
+parseTxt refs t = let err = (<>) "Cannot parse selection: "
+                  in  bimap err id $ At.parseOnly rawJsets t >>= validate refs
 
 -- =============================================================== --
 -- Local types
@@ -56,16 +50,18 @@ type RawSelection = (RawIssue, [T.PageNumber])
 type RawIssue     = ( Text, Int, Int )
 
 -- =============================================================== --
--- Parse validation
+-- Parsed issue validation and packing results
+-- Check to make sure there is a valid reference for the parsed
+-- journal. This does not check to make sure the issue and volume
+-- numbers are valid for the given issue.
 
 validate :: T.References -> [RawJset]
             -> Either T.ErrString (T.Collection T.Selection)
-validate refs xs = mapM (validateSelection refs) xs >>= packCollection
-    -- where go (setNo, iss) = T.JSet setNo <$> mapM (validateSelection refs) iss
+validate refs xs = mapM (validateJset refs) xs >>= packCollection
 
-validateSelection :: T.References -> RawJset
-                     -> Either T.ErrString (T.JournalSet T.Selection)
-validateSelection refs (setNo,xs) = T.JSet <$> pure setNo <*> mapM go xs
+validateJset :: T.References -> RawJset
+                -> Either T.ErrString (T.JournalSet T.Selection)
+validateJset refs (setNo,xs) = T.JSet <$> pure setNo <*> mapM go xs
     where go (r,ys) = T.Selection <$> validateIssue refs r <*> pure ys
 
 validateIssue :: T.References -> RawIssue -> Either T.ErrString T.Issue
@@ -81,24 +77,6 @@ packCollection js
 -- =============================================================== --
 -- Component parsers for TXT
 
-setNoParser :: At.Parser Int
-setNoParser = do
-    setNo <- intParser
-    At.skipSpace *> At.char '|' *> At.skipSpace
-    dateParser *> At.skipSpace
-    pure setNo
-
-rawIssue :: At.Parser RawIssue
-rawIssue = do
-    journal <- Tx.init <$> At.takeWhile1 ( not . isDigit )
-    volNo   <- intParser <* At.skipSpace
-    issNo   <- intParser <* At.skipSpace
-    At.char '(' *> dateParser *> At.char ')'
-    pure (journal, volNo, issNo)
-
--- =============================================================== --
--- Component parsers for issue selections
-
 rawJsets :: At.Parser [RawJset]
 rawJsets = many rawJset <* At.endOfInput
 
@@ -109,6 +87,13 @@ rawJset = do
     xs    <- many rawSelection
     At.skipSpace
     pure (setNo, xs)
+
+setNoParser :: At.Parser Int
+setNoParser = do
+    setNo <- intParser
+    At.skipSpace *> At.char '|' *> At.skipSpace
+    dateParser *> At.skipSpace
+    pure setNo
 
 rawSelection :: At.Parser RawSelection
 rawSelection = do
@@ -123,12 +108,20 @@ rawSelection = do
                At.skipSpace
                pure $ (iss, p : ps)
 
+rawIssue :: At.Parser RawIssue
+rawIssue = do
+    journal <- Tx.init <$> At.takeWhile1 ( not . isDigit )
+    volNo   <- intParser <* At.skipSpace
+    issNo   <- intParser <* At.skipSpace
+    At.char '(' *> dateParser *> At.char ')'
+    pure (journal, volNo, issNo)
+
 indentedPageNumber :: Text -> At.Parser T.PageNumber
 indentedPageNumber indent = do
     At.string indent
     pageNumber <* At.skipWhile At.isHorizontalSpace <* At.endOfLine
 
--- =============================================================== --
+---------------------------------------------------------------------
 -- General component parsers
 
 intParser :: At.Parser Int
