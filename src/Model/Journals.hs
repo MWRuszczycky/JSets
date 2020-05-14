@@ -5,7 +5,7 @@ module Model.Journals
       pack
     , unpack
     , emptyCollection
-    , lookupJSet
+    , lookupJset
     , selectNone
     , yearly26Sets
     , splitByFreq
@@ -57,8 +57,8 @@ unpack = map go . Map.toList
 emptyCollection :: T.Collection a
 emptyCollection = Map.empty
 
-lookupJSet :: Int -> T.Collection T.Issue -> Maybe (T.JournalSet T.Issue)
-lookupJSet k col = T.JSet k <$> Map.lookup k col
+lookupJset :: T.HasIssue a => Int -> T.Collection a -> Maybe (T.JournalSet a)
+lookupJset k col = T.JSet k <$> Map.lookup k col
 
 selectNone :: T.JournalSet T.Issue -> T.JournalSet T.Selection
 selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs

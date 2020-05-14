@@ -54,7 +54,7 @@ readJsets fp = do
 ---------------------------------------------------------------------
 -- Read a single journal set from a file
 
-getJset :: T.Collection a -> T.AppMonad (T.JournalSet a)
+getJset :: T.HasIssue a => T.Collection a -> T.AppMonad (T.JournalSet a)
 getJset jsets
     | Map.null jsets      = throwError noJsetsMsg
     | Map.size jsets == 1 = pure . uncurry T.JSet . Map.findMin $ jsets
@@ -62,9 +62,9 @@ getJset jsets
     where noJsetsMsg = "There are no journal sets in the collection!"
           missingKey = "Cannot find requested journal set in this collection!"
           requested  = do key <- requireKey
-                          case Map.lookup key jsets of
-                               Nothing  -> throwError missingKey
-                               Just sel -> pure $ T.JSet key sel
+                          case J.lookupJset key jsets of
+                               Nothing   -> throwError missingKey
+                               Just jset -> pure jset
 
 readJset :: FilePath -> T.AppMonad (T.JournalSet T.Selection)
 -- ^Get a journal set based on the configuration.
