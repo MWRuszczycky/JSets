@@ -123,6 +123,26 @@ checkString x
           errMsg   = "The field value '" <> Tx.unpack x
                      <> "' contains invalid characters!"
 
+toMonth :: Text -> Maybe Int
+toMonth "january"  = pure 1
+toMonth "february" = pure 2
+toMonth "march"    = pure 3
+toMonth "april"    = pure 4
+toMonth "may"      = pure 5
+toMonth "june"     = pure 6
+toMonth "july"     = pure 7
+toMonth "august"   = pure 8
+toMonth "september"= pure 9
+toMonth "october"  = pure 10
+toMonth "november" = pure 11
+toMonth "december" = pure 12
+toMonth x = C.readMaybeTxt x >>= go
+    where go n | n > 0 && n < 13 = pure n
+               | otherwise       = Nothing
+
+prepString :: Text -> Text
+prepString = Tx.map Ch.toLower . Tx.strip
+
 ---------------------------------------------------------------------
 -- Journal construction and validation
 
@@ -137,7 +157,7 @@ readJournal d = do
 
 readFrequency :: Dict -> Either T.ErrString T.Frequency
 readFrequency = maybe (Left frequencyError) go . lookup "frequency"
-    where go x = case Tx.map Ch.toLower . Tx.strip $ x of
+    where go x = case prepString x of
                       "weekly"       -> pure T.Weekly
                       "weekly-first" -> pure T.WeeklyFirst
                       "weekly-last"  -> pure T.WeeklyLast
@@ -152,26 +172,12 @@ readDate dict = do
     pure $ Tm.fromGregorian y m d
 
 readMonth :: Dict -> Either T.ErrString Int
-readMonth = maybe err go . lookup "month"
-    where err  = Left "Missing <month> field!"
-          go x = case Tx.map Ch.toLower . Tx.strip $ x of
-                      "january"     -> pure 1
-                      "february"    -> pure 2
-                      "march"       -> pure 3
-                      "april"       -> pure 4
-                      "may"         -> pure 5
-                      "june"        -> pure 6
-                      "july"        -> pure 7
-                      "august"      -> pure 8
-                      "september"   -> pure 9
-                      "october"     -> pure 10
-                      "november"    -> pure 11
-                      "december"    -> pure 12
-                      u             -> Left $ "Invalid month: " <> Tx.unpack u
+readMonth dict = maybe err pure $ lookup "month" dict >>= toMonth . prepString
+    where err  = Left "Missing or invalid <month> field!"
 
 readResets :: Dict -> Either T.ErrString Bool
 readResets = maybe (Left resetsError) go . lookup "resets"
-    where go x = case Tx.map Ch.toLower . Tx.strip $ x of
+    where go x = case prepString $ x of
                        "true"  -> pure True
                        "false" -> pure False
                        _       -> Left resetsError
