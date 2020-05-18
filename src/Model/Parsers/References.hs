@@ -7,29 +7,31 @@ import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
 import qualified Data.Text            as Tx
 import qualified Data.Time            as Tm
-import qualified Data.Text.IO         as Tx
 import qualified Data.Char            as Ch
 import qualified Data.Attoparsec.Text as At
 import           Data.Text                   ( Text              )
 import           Data.List                   ( nub               )
+import           Data.Bifunctor              ( bimap             )
 import           Control.Applicative         ( (<|>), many, some )
 
 -- =============================================================== --
--- Testing
+-- Local types
 
-loadTest :: IO Text
-loadTest = Tx.readFile "../dev/references.txt"
+type Dict = [(Text, Text)]
 
 -- =============================================================== --
 -- Parser
 
-parseReferences :: Text -> Either T.ErrString [T.Issue]
-parseReferences txt = handleParseResult txt . At.parse refDicts $ txt
+parseReferences :: String -> Text -> Either T.ErrString [T.Issue]
+parseReferences fp txt = bimap (parseError fp) id
+                         . handleParseResult txt
+                         . At.parse refDicts
+                         $ txt
 
 handleParseResult :: Text -> At.Result [Dict] -> Either T.ErrString [T.Issue]
 handleParseResult xs (At.Fail ys _  _) = handleParseFail xs ys
 handleParseResult xs (At.Partial go  ) = handleParseResult xs . go $ Tx.empty
-handleParseResult _  (At.Done _ r    ) = validate r
+handleParseResult _  (At.Done    _  r) = validate r
 
 handleParseFail :: Text -> Text -> Either T.ErrString [T.Issue]
 handleParseFail input rest = Left msg
@@ -38,42 +40,87 @@ handleParseFail input rest = Left msg
           msg = unwords [ "Parse failure at line "
                         , show (n - m + 1) <> " : "
                         , Tx.unpack . Tx.takeWhile (not . Ch.isSpace) $ rest
+                        , "..."
                         ]
 
 -- =============================================================== --
--- Local types
+-- Error message construction
 
-type Dict = [(Text, Text)]
+parseError :: String -> T.ErrString -> T.ErrString
+parseError fp err = "Unable to parse references file " <> fp <> "!\n" <> err
+
+validationError :: Dict -> T.ErrString -> T.ErrString
+validationError d err = maybe noJournal go . lookup "journal" $ d
+    where noJournal = "Fields provided without preceding <journal:> header!"
+          go x = concat [ "Unable read journal reference for " <> Tx.unpack  x
+                        , "\n" <> err
+                        ]
 
 -- =============================================================== --
--- Reference issue validation
+-- Construction and validation of issues and journals
+
+---------------------------------------------------------------------
+-- Reference construction and validation after file parsing
 
 validate :: [Dict] -> Either T.ErrString [T.Issue]
-validate ds = mapM validateRef ds >>= checkForDuplicates
+validate ds = mapM readRef ds >>= checkForDuplicates
 
 checkForDuplicates :: [T.Issue] -> Either T.ErrString [T.Issue]
+-- ^Journal entries are all keyed by their abbreviations. So, the
+-- journal abbreviations must be unique. However, this function also
+-- checks to make sure the journal names are also unique.
 checkForDuplicates xs
-    | ys == nub ys = pure xs
-    | otherwise    = Left "References have repeated journal abbreviations!"
-    where ys = map (T.name . T.journal) xs
+    | gNames && gAbbrs = pure xs
+    | gNames           = Left "References have repeated journal abbreviations!"
+    | otherwise        = Left "References have repeated journal names!"
+    where gNames = ys == nub ys
+          gAbbrs = zs == nub zs
+          ys     = map (T.name . T.journal) xs
+          zs     = map (T.abbr . T.journal) xs
 
-validateRef :: Dict -> Either T.ErrString T.Issue
-validateRef d = T.Issue <$> getDate     d
-                        <*> getIntValue d "volume"
-                        <*> getIntValue d "issue"
-                        <*> getJournal  d
+readRef :: Dict -> Either T.ErrString T.Issue
+readRef d = bimap (validationError d) id ref
+    where ref = T.Issue <$> readDate    d
+                        <*> readInt     d "volume"
+                        <*> readInt     d "issue"
+                        <*> readJournal d
 
-getJournal :: Dict -> Either T.ErrString T.Journal
-getJournal d = do
-    (j, k) <- getJournalAbbr d
-    validateString j
-    validateString k
-    T.Journal k j <$> getStringValue d "pubmed"
-                  <*> getFrequency   d
-                  <*> getResets      d
+---------------------------------------------------------------------
+-- General helpers
 
-getFrequency :: Dict -> Either T.ErrString T.Frequency
-getFrequency = maybe err go . lookup "frequency"
+readString :: Dict -> Text -> Either T.ErrString Text
+readString d k = maybe err go . lookup k $ d
+    where go x = checkString x
+          err  = Left $ "Record lacks a <" <> Tx.unpack k <> "> field!"
+
+readInt :: Dict -> Text -> Either T.ErrString Int
+readInt d k = readString d k >>= go
+    where go   = maybe err pure . C.readMaybeTxt
+          err  = Left $ "Record requires an integer value for the <"
+                        <> Tx.unpack k <> "> field!"
+
+checkString :: Text -> Either T.ErrString Text
+checkString x
+    | allValid  = pure x
+    | otherwise = Left errMsg
+    where allValid = Tx.all ( \ c -> Ch.isAlphaNum c || c == '_' || c == ' ' ) x
+          errMsg   = "The field value '" <> Tx.unpack x
+                     <> "' contains invalid characters!"
+
+---------------------------------------------------------------------
+-- Journal construction and validation
+
+readJournal :: Dict -> Either T.ErrString T.Journal
+readJournal d = do
+    (j, k) <- readJournalHeader d
+    checkString j
+    checkString k
+    T.Journal k j <$> readString    d "pubmed"
+                  <*> readFrequency d
+                  <*> readResets    d
+
+readFrequency :: Dict -> Either T.ErrString T.Frequency
+readFrequency = maybe err go . lookup "frequency"
     where err  = Left $ "Missing or invalid frequency!"
           go x = case Tx.map Ch.toLower . Tx.strip $ x of
                       "weekly"       -> pure T.Weekly
@@ -82,15 +129,15 @@ getFrequency = maybe err go . lookup "frequency"
                       "monthly"      -> pure T.Monthly
                       _              -> err
 
-getDate :: Dict -> Either T.ErrString Tm.Day
-getDate dict = do
-    d <- getIntValue dict "day"
-    y <- fromIntegral <$> getIntValue dict "year"
-    m <- getMonth    dict
+readDate :: Dict -> Either T.ErrString Tm.Day
+readDate dict = do
+    d <- readInt dict "day"
+    y <- fromIntegral <$> readInt dict "year"
+    m <- readMonth    dict
     pure $ Tm.fromGregorian y m d
 
-getMonth :: Dict -> Either T.ErrString Int
-getMonth = maybe err go . lookup "month"
+readMonth :: Dict -> Either T.ErrString Int
+readMonth = maybe err go . lookup "month"
     where err  = Left "Missing <month> field!"
           go x = case Tx.map Ch.toLower . Tx.strip $ x of
                       "january"     -> pure 1
@@ -107,41 +154,27 @@ getMonth = maybe err go . lookup "month"
                       "december"    -> pure 12
                       u             -> Left $ "Invalid month: " <> Tx.unpack u
 
-getResets :: Dict -> Either T.ErrString Bool
-getResets = maybe err go . lookup "resets"
+readResets :: Dict -> Either T.ErrString Bool
+readResets = maybe err go . lookup "resets"
     where err  = Left "Missing or invalid <resets> value!"
           go x = case Tx.map Ch.toLower . Tx.strip $ x of
                        "true"  -> pure True
                        "false" -> pure False
                        _       -> err
 
-getJournalAbbr :: Dict -> Either T.ErrString (Text, Text)
-getJournalAbbr =  maybe (err "Missing header.") go . lookup "journal"
-    where err y = Left $ "Cannot parse journal header!" <> y
-          go x  = case break (== '/') . Tx.unpack $ x of
-                       ([]  , _      ) -> err " Missing journal name!"
-                       (_   ,'/':[]  ) -> err " Missing journal abbreviation!"
+readJournalHeader :: Dict -> Either T.ErrString (Text, Text)
+readJournalHeader =  maybe (Left "") go . lookup "journal"
+    where go x  = case break (== '/') . Tx.unpack $ x of
+                       ([]  , _      ) -> Left " Missing journal name!"
+                       (_   ,'/':[]  ) -> Left " Missing journal abbreviation!"
                        (name,'/':abbr) -> pure (Tx.pack name, Tx.pack abbr)
-                       (_   , _      ) -> err " Missing journal abbreviation!"
+                       (_   , _      ) -> Left " Missing journal abbreviation!"
 
-getStringValue :: Dict -> Text -> Either T.ErrString Text
-getStringValue d k = maybe err go . lookup k $ d
-    where go x = validateString x
-          err  = Left $ "A record lacks a <" <> Tx.unpack k <> "> field!"
+-- =============================================================== --
+-- Dict parser for parsing the file prior to reference construction
 
-getIntValue :: Dict -> Text -> Either T.ErrString Int
-getIntValue d k = getStringValue d k >>= go
-    where go   = maybe err pure . C.readMaybeTxt
-          err  = Left $ "A record requires an integer value for the <"
-                        <> Tx.unpack k <> "> field!"
-
-validateString :: Text -> Either T.ErrString Text
-validateString x
-    | allValid  = pure x
-    | otherwise = Left errMsg
-    where allValid = Tx.all ( \ c -> Ch.isAlphaNum c || c == '_' || c == ' ' ) x
-          errMsg   = "The field value '" <> Tx.unpack x
-                     <> "' contains invalid characters!"
+---------------------------------------------------------------------
+-- Helpers
 
 validFields :: [Text]
 validFields = [ "day"
@@ -153,12 +186,6 @@ validFields = [ "day"
               , "volume"
               , "year"
               ]
-
--- =============================================================== --
--- Components
-
----------------------------------------------------------------------
--- Helpers
 
 comment :: At.Parser ()
 comment = At.char '#' *> At.takeTill At.isEndOfLine *> At.skipSpace
