@@ -10,7 +10,7 @@ import qualified Data.Time            as Tm
 import qualified Data.Char            as Ch
 import qualified Data.Attoparsec.Text as At
 import           Data.Text                   ( Text              )
-import           Data.List                   ( nub               )
+import           Data.List                   ( nub, intercalate  )
 import           Data.Bifunctor              ( bimap             )
 import           Control.Applicative         ( (<|>), many, some )
 
@@ -55,6 +55,22 @@ validationError d err = maybe noJournal go . lookup "journal" $ d
           go x = concat [ "Unable read journal reference for " <> Tx.unpack  x
                         , "\n" <> err
                         ]
+
+resetsError :: T.ErrString
+resetsError = intercalate "\n" hs
+    where hs = [ "Missing or invalid <resets> value!"
+               , "Use 'true' if issue numbers reset to 1 each year."
+               , "Use 'false' if issue numbers increase each year."
+               ]
+
+frequencyError :: T.ErrString
+frequencyError = intercalate "\n" hs
+    where hs = [ "Missing or invalid <frequency> value!"
+               , "Use 'weekly' if there are always 52 issues every year."
+               , "Use 'weekly-last' if the last issue of the year is dropped."
+               , "Use 'weekly-first' if th first issue of the year is dropped."
+               , "Use 'monthly' if there are 12 issues every year."
+               ]
 
 -- =============================================================== --
 -- Construction and validation of issues and journals
@@ -120,14 +136,13 @@ readJournal d = do
                   <*> readResets    d
 
 readFrequency :: Dict -> Either T.ErrString T.Frequency
-readFrequency = maybe err go . lookup "frequency"
-    where err  = Left $ "Missing or invalid frequency!"
-          go x = case Tx.map Ch.toLower . Tx.strip $ x of
+readFrequency = maybe (Left frequencyError) go . lookup "frequency"
+    where go x = case Tx.map Ch.toLower . Tx.strip $ x of
                       "weekly"       -> pure T.Weekly
                       "weekly-first" -> pure T.WeeklyFirst
                       "weekly-last"  -> pure T.WeeklyLast
                       "monthly"      -> pure T.Monthly
-                      _              -> err
+                      _              -> Left frequencyError
 
 readDate :: Dict -> Either T.ErrString Tm.Day
 readDate dict = do
@@ -155,12 +170,11 @@ readMonth = maybe err go . lookup "month"
                       u             -> Left $ "Invalid month: " <> Tx.unpack u
 
 readResets :: Dict -> Either T.ErrString Bool
-readResets = maybe err go . lookup "resets"
-    where err  = Left "Missing or invalid <resets> value!"
-          go x = case Tx.map Ch.toLower . Tx.strip $ x of
+readResets = maybe (Left resetsError) go . lookup "resets"
+    where go x = case Tx.map Ch.toLower . Tx.strip $ x of
                        "true"  -> pure True
                        "false" -> pure False
-                       _       -> err
+                       _       -> Left resetsError
 
 readJournalHeader :: Dict -> Either T.ErrString (Text, Text)
 readJournalHeader =  maybe (Left "") go . lookup "journal"
