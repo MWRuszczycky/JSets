@@ -63,7 +63,7 @@ initConfig = do
 
 options :: [ Opt.OptDescr (T.Config -> T.ErrMonad T.Config) ]
 options =
-    [ Opt.Option "" [ "references", "refs" ]
+    [ Opt.Option "" [ "refs" ]
       ( Opt.ReqArg ( \ arg s -> pure s { T.cRefPath = arg } ) "PATH" )
       "Reset the references configuration path to PATH."
 

@@ -127,7 +127,11 @@ refsHelp = (s, Tx.unlines hs)
                ]
 
 refsCmd :: [String] -> T.AppMonad ()
-refsCmd _ = A.references >>= display . Tx.unlines . map F.referenceToTxt
+refsCmd _ = do
+    rs <- map F.referenceToTxt <$> A.references
+    p  <- asks T.cRefPath
+    let hdr = Tx.pack $ "References file: " <> p <> "\n"
+    display . Tx.unlines $ hdr : rs
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
