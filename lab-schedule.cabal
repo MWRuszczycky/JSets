@@ -47,6 +47,7 @@ library lab-schedule-internal
                       , attoparsec
                       , bytestring
                       , containers
+                      , directory
                       , microlens
                       , mtl
                       , text

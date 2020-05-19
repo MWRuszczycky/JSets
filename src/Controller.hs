@@ -8,15 +8,17 @@ module Controller
 import qualified System.Console.GetOpt     as Opt
 import qualified Data.Text.IO              as Tx
 import qualified Model.Core.Types          as T
+import qualified Model.Core.CoreIO         as C
+import qualified Model.Parsers.References  as P
 import qualified Model.Text.Help           as H
-import           System.Environment                 ( getArgs               )
-import           Text.Read                          ( readMaybe             )
-import           Data.List                          ( intercalate           )
-import           Control.Monad                      ( foldM                 )
-import           Control.Monad.Except               ( throwError            )
-import           Control.Monad.Reader               ( runReaderT, liftIO    )
-import           Commands                           ( runCommands, commands )
-import           Model.Core.References              ( issueRefs             )
+import           System.Directory                   ( getHomeDirectory       )
+import           System.Environment                 ( getArgs                )
+import           Text.Read                          ( readMaybe              )
+import           Data.List                          ( intercalate            )
+import           Control.Monad                      ( foldM                  )
+import           Control.Monad.Except               ( throwError, liftEither )
+import           Control.Monad.Reader               ( runReaderT, liftIO     )
+import           Commands                           ( runCommands, commands  )
 
 -- =============================================================== --
 -- Main control point and routers
@@ -33,27 +35,37 @@ runApp (cmds, config)
 configure :: T.ErrMonad ([String], T.Config)
 configure = do
     args <- liftIO getArgs
+    ci   <- liftIO initConfig
     case Opt.getOpt Opt.Permute options args of
-         (fs, cs, [] ) -> foldM (flip ($)) initConfig fs >>= pure . ( (,) cs )
+         (fs, cs, [] ) -> foldM (flip ($)) ci fs >>= fmap ( (,) cs ) . getRefs
          (_,  _ , err) -> throwError . intercalate "\n" $ err
 
-initConfig :: T.Config
-initConfig = T.Config { T.cOutputPath = Nothing
-                      , T.cJsetKey    = Nothing
-                      , T.cHelp       = False
-                      , T.cReferences = issueRefs
-                      , T.cToCStyle   = T.Propose
-                      , T.cShowVer    = False
-                      }
+getRefs :: T.Config -> T.ErrMonad T.Config
+getRefs c = do
+    let path = T.cRefPath c
+    rs <- C.readFileErr path >>= liftEither . P.parseReferences path
+    pure $ c { T.cReferences = rs }
+
+initConfig :: IO T.Config
+initConfig = do
+    hmPath <- getHomeDirectory
+    pure T.Config { T.cOutputPath = Nothing
+                  , T.cJsetKey    = Nothing
+                  , T.cHelp       = False
+                  , T.cRefPath    = hmPath <> "/.config/jsets/references"
+                  , T.cReferences = []
+                  , T.cToCStyle   = T.Propose
+                  , T.cShowVer    = False
+                  }
 
 -- =============================================================== --
 -- Options
 
 options :: [ Opt.OptDescr (T.Config -> T.ErrMonad T.Config) ]
 options =
-    [ Opt.Option "o" [ "output" ]
-      ( Opt.ReqArg ( \ arg s -> pure $ s { T.cOutputPath = Just arg } ) "PATH" )
-      "Set the output filepath to PATH."
+    [ Opt.Option "" [ "references", "refs" ]
+      ( Opt.ReqArg ( \ arg s -> pure s { T.cRefPath = arg } ) "PATH" )
+      "Reset the references configuration path to PATH."
 
     , Opt.Option "h" [ "help" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cHelp = True } ) )
@@ -63,13 +75,17 @@ options =
       ( Opt.ReqArg configKey "KEY" )
       "Set the journal set key to KEY (positive integer)"
 
-    , Opt.Option "s" [ "select" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Select } ) )
-      "Use the 'select' style for html tables of contents."
+    , Opt.Option "o" [ "output" ]
+      ( Opt.ReqArg ( \ arg s -> pure $ s { T.cOutputPath = Just arg } ) "PATH" )
+      "Set the output filepath to PATH."
 
     , Opt.Option "r" [ "rank" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Rank } ) )
       "Use the 'rank' style for html tables of contents."
+
+    , Opt.Option "s" [ "select" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Select } ) )
+      "Use the 'select' style for html tables of contents."
 
     , Opt.Option "v" [ "version" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )
