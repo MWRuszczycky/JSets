@@ -29,7 +29,6 @@ library lab-schedule-internal
                       , Model.Core.CoreIO
                       , Model.Core.Types
                       , Model.Core.Dates
-                      , Model.Core.References
                       , Model.Journals
                       , Model.Parsers.CSV
                       , Model.Parsers.JournalSets
