@@ -42,8 +42,7 @@ import qualified Data.Map.Strict         as Map
 import qualified Network.Wreq            as Wreq
 import           Data.Time                          ( Day             )
 import           Data.Text                          ( Text            )
-import           Data.List                          ( find, nub, sort
-                                                    , intercalate     )
+import           Data.List                          ( find, nub, sort )
 import           Lens.Micro                         ( (.~), (&)       )
 
 -- =============================================================== --

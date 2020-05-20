@@ -7,7 +7,7 @@ module Model.Parsers.JournalSets
 import qualified Data.Text             as Tx
 import qualified Data.Attoparsec.Text  as At
 import qualified Model.Core.Types      as T
-import qualified Model.Parsers.CSV     as CSV
+import qualified Model.Parsers.Basic   as PB
 import qualified Model.Journals        as J
 import           Data.Bifunctor               ( bimap              )
 import           Data.Char                    ( isSpace, isDigit   )
@@ -28,7 +28,7 @@ parseCsv :: [T.Issue] -> Text -> Either T.ErrString (T.Collection T.Selection)
 -- csv cells are treated as no issues for the corresponding journal.
 -- All issues must be valid and the first row must be the journals.
 parseCsv refs x = let err = (<>) "Cannot parse CSV: "
-                  in  bimap err id $ CSV.parseCSV x
+                  in  bimap err id $ PB.parseCSV x
                                      >>= toRawCollection
                                      >>= validate refs
 
@@ -145,7 +145,7 @@ pageNumberPrefix = At.takeTill (At.inClass " :\n\r\t") <* At.char ':'
 -- =============================================================== --
 -- Component parsers for CSV
 
-toRawCollection :: [[Text]] -> Either T.ErrString [RawJset]
+toRawCollection :: PB.CSV -> Either T.ErrString [RawJset]
 -- ^Convert a parsed CSV file to a raw collection.
 -- The input is a list of lists of Text, where each sublist is a row
 -- in the CSV file and each Text is a cell in that row.

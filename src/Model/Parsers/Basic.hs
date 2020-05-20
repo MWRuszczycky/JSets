@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Parsers.CSV
+module Model.Parsers.Basic
     ( JsonVal   (..)
     , CSV
     , parseCSV
