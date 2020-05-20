@@ -101,16 +101,22 @@ downloadPubMed :: T.HasIssue a => a -> T.AppMonad Text
 -- The download format is the raw PubMed text.
 -- Display progress messages for each ToC download.
 downloadPubMed x = do
-    let addr = "https://www.ncbi.nlm.nih.gov/pubmed"
-        opts = J.tocQuery x
-    liftIO . Tx.putStr $ "Downloading " <> F.issueToTxt x <> " from PubMed..."
+    let opts   = J.tocESearchQuery x
+    liftIO . Tx.putStr $ "Downloading " <> F.issueToTxt x <> " UIDs..."
     liftIO . hFlush $ stdout
-    result      <- lift $ C.webRequest opts addr
-    noCitations <- liftEither . P.noCitations $ result
-    if noCitations
-       then liftIO . Tx.putStrLn $ "No articles listed at PubMed"
-       else liftIO . Tx.putStrLn $ "OK"
-    pure result
+    uidResult  <- lift $ C.webRequest opts J.eSearchAddr
+    --parse uid result from uidResult to obtain the uids
+    let opts' = J.tocESumQuery [ "30525496", "30480442" ]
+    liftIO . Tx.putStr $ "Downloading DocSums..."
+    liftIO . hFlush $ stdout
+    sumResult <- lift $ C.webRequest opts' J.eSummaryAddr
+    liftIO . Tx.putStrLn $ "Done"
+    pure ( uidResult <> "\n\n" <> sumResult )
+    -- noCitations <- liftEither . P.noCitations $ result
+    -- if noCitations
+    --    then liftIO . Tx.putStrLn $ "No articles listed at PubMed"
+    --    else liftIO . Tx.putStrLn $ "OK"
+    -- pure result
 
 -- =============================================================== --
 -- General Helper Commands

@@ -26,18 +26,24 @@ module Model.Journals
     , selectContent
     , selectCitations
       -- Working with downloaded table of contents
-    , tocQuery
+    , eUtilsAddr
+    , eSearchAddr
+    , eSummaryAddr
+    , tocESearchQuery
+    , tocESumQuery
     ) where
 
 import qualified Model.Core.Types        as T
 import qualified Model.Core.Dates        as D
 import qualified Model.Core.Core         as C
+import qualified Data.Text               as Tx
 import qualified Data.Time               as Tm
 import qualified Data.Map.Strict         as Map
 import qualified Network.Wreq            as Wreq
 import           Data.Time                          ( Day             )
 import           Data.Text                          ( Text            )
-import           Data.List                          ( find, nub, sort )
+import           Data.List                          ( find, nub, sort
+                                                    , intercalate     )
 import           Lens.Micro                         ( (.~), (&)       )
 
 -- =============================================================== --
@@ -230,19 +236,43 @@ selectCitations (T.IssueContent sel cs) = filter go cs
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues
+-- PMC queries of the PubMed data base are in two stages. The first
+-- uses the ESearch E-utility to obtain the unique ID (UID) numbers
+-- of the requested information (here each article citation).
+-- These UIDs then need to submitted in a second request to PMC to
+-- acquire the actual citations. This is done using the ESummary
+-- E-utility. The following two functions are used to construct query
+-- urls for use with ESearch and ESummary.
+-- For more information see
+-- https://www.ncbi.nlm.nih.gov/books/NBK25501
+-- https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESummary
+-- https://www.ncbi.nlm.nih.gov/books/NBK25500/#chapter1.Searching_a_Database
 
-tocQuery :: T.HasIssue a => a -> Wreq.Options
--- ^Build a table of contents query for PubMed for a given journal
--- issue. See https://www.ncbi.nlm.nih.gov/books/NBK3862/ for more
--- detail about how these queries are formed.
-tocQuery x = let j = "\"" <> (T.pubmed . T.journal $ x) <> "\""
-                 y = C.tshow . D.getYear . T.date $ x
-                 n = C.tshow . T.issNo $ x
-                 t = "journal article"
-             in  Wreq.defaults & Wreq.param "dispmax" .~ ["100"]
-                               & Wreq.param "format" .~ ["text"]
-                               & Wreq.param "term" .~ [ j <> "[journal]"
-                                                      , y <> "[ppdat]"
-                                                      , n <> "[issue]"
-                                                      , t <> "[pt]"
-                                                      ]
+eUtilsAddr :: String
+eUtilsAddr = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+
+eSearchAddr :: String
+eSearchAddr = eUtilsAddr <> "esearch.fcgi?db=pubmed"
+
+eSummaryAddr :: String
+eSummaryAddr = eUtilsAddr <> "esummary.fcgi?db=pubmed"
+
+eSearchTerm :: T.HasIssue a => a -> Text
+eSearchTerm x = Tx.intercalate " AND " keys
+    where keys = [ "\"" <> ( T.pubmed . T.journal) x <> "\"[journal]"
+                 , (C.tshow . D.getYear . T.date ) x <> "[ppdat]"
+                 , (C.tshow . T.issNo            ) x <> "[issue]"
+                 , "journal article[pt]"
+                 ]
+
+tocESearchQuery :: T.HasIssue a => a -> Wreq.Options
+-- ^Build an Entrez query to obtain the PMCIDs for all citations in
+-- the PubMed database associated with the given journal issue.
+tocESearchQuery x = Wreq.defaults & Wreq.param "term"    .~ [ eSearchTerm x ]
+                                  & Wreq.param "retmax"  .~ [ "150"         ]
+                                  & Wreq.param "retmode" .~ [ "json"        ]
+
+tocESumQuery :: [Text] -> Wreq.Options
+tocESumQuery xs = let uids = Tx.intercalate "," xs
+                  in  Wreq.defaults & Wreq.param "id"      .~ [ uids   ]
+                                    & Wreq.param "retmode" .~ [ "json" ]

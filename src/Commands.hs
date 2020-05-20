@@ -165,16 +165,17 @@ tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
     T.JSet k xs <- A.readJset fp
     ts    <- mapM A.downloadPubMed xs
-    cs    <- liftEither . zipWithM P.parseCited xs $ ts
-    style <- asks T.cToCStyle
-    fmt   <- A.getFormat
-    let jset = T.JSet k cs
-        raw  = Tx.unlines ts
-    case fmt of
-         T.RAW  -> display raw
-         T.HTML -> display . F.tocsToHtml style $ jset
-         T.MKD  -> display . F.tocsToMkd        $ jset
-         _      -> display . F.tocsToTxt        $ jset
+    -- cs    <- liftEither . zipWithM P.parseCited xs $ ts
+    -- style <- asks T.cToCStyle
+    -- fmt   <- A.getFormat
+    --let jset = T.JSet k cs
+    --    raw  = Tx.unlines ts
+    display . Tx.unlines $ ts
+--  case fmt of
+--       T.RAW  -> display raw
+--       T.HTML -> display . F.tocsToHtml style $ jset
+--       T.MKD  -> display . F.tocsToMkd        $ jset
+--       _      -> display . F.tocsToTxt        $ jset
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
