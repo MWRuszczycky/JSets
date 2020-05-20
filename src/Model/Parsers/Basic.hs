@@ -90,11 +90,8 @@ csvLine :: At.Parser [Text]
 csvLine = At.sepBy csvCell (At.char ',') <* At.endOfLine
 
 csvCell :: At.Parser Text
-csvCell = do
-    x <- At.peekChar'
-    case x of
-         '\"' -> quoted
-         _    -> At.takeTill $ flip elem [',', '\n', '\r']
+csvCell = quoted <|> At.takeTill endOfCell
+    where endOfCell c = c == ',' || c == '\n' || c == '\r'
 
 -- =============================================================== --
 -- JSON parser components

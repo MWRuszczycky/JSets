@@ -196,48 +196,45 @@ readJournalHeader =  maybe (Left "") go . lookup "journal"
 ---------------------------------------------------------------------
 -- Helpers
 
-validFields :: [Text]
-validFields = [ "day"
-              , "frequency"
-              , "issue"
-              , "month"
-              , "pubmed"
-              , "resets"
-              , "volume"
-              , "year"
-              ]
+field :: At.Parser (Text, Text)
+field = At.choice $ map keyValuePair [ "day"
+                                     , "frequency"
+                                     , "issue"
+                                     , "month"
+                                     , "pubmed"
+                                     , "resets"
+                                     , "volume"
+                                     , "year"
+                                     ]
 
 comment :: At.Parser ()
 comment = At.char '#' *> At.takeTill At.isEndOfLine *> At.skipSpace
 
-skipComments :: At.Parser ()
-skipComments = At.skipSpace *> many comment *> pure ()
-
-keyValuePair :: Text -> At.Parser (Text, Text)
-keyValuePair key = do
-    skipComments
-    k <- At.string key
-    skipComments
-    At.char ':'
-    skipComments
-    v <- validValue
-    comment <|> At.endOfLine
-    pure (k,v)
+comments :: At.Parser ()
+comments = At.skipSpace *> many comment *> pure ()
 
 validValue :: At.Parser Text
 validValue = fmap Tx.pack . some . At.satisfy $ At.notInClass ":#\n\r\t"
 
-field :: At.Parser (Text, Text)
-field = At.choice $ map keyValuePair validFields
+keyValuePair :: Text -> At.Parser (Text, Text)
+keyValuePair key = do
+    comments
+    k <- At.string key
+    comments
+    At.char ':'
+    comments
+    v <- validValue
+    comment <|> At.endOfLine
+    pure (k,v)
 
 ---------------------------------------------------------------------
 -- Reference Dict parsers
 
 refDicts :: At.Parser [Dict]
 refDicts = do
-    skipComments
+    comments
     ds <- many refDict
-    skipComments
+    comments
     At.endOfInput
     pure ds
 
@@ -245,5 +242,5 @@ refDict :: At.Parser Dict
 refDict = do
     jh <- keyValuePair "journal"
     fs <- some field
-    skipComments
+    comments
     pure $ jh : fs
