@@ -104,12 +104,12 @@ downloadPubMed x = do
     let opts   = J.tocESearchQuery x
     liftIO . Tx.putStr $ "Downloading " <> F.issueToTxt x <> " UIDs..."
     liftIO . hFlush $ stdout
-    uidResult  <- lift $ C.webRequest opts J.eSearchAddr
+    uidResult  <- lift $ C.webRequest opts J.eSearchUrl
     --parse uid result from uidResult to obtain the uids
     let opts' = J.tocESumQuery [ "30525496", "30480442" ]
     liftIO . Tx.putStr $ "Downloading DocSums..."
     liftIO . hFlush $ stdout
-    sumResult <- lift $ C.webRequest opts' J.eSummaryAddr
+    sumResult <- lift $ C.webRequest opts' J.eSummaryUrl
     liftIO . Tx.putStrLn $ "Done"
     pure ( uidResult <> "\n\n" <> sumResult )
     -- noCitations <- liftEither . P.noCitations $ result

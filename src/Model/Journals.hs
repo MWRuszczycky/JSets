@@ -26,9 +26,9 @@ module Model.Journals
     , selectContent
     , selectCitations
       -- Working with downloaded table of contents
-    , eUtilsAddr
-    , eSearchAddr
-    , eSummaryAddr
+    , eUtilsUrl
+    , eSearchUrl
+    , eSummaryUrl
     , tocESearchQuery
     , tocESumQuery
     ) where
@@ -238,7 +238,7 @@ selectCitations (T.IssueContent sel cs) = filter go cs
 -- PMC queries of the PubMed data base are in two stages. The first
 -- uses the ESearch E-utility to obtain the unique ID (UID) numbers
 -- of the requested information (here each article citation).
--- These UIDs then need to submitted in a second request to PMC to
+-- These UIDs need to be submitted in a second request to PMC to
 -- acquire the actual citations. This is done using the ESummary
 -- E-utility. The following two functions are used to construct query
 -- urls for use with ESearch and ESummary.
@@ -247,14 +247,14 @@ selectCitations (T.IssueContent sel cs) = filter go cs
 -- https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESummary
 -- https://www.ncbi.nlm.nih.gov/books/NBK25500/#chapter1.Searching_a_Database
 
-eUtilsAddr :: String
-eUtilsAddr = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+eUtilsUrl :: String
+eUtilsUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 
-eSearchAddr :: String
-eSearchAddr = eUtilsAddr <> "esearch.fcgi?db=pubmed"
+eSearchUrl :: String
+eSearchUrl = eUtilsUrl <> "esearch.fcgi?db=pubmed"
 
-eSummaryAddr :: String
-eSummaryAddr = eUtilsAddr <> "esummary.fcgi?db=pubmed"
+eSummaryUrl :: String
+eSummaryUrl = eUtilsUrl <> "esummary.fcgi?db=pubmed"
 
 eSearchTerm :: T.HasIssue a => a -> Text
 eSearchTerm x = Tx.intercalate " AND " keys
@@ -265,13 +265,15 @@ eSearchTerm x = Tx.intercalate " AND " keys
                  ]
 
 tocESearchQuery :: T.HasIssue a => a -> Wreq.Options
--- ^Build an Entrez query to obtain the PMCIDs for all citations in
--- the PubMed database associated with the given journal issue.
+-- ^Build an E-Utilities query to obtain the PMIDs for all citations
+-- in the PubMed database associated with the given journal issue.
 tocESearchQuery x = Wreq.defaults & Wreq.param "term"    .~ [ eSearchTerm x ]
                                   & Wreq.param "retmax"  .~ [ "150"         ]
                                   & Wreq.param "retmode" .~ [ "json"        ]
 
 tocESumQuery :: [Text] -> Wreq.Options
-tocESumQuery xs = let uids = Tx.intercalate "," xs
-                  in  Wreq.defaults & Wreq.param "id"      .~ [ uids   ]
-                                    & Wreq.param "retmode" .~ [ "json" ]
+-- ^Build an E-Utilities query to obtain the document summaries from
+-- the PubMed database for the indicated PMIDs.
+tocESumQuery pmids = let idstr = Tx.intercalate "," pmids
+                     in  Wreq.defaults & Wreq.param "id"      .~ [ idstr  ]
+                                       & Wreq.param "retmode" .~ [ "json" ]
