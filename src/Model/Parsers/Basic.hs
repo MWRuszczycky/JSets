@@ -5,6 +5,7 @@ module Model.Parsers.Basic
     , CSV
     , parseCSV
     , parseJSON
+    , objLookup
     ) where
 
 import qualified Data.Text            as Tx
@@ -28,6 +29,14 @@ data JSON =
       deriving ( Show )
 
 type CSV = [[Text]]
+
+-- =============================================================== --
+-- JSON utilities
+
+objLookup :: [Text] -> JSON -> Maybe JSON
+objLookup [] j              = Just j
+objLookup (x:xs) (JObj obj) = lookup x obj >>= objLookup xs
+objLookup _      _          = Nothing
 
 -- =============================================================== --
 -- Exported parsers

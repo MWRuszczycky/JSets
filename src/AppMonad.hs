@@ -21,6 +21,7 @@ module AppMonad
 import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
 import qualified Data.Map.Strict           as Map
+import qualified Data.Time                 as Tm
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
@@ -33,6 +34,7 @@ import           Data.List                          ( find           )
 import           System.IO                          ( hFlush, stdout )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
+                                                    , runExceptT
                                                     , lift
                                                     , throwError
                                                     , liftEither     )
@@ -94,29 +96,34 @@ getIssue abbr v n = references >>= maybe err pure . go
           go rs  = J.lookupIssue rs abbr (v,n)
 
 -- =============================================================== --
--- Internet requests
+-- PubMed Pipeline
 
-downloadPubMed :: T.HasIssue a => a -> T.AppMonad Text
--- ^Download the table of contents for a journal issue from PubMed.
--- The download format is the raw PubMed text.
--- Display progress messages for each ToC download.
-downloadPubMed x = do
-    let opts   = J.tocESearchQuery x
-    liftIO . Tx.putStr $ "Downloading " <> F.issueToTxt x <> " UIDs..."
+downloadPMIDs :: T.HasIssue a => a -> T.AppMonad [Text]
+downloadPMIDs iss = do
+    let query = J.tocESearchQuery iss
+    liftIO . Tx.putStr $ "Downloading " <> F.issueToTxt iss <> " PMIDs..."
     liftIO . hFlush $ stdout
-    uidResult  <- lift $ C.webRequest opts J.eSearchUrl
-    --parse uid result from uidResult to obtain the uids
-    let opts' = J.tocESumQuery [ "30525496", "30480442" ]
-    liftIO . Tx.putStr $ "Downloading DocSums..."
-    liftIO . hFlush $ stdout
-    sumResult <- lift $ C.webRequest opts' J.eSummaryUrl
-    liftIO . Tx.putStrLn $ "Done"
-    pure ( uidResult <> "\n\n" <> sumResult )
-    -- noCitations <- liftEither . P.noCitations $ result
-    -- if noCitations
-    --    then liftIO . Tx.putStrLn $ "No articles listed at PubMed"
-    --    else liftIO . Tx.putStrLn $ "OK"
-    -- pure result
+    result <- liftIO . runExceptT $ C.webRequest query J.eSearchUrl
+    case result >>= P.parsePMIDs of
+         Left err  -> (liftIO . putStrLn) err *> pure []
+         Right []  -> (liftIO . putStrLn) "None found at PubMed." *> pure []
+         Right ids -> do liftIO . putStr $ "OK, Downloading Citations..."
+                         liftIO . hFlush $ stdout
+                         pure ids
+
+downloadCitations :: [Text] -> T.AppMonad [T.Citation]
+downloadCitations []    = pure []
+downloadCitations pmids = do
+    let query = J.tocESumQuery pmids
+    result <- liftIO . runExceptT $ C.webRequest query J.eSearchUrl
+    case result >>= P.parseCitations pmids of
+         Left err -> (liftIO . putStrLn) err     *> pure []
+         Right cs -> (liftIO . putStrLn) "Done." *> pure cs
+
+downloadPubMed :: T.Selection -> T.AppMonad T.IssueContent
+downloadPubMed sel = downloadPMIDs sel
+                     >>= downloadCitations
+                     >>= pure . T.IssueContent sel
 
 -- =============================================================== --
 -- General Helper Commands

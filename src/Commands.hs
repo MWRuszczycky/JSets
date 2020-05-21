@@ -163,14 +163,14 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    T.JSet k xs <- A.readJset fp
-    ts    <- mapM A.downloadPubMed xs
+    T.JSet n xs <- A.readJset fp
+    contents    <- mapM A.downloadPubMed xs
     -- cs    <- liftEither . zipWithM P.parseCited xs $ ts
     -- style <- asks T.cToCStyle
     -- fmt   <- A.getFormat
     --let jset = T.JSet k cs
     --    raw  = Tx.unlines ts
-    display . Tx.unlines $ ts
+    display . F.tocsToTxt $ T.JSet n contents
 --  case fmt of
 --       T.RAW  -> display raw
 --       T.HTML -> display . F.tocsToHtml style $ jset
