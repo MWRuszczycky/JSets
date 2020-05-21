@@ -48,12 +48,6 @@
 @{issues}
                      ];
 
-            function pageNumber(journalObj, articleObj) {
-            // Parse the page numbers from a article id.
-                var p = articleObj.id.slice(journalObj.key.length + 1);
-                return "    " + p + "\n"
-            };
-
             function isAlphaNum(x) {
             // Determine if character is alpha-numeric.
                 if (x.length === 1) {
@@ -87,14 +81,14 @@
                 for (i = 0; i < issues.length; i++ ){
                     selection += issues[i].header() + "\n";
                     var xs = document.getElementsByClassName(issues[i].key);
-                    var pages = ""
+                    var pmids = ""
                     for (j = 0; j < xs.length; j++){
                         if (xs[j].checked) {
-                            pages += pageNumber(issues[i], xs[j]);
+                            pmids += "    " + xs[j].id + "\n";
                             count += 1;
                         };
                     };
-                    selection += pages;
+                    selection += pmids;
                 };
 
                 var inst          = document.getElementById('inst');

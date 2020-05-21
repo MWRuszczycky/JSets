@@ -13,6 +13,7 @@ import qualified Model.Core.Core       as C
 import qualified Model.Journals        as J
 import qualified Model.Core.Dates      as D
 import qualified Model.Text.Templates  as Temp
+import qualified Model.Text.Core       as Tc
 import           Data.Text                      ( Text           )
 import           Data.Char                      ( isSpace        )
 import           Model.Text.Templates           ( fill, fillNone )
@@ -29,12 +30,6 @@ className iss = Tx.intercalate "-" xs
                , C.tshow . T.volNo $ iss
                , C.tshow . T.issNo $ iss
                ]
-
-citationID :: T.HasIssue a => a -> T.Citation -> Text
--- ^Generate an article citation for an article issue. The basic
--- format is: _JournalClassName-FirstPageNumber
-citationID iss c = className iss <> "-" <> C.tshow p1
-    where (p1,_) = T.pages c
 
 spaceToUnder :: Text -> Text
 -- ^Convert spaces to underscores.
@@ -169,16 +164,17 @@ issueHeader iss = Tx.concat xs
 citationDict :: T.Selection -> T.Citation -> Map.Map Text Text
 citationDict (T.Selection iss _) c = Map.fromList xys
     where (p0,pn) = T.pages c
-          xys     = [ ("id",       citationID iss c                )
-                    , ("class",    className iss                   )
-                    , ("type",     "checkbox"                      )
-                    , ("href",     T.doi c                         )
-                    , ("title",    fixReserved . T.title   $ c     )
-                    , ("authors",  fixReserved . T.authors $ c     )
-                    , ("journal",  T.name  . T.journal $ iss       )
-                    , ("volume",   C.tshow . T.volNo   $ iss       )
-                    , ("number",   C.tshow . T.issNo   $ iss       )
-                    , ("pages",    C.tshow p0 <> "-" <> C.tshow pn )
+          xys     = [ ("id",       T.pmid c                           )
+                    , ("class",    className iss                      )
+                    , ("type",     "checkbox"                         )
+                    , ("href",     T.doi c                            )
+                    , ("title",    T.title   $ c                      )
+                    , ("authors",  Tc.authorsToTxt $ c                )
+                    , ("journal",  T.name  . T.journal $ iss          )
+                    , ("volume",   C.tshow . T.volNo   $ iss          )
+                    , ("number",   C.tshow . T.issNo   $ iss          )
+                    , ("pages",    C.tshow p0 <> "-" <> C.tshow pn    )
+                    , ("pmid",     T.pmid c                           )
                     ]
 
 -- --------------------------------------------------------------- --

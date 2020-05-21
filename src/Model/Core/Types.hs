@@ -162,7 +162,7 @@ instance HasIssue IssueContent where
 -- |Information about an article in an issue of a journal
 data Citation = Citation {
       title   :: Text
-    , authors :: Text
+    , authors :: [Text]
     , pages   :: (PageNumber, PageNumber)
     , doi     :: Text
     , pmid    :: PMID

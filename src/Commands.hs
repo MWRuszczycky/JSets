@@ -10,6 +10,7 @@ import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
+import qualified Model.Parsers.PubMed      as P
 import qualified Model.Text.Formatting     as F
 import qualified Model.Text.Help           as H
 import qualified AppMonad                  as A
@@ -18,6 +19,7 @@ import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO, lift
+                                                    , liftEither
                                                     , throwError     )
 
 -- =============================================================== --
@@ -29,6 +31,7 @@ commands = [ T.Command "group" groupCmd groupHelp
            , T.Command "help"  helpCmd  helpHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "refs"  refsCmd  refsHelp
+           , T.Command "json"  jsonCmd  jsonHelp
            , T.Command "toc"   tocCmd   tocHelp
            , T.Command "year"  yearCmd  yearHelp
            ]
@@ -58,6 +61,33 @@ groupCmd fps = do
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
          Just sel -> display . F.selectionToTxt $ sel
+
+---------------------------------------------------------------------
+-- Downloading raw json from pubmed
+
+jsonHelp :: (Text, Text)
+jsonHelp = (s, Tx.unlines hs)
+    where s  = "download raw json for a journal issue (for debugging)"
+          hs = [ "Usage: json <Journal-abbreviation> <year> <issue>"
+               , "Generates two files:"
+               , "    esearch.json:  the esearch response"
+               , "    esummary.json: the esummary response"
+               ]
+
+jsonCmd :: [String] -> T.AppMonad ()
+jsonCmd [] = throwError "A journal issue must be specified."
+jsonCmd xs
+    | length xs < 3 = throwError "Invalid number of arguments (should be 3)!"
+    | otherwise     = do
+        let abbr = Tx.pack $ xs !! 0
+        y   <- maybe (throwError "invalid year!")   pure . readMaybe $ xs !! 1
+        n   <- maybe (throwError "invalid number!") pure . readMaybe $ xs !! 2
+        iss <- A.getIssue abbr y n
+        esearch <- lift . C.webRequest (J.tocESearchQuery iss) $ J.eSearchUrl
+        lift . C.writeFileErr "esearch.json" $ esearch
+        pmids <- liftEither . P.parsePMIDs $ esearch
+        esummary <- lift . C.webRequest (J.tocESumQuery pmids) $ J.eSummaryUrl
+        lift . C.writeFileErr "esummary.json" $ esummary
 
 ---------------------------------------------------------------------
 -- Grouping multiple issue selections

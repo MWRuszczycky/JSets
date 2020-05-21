@@ -115,11 +115,11 @@ downloadCitations :: [Text] -> T.AppMonad [T.Citation]
 downloadCitations []    = pure []
 downloadCitations pmids = do
     let query = J.tocESumQuery pmids
-    result <- liftIO . runExceptT $ C.webRequest query J.eSearchUrl
+    result <- liftIO . runExceptT $ C.webRequest query J.eSummaryUrl
     case result >>= P.parseCitations of
          Left  err     -> (liftIO . putStrLn) err     *> pure []
          Right ([],cs) -> (liftIO . putStrLn) "Done." *> pure cs
-         Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS :" : ms
+         Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
                           in  (liftIO . Tx.putStrLn) msg *> pure cs
 
 downloadPubMed :: T.Selection -> T.AppMonad T.IssueContent

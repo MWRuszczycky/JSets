@@ -145,6 +145,7 @@ citationTemplate :: Template
 -- volume   : issue volume
 -- number   : issue number
 -- pages    : pages string
+-- pmid     : pubmed uid
 citationTemplate = parseTemplate' "res/html/citationTemplate.html"
                    $(FE.embedStringFile "res/html/citationTemplate.html")
 

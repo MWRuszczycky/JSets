@@ -8,9 +8,11 @@ import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
 import qualified Data.Text            as Tx
 import qualified Model.Parsers.Basic  as P
+import qualified Data.Attoparsec.Text as At
 import           Data.Text                   ( Text       )
 import           Data.List                   ( sortBy     )
 import           Data.Ord                    ( comparing  )
+import           Control.Applicative         ( some, many )
 
 -- =============================================================== --
 -- Parsing PubMed Entrez ESearch results
@@ -46,19 +48,31 @@ getCitation json pmid = (pmid, c)
                             <*> getDoi     doc
                             <*> pure       pmid
 
-getAuthors :: P.JSON -> Maybe Text
-getAuthors json = let go = P.lookupJson [ "name" ] P.jstr
-                  in  P.lookupArray [ "authors" ] go json
-                      >>= pure . Tx.intercalate ", "
-
-getPages :: P.JSON -> Maybe (T.PageNumber, T.PageNumber)
-getPages json = P.lookupJson [ "pages" ] P.jstr json >>= pure . parsePageNumbers
+getAuthors :: P.JSON -> Maybe [Text]
+getAuthors json = P.lookupArray [ "authors" ] go json
+    where go = P.lookupJson [ "name" ] P.jstr
 
 getDoi :: P.JSON -> Maybe Text
 getDoi json = P.lookupJson [ "elocationid" ] P.jstr json >>= go
-    where go x = case Tx.splitAt 5 x of
-                      ("doi: ", d) -> pure d
-                      _            -> Nothing
+    where prefix = "https://www.doi.org/"
+          go x   = case Tx.take 4 x of
+                        ""     -> pure Tx.empty
+                        "doi:" -> pure . (prefix <>) . Tx.drop 5 $ x
+                        _      -> go . Tx.tail $ x
 
-parsePageNumbers :: Text -> (T.PageNumber, T.PageNumber)
-parsePageNumbers _ = (T.PageNumber "Cat" 0, T.PageNumber "Dog" 1)
+getPages :: P.JSON -> Maybe (T.PageNumber, T.PageNumber)
+getPages json = do
+    txt <- P.lookupJson [ "pages" ] P.jstr json
+    case At.parseOnly parsePageNumbers txt of
+         Right ps -> pure ps
+         Left  _  -> pure ( T.PageNumber "online" 1 , T.PageNumber "online" 0 )
+
+parsePageNumbers :: At.Parser (T.PageNumber, T.PageNumber)
+parsePageNumbers = do
+    prefix0 <- many At.letter
+    suffix0 <- read <$> some At.digit
+    At.char '-'
+    prefix1 <- many At.letter
+    suffix1 <- read <$> some At.digit
+    pure ( T.PageNumber prefix0 suffix0, T.PageNumber prefix1 suffix1)
+

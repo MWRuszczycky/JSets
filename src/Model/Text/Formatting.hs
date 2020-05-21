@@ -34,6 +34,7 @@ import qualified Data.Text            as Tx
 import qualified Model.Core.Core      as C
 import qualified Model.Core.Types     as T
 import qualified Model.Journals       as J
+import qualified Model.Text.Core      as Tc
 import qualified Model.Text.Html      as Html
 import           Data.Text                      ( Text      )
 import           Data.List                      ( sortBy    )
@@ -134,7 +135,7 @@ citationToTxt :: T.HasIssue a => a -> T.Citation -> Text
 citationToTxt iss c = Tx.unlines parts
     where jrnl  = T.journal iss
           parts = [ T.title c
-                  , T.authors c
+                  , Tc.authorsToTxt c
                   , Tx.unwords [ T.name jrnl,  volIssToTxt iss, pagesToTxt c ]
                   ]
 
@@ -161,7 +162,7 @@ citationToMkd :: T.Selection -> T.Citation -> Text
 citationToMkd sel x = Tx.unlines parts
     where jrnl  = T.journal sel
           parts = [ (mkdBd $ mkdLink (fixMkd $ T.title x) (T.doi x)) <> "\\"
-                  , fixMkd (T.authors x) <> "\\"
+                  , fixMkd (Tc.authorsToTxt x) <> "\\"
                   , Tx.unwords [ mkdIt . fixMkd . T.name $ jrnl
                                , volIssToTxt sel
                                , pagesToTxt x
