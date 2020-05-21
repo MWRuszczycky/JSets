@@ -10,10 +10,11 @@ import qualified Model.Core.Types      as T
 import qualified Model.Parsers.Basic   as PB
 import qualified Model.Journals        as J
 import           Data.Bifunctor               ( bimap              )
-import           Data.Char                    ( isSpace, isDigit   )
 import           Data.Text                    ( Text               )
 import           Model.Core.Core              ( readMaybeTxt       )
 import           Control.Applicative          ( some, many,  (<|>) )
+import           Data.Char                    ( isSpace, isDigit
+                                              , isAlphaNum         )
 
 -- =============================================================== --
 -- Main parsers
@@ -44,7 +45,7 @@ parseTxt refs t = let err = (<>) "Cannot parse selection: "
 type RawJset      = ( Int, [RawSelection] )
 
 -- | Raw issues and selected page numbers from that issue
-type RawSelection = (RawIssue, [T.PageNumber])
+type RawSelection = (RawIssue, [T.PMID])
 
 -- | Journal abbreviation, volume number and issue number
 type RawIssue     = ( Text, Int, Int )
@@ -102,9 +103,9 @@ rawSelection = do
     indent <- At.takeWhile At.isHorizontalSpace
     if Tx.null indent
        then pure (iss, [])
-       else do p  <- pageNumber
+       else do p  <- pmid
                At.skipWhile At.isHorizontalSpace *> At.endOfLine
-               ps <- many (indentedPageNumber indent)
+               ps <- many (indentedPMID indent)
                At.skipSpace
                pure $ (iss, p : ps)
 
@@ -116,10 +117,13 @@ rawIssue = do
     At.char '(' *> dateParser *> At.char ')'
     pure (journal, volNo, issNo)
 
-indentedPageNumber :: Text -> At.Parser T.PageNumber
-indentedPageNumber indent = do
+indentedPMID :: Text -> At.Parser T.PMID
+indentedPMID indent = do
     At.string indent
-    pageNumber <* At.skipWhile At.isHorizontalSpace <* At.endOfLine
+    pmid <* At.skipWhile At.isHorizontalSpace <* At.endOfLine
+
+pmid :: At.Parser T.PMID
+pmid = Tx.pack <$> some (At.satisfy isAlphaNum)
 
 ---------------------------------------------------------------------
 -- General component parsers
@@ -131,16 +135,6 @@ dateParser :: At.Parser (Int, Int, Int)
 dateParser = (,,) <$> ( intParser <* At.char '-'  )
                   <*> ( intParser <* At.char '-'  )
                   <*> ( intParser                 )
-
-pageNumber :: At.Parser T.PageNumber
-pageNumber = do
-    prefix <- Tx.unpack <$> pageNumberPrefix
-    digits <- read <$> some At.digit
-    pure $ T.PageNumber prefix digits
-
-pageNumberPrefix :: At.Parser Text
-pageNumberPrefix = At.takeTill (At.inClass " :\n\r\t") <* At.char ':'
-                   <|> pure ""
 
 -- =============================================================== --
 -- Component parsers for CSV

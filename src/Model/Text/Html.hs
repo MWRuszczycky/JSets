@@ -83,7 +83,7 @@ htmlToCSelect jset = fill (Map.fromList xys) Temp.tocsTemplate
 
 htmlToCRank :: T.JournalSet T.IssueContent -> Text
 htmlToCRank jset = fill (Map.fromList xys) Temp.ranksTemplate
-    where iss = J.selectContent . T.issues $ jset
+    where iss = map J.restrictContent . T.issues $ jset
           xys = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
                 , ( "citations", onlySelectedHtml iss                     )
                 ]
@@ -123,9 +123,9 @@ allCitations (T.IssueContent sel cs) =
 
 citationHtml :: T.Selection -> T.Citation -> Text
 citationHtml sel@(T.Selection _ ps) c
-    | elem p0 ps = fill ( go " class=\"selected\"" ) Temp.citationTemplate
-    | otherwise  = fill ( go Tx.empty              ) Temp.citationTemplate
-    where p0   = fst . T.pages $ c
+    | elem p ps = fill ( go " class=\"selected\"" ) Temp.citationTemplate
+    | otherwise = fill ( go Tx.empty              ) Temp.citationTemplate
+    where p    = T.pmid c
           go u = Map.insert "selected" u . citationDict sel $ c
 
 ---------------------------------------------------------------------
@@ -173,11 +173,11 @@ citationDict (T.Selection iss _) c = Map.fromList xys
                     , ("class",    className iss                   )
                     , ("type",     "checkbox"                      )
                     , ("href",     T.doi c                         )
-                    , ("title",    fixReserved . T.title $ c       )
+                    , ("title",    fixReserved . T.title   $ c     )
                     , ("authors",  fixReserved . T.authors $ c     )
-                    , ("journal",  T.name . T.journal $ iss        )
-                    , ("volume",   C.tshow . T.volNo $ iss         )
-                    , ("number",   C.tshow . T.issNo $ iss         )
+                    , ("journal",  T.name  . T.journal $ iss       )
+                    , ("volume",   C.tshow . T.volNo   $ iss       )
+                    , ("number",   C.tshow . T.issNo   $ iss       )
                     , ("pages",    C.tshow p0 <> "-" <> C.tshow pn )
                     ]
 

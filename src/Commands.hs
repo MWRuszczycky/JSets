@@ -9,7 +9,6 @@ import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
-import qualified Model.Parsers.PubMed      as P
 import qualified Model.Journals            as J
 import qualified Model.Text.Formatting     as F
 import qualified Model.Text.Help           as H
@@ -17,10 +16,8 @@ import qualified AppMonad                  as A
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
-import           Control.Monad                      ( zipWithM       )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO, lift
-                                                    , liftEither
                                                     , throwError     )
 
 -- =============================================================== --
@@ -57,7 +54,7 @@ groupHelp = (s, Tx.unlines hs)
 groupCmd :: [String] -> T.AppMonad ()
 groupCmd []  = throwError "A selection file must be sepecified!"
 groupCmd fps = do
-    mbSel <- mapM A.readJset fps >>= pure . J.groupSelections
+    mbSel <- mapM A.readJset fps >>= pure . J.groupJsets
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
          Just sel -> display . F.selectionToTxt $ sel
@@ -163,19 +160,14 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    T.JSet n xs <- A.readJset fp
-    contents    <- mapM A.downloadPubMed xs
-    -- cs    <- liftEither . zipWithM P.parseCited xs $ ts
-    -- style <- asks T.cToCStyle
-    -- fmt   <- A.getFormat
-    --let jset = T.JSet k cs
-    --    raw  = Tx.unlines ts
-    display . F.tocsToTxt $ T.JSet n contents
---  case fmt of
---       T.RAW  -> display raw
---       T.HTML -> display . F.tocsToHtml style $ jset
---       T.MKD  -> display . F.tocsToMkd        $ jset
---       _      -> display . F.tocsToTxt        $ jset
+    T.JSet n iss <- A.readJset fp
+    ics   <- mapM A.downloadPubMed iss
+    style <- asks T.cToCStyle
+    fmt   <- A.getFormat
+    case fmt of
+         T.HTML -> display . F.tocsToHtml style . T.JSet n $ ics
+         T.MKD  -> display . F.tocsToMkd        . T.JSet n $ ics
+         _      -> display . F.tocsToTxt        . T.JSet n $ ics
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year

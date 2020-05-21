@@ -13,6 +13,7 @@ module Model.Core.Core
     , shuffleInAt
     , zipLists
     , collectBy
+    , splitMaybe
     ) where
 
 import qualified Data.Text as Tx
@@ -114,3 +115,8 @@ collectBy p = foldl' go []
           go ([]:ys)      x = go ys x
           go ((y:ys):ys') x | p x y     = (x:y:ys) : ys'
                             | otherwise = (y:ys)   : go ys' x
+
+splitMaybe :: [(a, Maybe b)] -> ([(a,b)], [a])
+splitMaybe = foldr go ([],[])
+    where go (k, Just v ) (js,ns) = ( (k,v):js, ns  )
+          go (k, Nothing) (js,ns) = ( js,       k:ns)

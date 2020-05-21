@@ -5,7 +5,11 @@ module Model.Parsers.Basic
     , CSV
     , parseCSV
     , parseJSON
-    , objLookup
+    , lookupJson
+    , lookupArray
+    , jobj
+    , jarray
+    , jstr
     ) where
 
 import qualified Data.Text            as Tx
@@ -33,10 +37,25 @@ type CSV = [[Text]]
 -- =============================================================== --
 -- JSON utilities
 
-objLookup :: [Text] -> JSON -> Maybe JSON
-objLookup [] j              = Just j
-objLookup (x:xs) (JObj obj) = lookup x obj >>= objLookup xs
-objLookup _      _          = Nothing
+lookupJson :: [Text] -> (JSON -> Maybe a) -> JSON -> Maybe a
+lookupJson []     f json        = f json
+lookupJson (x:xs) f (JObj dict) = lookup x dict >>= lookupJson xs f
+lookupJson _      _ _           = Nothing
+
+lookupArray :: [Text] -> (JSON -> Maybe a) -> JSON -> Maybe [a]
+lookupArray xs f json = lookupJson xs jarray json >>= mapM f
+
+jobj :: JSON -> Maybe [(Text, JSON)]
+jobj (JObj json) = pure json
+jobj _           = Nothing
+
+jarray :: JSON -> Maybe [JSON]
+jarray (JArray js) = pure js
+jarray _           = Nothing
+
+jstr :: JSON -> Maybe Text
+jstr (JStr txt) = pure txt
+jstr _          = Nothing
 
 -- =============================================================== --
 -- Exported parsers

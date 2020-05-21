@@ -22,9 +22,8 @@ module Model.Journals
     , nextWeekly
     , nextMonthly
       -- Working with selection sets
-    , groupSelections
-    , selectContent
-    , selectCitations
+    , groupJsets
+    , restrictContent
       -- Working with downloaded table of contents
     , eUtilsUrl
     , eSearchUrl
@@ -203,35 +202,27 @@ nextWeekly x1
 -- =============================================================== --
 -- Working with selection sets for review
 
-groupSelections :: [T.JournalSet T.Selection]
-                   -> Maybe (T.JournalSet T.Selection)
+groupJsets :: [T.JournalSet T.Selection] -> Maybe (T.JournalSet T.Selection)
 -- ^Fold multiple journal set selections into a single journal set
 -- selection by combining page numbers for the same issues between
 -- the selection sets.
-groupSelections []       = Nothing
-groupSelections ss@(x:_) = let setNo = T.setNo x
-                           in  pure . T.JSet setNo
-                                    . groupPages
-                                    . concatMap T.issues $ ss
+groupJsets []       = Nothing
+groupJsets ss@(x:_) = let setNo = T.setNo x
+                      in  pure . T.JSet setNo
+                               . groupSelections
+                               . concatMap T.issues $ ss
 
-groupPages :: [T.Selection] -> [T.Selection]
-groupPages = concatMap rewrap . C.collectBy go
+groupSelections :: [T.Selection] -> [T.Selection]
+groupSelections = concatMap rewrap . C.collectBy go
     where go x y         = T.issue x == T.issue y
           rewrap []      = []
           rewrap (x:xs)  = [ T.Selection (T.issue x) . sort . nub
                              . concatMap T.selected $ (x:xs) ]
 
-selectContent :: [T.IssueContent] -> [T.IssueContent]
-selectContent = concatMap go
-    where go sel = case selectCitations sel of
-                        [] -> []
-                        cs -> [ sel { T.citations = cs } ]
-
-selectCitations :: T.IssueContent -> [T.Citation]
--- ^Filter the individual selected citations from a Citations value.
-selectCitations (T.IssueContent sel cs) = filter go cs
-    where ps   = T.selected sel
-          go c = elem (fst . T.pages $ c) ps
+restrictContent :: T.IssueContent -> T.IssueContent
+restrictContent ic@(T.IssueContent iss cs) = ic { T.citations = cs' }
+    where sel = T.selected iss
+          cs' = filter ( flip elem sel . T.pmid ) cs
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues

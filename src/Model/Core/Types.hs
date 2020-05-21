@@ -24,6 +24,7 @@ module Model.Core.Types
       -- Table of contents and citations
     , Citation          (..)
     , PageNumber        (..)
+    , PMID
     ) where
 
 import Data.Time            ( Day            )
@@ -70,7 +71,6 @@ data Format =
     | HTML
     | MKD
     | CSV
-    | RAW
       deriving ( Show, Eq )
 
 data ToCStyle =
@@ -128,7 +128,7 @@ data Issue = Issue {
 
 data Selection = Selection {
       theIssue :: Issue
-    , selected :: [PageNumber]
+    , selected :: [PMID]
     } deriving ( Show, Eq )
 
 data IssueContent = IssueContent {
@@ -163,9 +163,12 @@ instance HasIssue IssueContent where
 data Citation = Citation {
       title   :: Text
     , authors :: Text
-    , pages   :: (PageNumber,PageNumber)
+    , pages   :: (PageNumber, PageNumber)
     , doi     :: Text
+    , pmid    :: PMID
     } deriving ( Show, Eq )
+
+type PMID = Text
 
 ---------------------------------------------------------------------
 -- Page numbers
