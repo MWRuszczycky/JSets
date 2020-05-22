@@ -140,8 +140,10 @@ readCmd (fp:_) = do
     abbrs <- A.issueRefAbbrs
     case (mbKey, fmt) of
          (Just _, T.CSV) -> A.readJset  fp >>= display . V.jsetToCsv abbrs
+         (Just _, T.MKD) -> A.readJset  fp >>= display . V.jsetToMkd
          (Just _, _    ) -> A.readJset  fp >>= display . V.jsetToTxt
          (_     , T.CSV) -> A.readJsets fp >>= display . V.jsetsToCsv abbrs
+         (_     , T.MKD) -> A.readJsets fp >>= display . V.jsetsToMkd
          (_     , _    ) -> A.readJsets fp >>= display . V.jsetsToTxt
 
 ---------------------------------------------------------------------

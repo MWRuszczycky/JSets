@@ -9,6 +9,8 @@ module Model.Core.Types
     , Command           (..)
     , Format            (..)
     , ToCStyle          (..)
+      -- Dates
+    , HasDate           (..)
       -- Journal sets
     , JournalSet        (..)
     , Collection
@@ -27,11 +29,11 @@ module Model.Core.Types
     , PMID
     ) where
 
-import Data.Time            ( Day            )
-import Data.Text            ( Text           )
-import Data.Map.Strict      ( Map            )
-import Control.Monad.Except ( ExceptT        )
-import Control.Monad.Reader ( ReaderT        )
+import Data.Time            ( Day, toGregorian )
+import Data.Text            ( Text             )
+import Data.Map.Strict      ( Map              )
+import Control.Monad.Except ( ExceptT          )
+import Control.Monad.Reader ( ReaderT          )
 
 -- =============================================================== --
 -- State
@@ -80,6 +82,21 @@ data ToCStyle =
       deriving ( Show, Eq )
 
 -- =============================================================== --
+-- Dates
+
+class HasDate a where
+      date  :: a -> Day
+      year  :: a -> Int
+      month :: a -> Int
+      day   :: a -> Int
+      year  x = let (y,_,_) = toGregorian . date $ x in fromIntegral y
+      month x = let (_,m,_) = toGregorian . date $ x in m
+      day   x = let (_,_,d) = toGregorian . date $ x in d
+
+instance HasDate Day where
+    date = id
+
+-- =============================================================== --
 -- Journal sets
 
 -- |A JournalSet is a list of all journal issues to be reviewed in
@@ -88,6 +105,9 @@ data JournalSet  a = JSet {
       setNo  :: Int
     , issues :: [a]
     } deriving Show
+
+instance HasDate a => HasDate (JournalSet a) where
+    date = maximum . map date . issues
 
 -- |A Collection basic journal sets mapped by set number.
 type Collection a = Map Int [a]
@@ -118,6 +138,17 @@ data Frequency =
 -- =============================================================== --
 -- Journal Issues
 
+class HasDate a => HasIssue a where
+    issue   :: a -> Issue
+    journal :: a -> Journal
+    volNo   :: a -> Int
+    issNo   :: a -> Int
+    journal = theJournal . issue
+    volNo   = theVolNo   . issue
+    issNo   = theIssNo   . issue
+
+---------------------------------------------------------------------
+
 -- |Information about a given issue of a journal
 data Issue = Issue {
       theDate    :: Day
@@ -126,35 +157,37 @@ data Issue = Issue {
     , theJournal :: Journal
     } deriving ( Show, Eq )
 
+instance HasDate Issue where
+    date = theDate
+
+instance HasIssue Issue where
+    issue = id
+
+---------------------------------------------------------------------
+
 data Selection = Selection {
       theIssue :: Issue
     , selected :: [PMID]
     } deriving ( Show, Eq )
+
+instance HasDate Selection where
+    date = theDate . theIssue
+
+instance HasIssue Selection where
+    issue = theIssue
+
+---------------------------------------------------------------------
 
 data IssueContent = IssueContent {
       selection :: Selection
     , citations :: [Citation]
     } deriving ( Show, Eq )
 
-class HasIssue a where
-    issue   :: a -> Issue
-    journal :: a -> Journal
-    date    :: a -> Day
-    volNo   :: a -> Int
-    issNo   :: a -> Int
-    journal = theJournal . issue
-    date    = theDate . issue
-    volNo   = theVolNo . issue
-    issNo   = theIssNo . issue
-
-instance HasIssue Issue where
-    issue = id
-
-instance HasIssue Selection where
-    issue = theIssue
-
 instance HasIssue IssueContent where
     issue = theIssue . selection
+
+instance HasDate IssueContent where
+    date = theDate . theIssue . selection
 
 -- =============================================================== --
 -- Citations and selections

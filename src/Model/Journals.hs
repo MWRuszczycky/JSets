@@ -9,7 +9,6 @@ module Model.Journals
     , selectNone
     , yearly26Sets
     , splitByFreq
-    , dateOfJSet
     , issuesByAbbr
       -- Working with journal issues
     , addIssues
@@ -103,9 +102,6 @@ monthly26InYear y refs = [] : [] : C.shuffleIn byqs byqrs
 ---------------------------------------------------------------------
 -- Helper functions
 
-dateOfJSet :: T.HasIssue a => T.JournalSet a -> Day
-dateOfJSet = maximum . map T.date . T.issues
-
 issuesByAbbr :: T.HasIssue a => Text -> [a] -> [a]
 -- ^Pull all issues in a list for a given journal abbr.
 issuesByAbbr abbr = filter ( (== abbr) . T.abbr . T.journal )
@@ -148,7 +144,7 @@ issuesFromDate d0 ref = iterate (addIssues 1) . issueAtDate d0 $ ref
 
 issuesInYear :: Int -> T.Issue -> [T.Issue]
 -- ^All issues with publication dates in the specified year.
-issuesInYear y x = take 52 . filter ((== y) . D.getYear . T.theDate) $ xs
+issuesInYear y x = take 52 . filter ((== y) . T.year) $ xs
     where d0 = Tm.fromGregorian (fromIntegral   y    ) 1  2
           d1 = Tm.fromGregorian (fromIntegral $ y + 1) 1  1
           xs = issuesByDates d0 d1 x
@@ -250,8 +246,8 @@ eSummaryUrl = eUtilsUrl <> "esummary.fcgi?db=pubmed"
 eSearchTerm :: T.HasIssue a => a -> Text
 eSearchTerm x = Tx.intercalate " AND " keys
     where keys = [ "\"" <> ( T.pubmed . T.journal) x <> "\"[journal]"
-                 , (C.tshow . D.getYear . T.date ) x <> "[ppdat]"
-                 , (C.tshow . T.issNo            ) x <> "[issue]"
+                 , ( C.tshow . T.year  ) x <> "[ppdat]"
+                 , ( C.tshow . T.issNo ) x <> "[issue]"
                  , "journal article[pt]"
                  ]
 

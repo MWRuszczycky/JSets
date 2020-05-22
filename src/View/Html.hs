@@ -11,11 +11,9 @@ import qualified Data.Map.Strict  as Map
 import qualified Model.Core.Types as T
 import qualified Model.Core.Core  as C
 import qualified Model.Journals   as J
-import qualified Model.Core.Dates as D
 import qualified View.Templates   as Temp
-import qualified View.Core        as Tc
+import qualified View.Core        as Vc
 import           Data.Text                ( Text           )
-import           Data.Char                ( isSpace        )
 import           View.Templates           ( fill, fillNone )
 
 -- =============================================================== --
@@ -26,24 +24,10 @@ className :: T.HasIssue a => a -> Text
 -- _JournalName-Volume-Number
 -- where the journal name has all spaces converted to underscores.
 className iss = Tx.intercalate "-" xs
-    where xs = [ ("_" <>) . spaceToUnder . T.abbr . T.journal $ iss
+    where xs = [ ("_" <>) . Vc.spaceToUnder . T.abbr . T.journal $ iss
                , C.tshow . T.volNo $ iss
                , C.tshow . T.issNo $ iss
                ]
-
-spaceToUnder :: Text -> Text
--- ^Convert spaces to underscores.
-spaceToUnder = Tx.map go
-    where go x | isSpace x = '_'
-               | otherwise = x
-
-fixReserved :: Text -> Text
--- ^Convert html reserved characters to html compatible counterparts.
-fixReserved = Tx.concatMap go
-    where go '<' = "&lt"
-          go '>' = "&gt"
-          go '&' = "&amp"
-          go x   = Tx.singleton x
 
 -- =============================================================== --
 -- Exported html document compositors
@@ -55,7 +39,7 @@ htmlToCPropose :: T.JournalSet T.IssueContent -> Text
 -- The 'propose' style is used to select citations for consideration.
 htmlToCPropose jset = fill (Map.fromList xys) Temp.tocsTemplate
     where xys = [ ( "jsetTitle",  "Journal Set " <> C.tshow (T.setNo jset) )
-                , ( "jsetHeader", jsetHeader jset                          )
+                , ( "jsetHeader", Vc.jsetHeader jset                       )
                 , ( "savePrefix", savePrefix jset                          )
                 , ( "instr",      fillNone Temp.instrCTemplate             )
                 , ( "issues",     issuesArray . T.issues $ jset            )
@@ -69,7 +53,7 @@ htmlToCSelect :: T.JournalSet T.IssueContent -> Text
 -- The 'select' style is used for selecting citations for review.
 htmlToCSelect jset = fill (Map.fromList xys) Temp.tocsTemplate
     where xys = [ ( "jsetTitle",  "Journal Set " <> C.tshow (T.setNo jset) )
-                , ( "jsetHeader", jsetHeader jset                          )
+                , ( "jsetHeader", Vc.jsetHeader jset                       )
                 , ( "savePrefix", savePrefix jset                          )
                 , ( "instr",      fillNone Temp.instrRTemplate             )
                 , ( "issues",     issuesArray . T.issues $ jset            )
@@ -164,31 +148,23 @@ issueHeader iss = Tx.concat xs
 citationDict :: T.Selection -> T.Citation -> Map.Map Text Text
 citationDict (T.Selection iss _) c = Map.fromList xys
     where (p0,pn) = T.pages c
-          xys     = [ ("id",       T.pmid c                           )
-                    , ("class",    className iss                      )
-                    , ("type",     "checkbox"                         )
-                    , ("href",     T.doi c                            )
-                    , ("title",    T.title   $ c                      )
-                    , ("authors",  Tc.authorsToTxt $ c                )
-                    , ("journal",  T.name  . T.journal $ iss          )
-                    , ("volume",   C.tshow . T.volNo   $ iss          )
-                    , ("number",   C.tshow . T.issNo   $ iss          )
-                    , ("pages",    C.tshow p0 <> "-" <> C.tshow pn    )
-                    , ("pmid",     T.pmid c                           )
+          xys     = [ ("id",       T.pmid c                        )
+                    , ("class",    className iss                   )
+                    , ("type",     "checkbox"                      )
+                    , ("href",     T.doi c                         )
+                    , ("title",    T.title       $ c               )
+                    , ("authors",  Vc.authorLine $ c               )
+                    , ("journal",  T.name  . T.journal $ iss       )
+                    , ("volume",   C.tshow . T.volNo   $ iss       )
+                    , ("number",   C.tshow . T.issNo   $ iss       )
+                    , ("pages",    C.tshow p0 <> "-" <> C.tshow pn )
+                    , ("pmid",     T.pmid c                        )
                     ]
 
 -- --------------------------------------------------------------- --
 -- Javascript elements for building the selection text file
 
-jsetHeader :: T.HasIssue a => T.JournalSet a -> Text
--- ^Journal set header for generation of the selection text file.
-jsetHeader jset = Tx.unwords xs
-    where xs = [ C.tshow . T.setNo $ jset
-               , "|"
-               , C.tshow . J.dateOfJSet $ jset
-               ]
-
 savePrefix :: T.HasIssue a => T.JournalSet a -> Text
 -- ^Filename prefix for the selection text file.
 savePrefix jset = "sel" <> C.tshow y <> "-" <> ( C.tshow . T.setNo $ jset )
-    where y = D.getYear . J.dateOfJSet $ jset
+    where y = T.year jset

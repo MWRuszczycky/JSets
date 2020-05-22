@@ -1,32 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module View.View
-    ( -- Formatting journal sets
-      -- As CSV
+    ( -- Viewing journal sets
       jsetsToCsv
     , jsetToCsv
-      -- As Text
     , jsetsToTxt
     , jsetToTxt
-    , jsetHeader
-      -- Formatting Issues
-      -- As Text
+    , jsetsToMkd
+    , jsetToMkd
+      -- Viewing Issues
     , issueToTxt
-    , volIssToTxt
-      -- Formatting tables of contents
-      -- As Text
+    , issueToMkd
+      -- Viewing cations
+    , citationToTxt
+    , citationToMkd
+      -- Viewing tables of contents
     , tocsToTxt
     , tocToTxt
-    , citationToTxt
-      -- As html
     , tocsToHtml
-      -- As Markdown
     , tocsToMkd
     , tocToMkd
-    , citationToMkd
-      -- Formatting selections
+      -- Viewing selections
     , selectionToTxt
-      -- Fomatting references
+      -- Viewing references
     , referenceToTxt
     ) where
 
@@ -34,14 +30,14 @@ import qualified Data.Text        as Tx
 import qualified Model.Core.Core  as C
 import qualified Model.Core.Types as T
 import qualified Model.Journals   as J
-import qualified View.Core        as Tc
+import qualified View.Core        as Vc
 import qualified View.Html        as Html
 import           Data.Text                ( Text      )
 import           Data.List                ( sortBy    )
 import           Data.Ord                 ( comparing )
 
 -- =============================================================== --
--- Formatting journal sets
+-- Viewing journal sets
 
 ---------------------------------------------------------------------
 -- As CSV
@@ -65,9 +61,9 @@ jsetToCsv :: T.HasIssue a => [Text] -> T.JournalSet a -> Text
 -- newline characters. All elements are enclosed in double quotes.
 jsetToCsv abbrs jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ abbrs
     where go k xs = (volIss . J.issuesByAbbr k . T.issues) jset : xs
-          volIss  = bracket '\"' '\"' . Tx.intercalate "\n" . map volIssToTxt
-          hdr     = bracket '\"' '\"' ( setNo <> "\n" <> date ) <> ","
-          date    = C.tshow . J.dateOfJSet $ jset
+          volIss  = Vc.bracket '\"' '\"' . Tx.intercalate "\n" . map Vc.volIss
+          hdr     = Vc.bracket '\"' '\"' ( setNo <> "\n" <> date ) <> ","
+          date    = Vc.dateN          $ jset
           setNo   = C.tshow . T.setNo $ jset
 
 ---------------------------------------------------------------------
@@ -78,43 +74,69 @@ jsetsToTxt = Tx.unlines . map jsetToTxt . J.unpack
 
 jsetToTxt :: T.HasIssue a => T.JournalSet a -> Text
 -- ^Convert a journal set to easily readable, formatted text.
-jsetToTxt jset = jsetHeader jset <> "\n" <> Tx.unlines xs
+jsetToTxt jset = Vc.jsetHeader jset <> "\n" <> Tx.unlines xs
     where xs    = map issueToTxt . sortBy (comparing jName) . T.issues $ jset
           jName = T.name . T.journal
 
 ---------------------------------------------------------------------
--- Helpers
+-- to Markdown
 
-jsetHeader :: T.HasIssue a => T.JournalSet a -> Text
--- ^Convert a journal set key to text formatted as year-number.
-jsetHeader jset = Tx.unwords [ (C.tshow . T.setNo) jset
-                             , "|"
-                             , C.tshow . J.dateOfJSet $ jset
-                             ]
+jsetsToMkd :: T.HasIssue a => T.Collection a -> Text
+jsetsToMkd = Tx.unlines . map jsetToMkd . J.unpack
+
+jsetToMkd :: T.HasIssue a => T.JournalSet a -> Text
+jsetToMkd jset = Tx.concat $ hdr : iss
+    where hdr = "## " <> Vc.jsetHeader jset <> "\n\n"
+          iss = map ( Tx.append "* " . issueToMkd ) . T.issues $ jset
 
 -- =============================================================== --
--- Formatting issues
+-- Viewing issues
 
 ---------------------------------------------------------------------
 -- As Text
 
 issueToTxt :: T.HasIssue a => a -> Text
--- ^Convert a journal issue to easily readable, formatted text.
-issueToTxt iss = Tx.unwords us
-    where us = [ T.abbr . T.journal $ iss
-               , C.tshow . T.volNo  $ iss
-               , C.tshow . T.issNo  $ iss
-               , Tx.pack $ "(" ++ show (T.date iss) ++ ")"
-               ]
+-- ^Format an issue as "abbr volume number (year-month-day)".
+issueToTxt iss = Tx.unwords . map ($iss) $ [ T.abbr  . T.journal
+                                           , C.tshow . T.volNo
+                                           , C.tshow . T.issNo
+                                           , Vc.dateP
+                                           ]
 
-volIssToTxt :: T.HasIssue a => a -> Text
--- ^Construct a vol:iss text string for the volume and issue of a
--- journal issue.
-volIssToTxt iss = Tx.intercalate ":" volIss
-    where volIss = map C.tshow [ T.volNo iss, T.issNo iss ]
+issueToMkd :: T.HasIssue a => a -> Text
+issueToMkd iss = Tx.unwords [ T.name . T.journal $ iss
+                            , Vc.volIss iss <> ","
+                            , Vc.dateW  iss <> "\n"
+                            ]
 
 -- =============================================================== --
--- Formatting tables of contents
+-- Viewing citations
+
+citationToTxt :: T.HasIssue a => a -> T.Citation -> Text
+citationToTxt iss c = Tx.unlines parts
+    where jrnl  = T.journal iss
+          parts = [ T.title c
+                  , Vc.authorLine c
+                  , Tx.unwords [ T.name jrnl
+                               , Vc.volIss iss
+                               , ", "
+                               , Vc.pageRange c
+                               ]
+                  ]
+
+citationToMkd :: T.Selection -> T.Citation -> Text
+citationToMkd sel x = Vc.mkdBrackets . Tx.unlines $ parts
+    where jrnl  = T.journal sel
+          parts = [ ( Vc.mkdBd $ Vc.mkdLink (T.title x) (T.doi x) ) <> "\\"
+                  , Vc.authorLine x <> "\\"
+                  , Tx.unwords [ Vc.mkdIt . T.name $ jrnl
+                               , Vc.volIss sel
+                               , Vc.pageRange x
+                               ]
+                  ]
+
+-- =============================================================== --
+-- Viewing tables of contents
 
 ---------------------------------------------------------------------
 -- As Text
@@ -127,18 +149,6 @@ tocToTxt (T.IssueContent sel cs) = Tx.unlines
                                  . (issueToTxt sel <> "\n" :)
                                  . map ( citationToTxt sel ) $ cs
 
-pagesToTxt :: T.Citation -> Text
-pagesToTxt x = C.tshow p1 <> "-" <> C.tshow p2
-    where (p1,p2) = T.pages x
-
-citationToTxt :: T.HasIssue a => a -> T.Citation -> Text
-citationToTxt iss c = Tx.unlines parts
-    where jrnl  = T.journal iss
-          parts = [ T.title c
-                  , Tc.authorsToTxt c
-                  , Tx.unwords [ T.name jrnl,  volIssToTxt iss, pagesToTxt c ]
-                  ]
-
 ---------------------------------------------------------------------
 -- As Markdown
 
@@ -147,27 +157,11 @@ tocsToMkd (T.JSet setNo cs) = Tx.unlines . (:) hdr . map tocToMkd $ cs
     where hdr = "# Journal Set " <> C.tshow setNo
 
 tocToMkd :: T.IssueContent -> Text
-tocToMkd (T.IssueContent x []) = issueToMkdHeader x
-tocToMkd (T.IssueContent x cs) = Tx.unlines
-                              . (issueToMkdHeader x :)
-                              . map (citationToMkd x) $ cs
-
-issueToMkdHeader :: T.HasIssue a => a -> Text
-issueToMkdHeader iss = Tx.unwords [ "##"
-                                  , T.name . T.journal $ iss
-                                  , volIssToTxt iss <> "\n"
-                                  ]
-
-citationToMkd :: T.Selection -> T.Citation -> Text
-citationToMkd sel x = Tx.unlines parts
-    where jrnl  = T.journal sel
-          parts = [ (mkdBd $ mkdLink (fixMkd $ T.title x) (T.doi x)) <> "\\"
-                  , fixMkd (Tc.authorsToTxt x) <> "\\"
-                  , Tx.unwords [ mkdIt . fixMkd . T.name $ jrnl
-                               , volIssToTxt sel
-                               , pagesToTxt x
-                               ]
-                  ]
+tocToMkd (T.IssueContent x []) = "## " <> issueToMkd x
+tocToMkd (T.IssueContent x cs) = ( "## " <> )
+                                 . Tx.unlines
+                                 . (issueToMkd x :)
+                                 . map (citationToMkd x) $ cs
 
 ---------------------------------------------------------------------
 -- As HTML
@@ -186,7 +180,7 @@ tocsToHtml T.Rank    jset = Html.htmlToCRank    jset
 selectionToTxt :: T.JournalSet T.Selection -> Text
 selectionToTxt jset@(T.JSet _ xs) =
     let go x = issueToTxt x : map ( \ n -> "    " <> C.tshow n ) (T.selected x)
-    in  Tx.unlines $ jsetHeader jset : concatMap go xs
+    in  Tx.unlines $ Vc.jsetHeader jset : concatMap go xs
 
 -- =============================================================== --
 -- Formatting journals and reference issues
@@ -211,39 +205,3 @@ freqToTxt T.Weekly      = "weekly (52 issues per year)"
 freqToTxt T.WeeklyLast  = "weekly-last (drop the last issue of the year)"
 freqToTxt T.WeeklyFirst = "weekly-first (drop the first issue of the year)"
 freqToTxt T.Monthly     = "monthly (12 issues per year)"
-
--- =============================================================== --
--- Helper functions
-
----------------------------------------------------------------------
--- General formatting
-
-bracket :: Char -> Char -> Text -> Text
--- ^Place characters at the front and back of a text string.
-bracket x y = flip Tx.snoc y . Tx.cons x
-
----------------------------------------------------------------------
--- Markdown formatting
-
-fixMkd :: Text -> Text
--- ^Make any corrections to general text that may interfere with
--- Markdown formatting:
---  1. Change brackets to avoid inteference with url links.
-fixMkd = Tx.map go
-    where go x | x == '['  = toEnum 0x27e6
-               | x == ']'  = toEnum 0x27e7
-               | otherwise = x
-
-mkdBd :: Text -> Text
--- ^Make text bold in Markdown.
-mkdBd x = "**" <> x <> "**"
-
-mkdIt :: Text -> Text
--- ^Make text itallic in Markdown.
-mkdIt = bracket '*' '*'
-
-mkdLink :: Text -> Text -> Text
--- ^Add a url link in Markdown.
-mkdLink content url = contentMkd <> link
-    where contentMkd = bracket '[' ']' content
-          link       = bracket '(' ')' url

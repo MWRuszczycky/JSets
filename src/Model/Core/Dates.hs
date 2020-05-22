@@ -2,8 +2,6 @@
 
 module Model.Core.Dates
     ( today
-    , getYear
-    , getMonth
     , firstOfYear
     , firstOfNextYear
     , sameYear
@@ -12,7 +10,8 @@ module Model.Core.Dates
     , diffDays
     ) where
 
-import qualified Data.Time       as Tm
+import qualified Data.Time        as Tm
+import qualified Model.Core.Types as T
 import           Data.Time              ( Day )
 
 -- =============================================================== --
@@ -22,20 +21,14 @@ today :: IO Day
 -- ^Determine the current.
 today = Tm.utctDay <$> Tm.getCurrentTime
 
-getYear :: Day -> Int
-getYear d = let (y,_,_) = Tm.toGregorian d in fromIntegral y
-
-getMonth :: Day -> Int
-getMonth d = let (_,m,_) = Tm.toGregorian d in m
-
 firstOfYear :: Day -> Day
-firstOfYear d = Tm.fromGregorian (fromIntegral $ getYear d) 1 1
+firstOfYear d = Tm.fromGregorian (fromIntegral $ T.year d) 1 1
 
 firstOfNextYear :: Day -> Day
-firstOfNextYear d = Tm.fromGregorian ((+1) . fromIntegral . getYear $ d) 1 1
+firstOfNextYear d = Tm.fromGregorian ((+1) . fromIntegral . T.year $ d) 1 1
 
 sameYear :: Day -> Day -> Bool
-sameYear d1 d2 = getYear d1 == getYear d2
+sameYear d1 d2 = T.year d1 == T.year d2
 
 diffYears :: Day -> Day -> Int
 diffYears d1 d0
