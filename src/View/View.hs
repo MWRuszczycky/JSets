@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Text.Formatting
+module View.View
     ( -- Formatting journal sets
       -- As CSV
       jsetsToCsv
@@ -30,15 +30,15 @@ module Model.Text.Formatting
     , referenceToTxt
     ) where
 
-import qualified Data.Text            as Tx
-import qualified Model.Core.Core      as C
-import qualified Model.Core.Types     as T
-import qualified Model.Journals       as J
-import qualified Model.Text.Core      as Tc
-import qualified Model.Text.Html      as Html
-import           Data.Text                      ( Text      )
-import           Data.List                      ( sortBy    )
-import           Data.Ord                       ( comparing )
+import qualified Data.Text        as Tx
+import qualified Model.Core.Core  as C
+import qualified Model.Core.Types as T
+import qualified Model.Journals   as J
+import qualified View.Core        as Tc
+import qualified View.Html        as Html
+import           Data.Text                ( Text      )
+import           Data.List                ( sortBy    )
+import           Data.Ord                 ( comparing )
 
 -- =============================================================== --
 -- Formatting journal sets

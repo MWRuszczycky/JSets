@@ -10,15 +10,15 @@ import qualified Data.Text.IO              as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Parsers.References  as P
-import qualified Model.Text.Help           as H
-import           System.Directory                   ( getHomeDirectory       )
-import           System.Environment                 ( getArgs                )
-import           Text.Read                          ( readMaybe              )
-import           Data.List                          ( intercalate            )
-import           Control.Monad                      ( foldM                  )
-import           Control.Monad.Except               ( throwError, liftEither )
-import           Control.Monad.Reader               ( runReaderT, liftIO     )
-import           Commands                           ( runCommands, commands  )
+import qualified View.Help                 as H
+import           System.Directory                 ( getHomeDirectory       )
+import           System.Environment               ( getArgs                )
+import           Text.Read                        ( readMaybe              )
+import           Data.List                        ( intercalate            )
+import           Control.Monad                    ( foldM                  )
+import           Control.Monad.Except             ( throwError, liftEither )
+import           Control.Monad.Reader             ( runReaderT, liftIO     )
+import           Commands                         ( runCommands, commands  )
 
 -- =============================================================== --
 -- Main control point and routers

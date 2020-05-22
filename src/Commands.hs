@@ -7,13 +7,13 @@ module Commands
 
 import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
+import qualified AppMonad                  as A
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
 import qualified Model.Parsers.PubMed      as P
-import qualified Model.Text.Formatting     as F
-import qualified Model.Text.Help           as H
-import qualified AppMonad                  as A
+import qualified View.View                 as V
+import qualified View.Help                 as H
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
@@ -60,7 +60,7 @@ groupCmd fps = do
     mbSel <- mapM A.readJset fps >>= pure . J.groupJsets
     case mbSel of
          Nothing  -> throwError "No Issues in selection!"
-         Just sel -> display . F.selectionToTxt $ sel
+         Just sel -> display . V.selectionToTxt $ sel
 
 ---------------------------------------------------------------------
 -- Downloading raw json from pubmed
@@ -139,10 +139,10 @@ readCmd (fp:_) = do
     mbKey <- asks T.cJsetKey
     abbrs <- A.issueRefAbbrs
     case (mbKey, fmt) of
-         (Just _, T.CSV) -> A.readJset  fp >>= display . F.jsetToCsv abbrs
-         (Just _, _    ) -> A.readJset  fp >>= display . F.jsetToTxt
-         (_     , T.CSV) -> A.readJsets fp >>= display . F.jsetsToCsv abbrs
-         (_     , _    ) -> A.readJsets fp >>= display . F.jsetsToTxt
+         (Just _, T.CSV) -> A.readJset  fp >>= display . V.jsetToCsv abbrs
+         (Just _, _    ) -> A.readJset  fp >>= display . V.jsetToTxt
+         (_     , T.CSV) -> A.readJsets fp >>= display . V.jsetsToCsv abbrs
+         (_     , _    ) -> A.readJsets fp >>= display . V.jsetsToTxt
 
 ---------------------------------------------------------------------
 -- View configured journals
@@ -155,7 +155,7 @@ refsHelp = (s, Tx.unlines hs)
 
 refsCmd :: [String] -> T.AppMonad ()
 refsCmd _ = do
-    rs <- map F.referenceToTxt <$> A.references
+    rs <- map V.referenceToTxt <$> A.references
     p  <- asks T.cRefPath
     let hdr = Tx.pack $ "References file: " <> p <> "\n"
     display . Tx.unlines $ hdr : rs
@@ -195,9 +195,9 @@ tocCmd (fp:_) = do
     style <- asks T.cToCStyle
     fmt   <- A.getFormat
     case fmt of
-         T.HTML -> display . F.tocsToHtml style . T.JSet n $ ics
-         T.MKD  -> display . F.tocsToMkd        . T.JSet n $ ics
-         _      -> display . F.tocsToTxt        . T.JSet n $ ics
+         T.HTML -> display . V.tocsToHtml style . T.JSet n $ ics
+         T.MKD  -> display . V.tocsToMkd        . T.JSet n $ ics
+         _      -> display . V.tocsToTxt        . T.JSet n $ ics
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
@@ -222,8 +222,8 @@ yearCmd (x:_) = do
     abbrs   <- A.issueRefAbbrs
     fmt     <- A.getFormat
     case fmt of
-         T.CSV -> display . F.jsetsToCsv abbrs $ jsets
-         _     -> display . F.jsetsToTxt $ jsets
+         T.CSV -> display . V.jsetsToCsv abbrs $ jsets
+         _     -> display . V.jsetsToTxt $ jsets
 
 ---------------------------------------------------------------------
 -- Output handling

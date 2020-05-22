@@ -1,22 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Text.Html
+module View.Html
     ( htmlToCPropose
     , htmlToCSelect
     , htmlToCRank
     ) where
 
-import qualified Data.Text             as Tx
-import qualified Data.Map.Strict       as Map
-import qualified Model.Core.Types      as T
-import qualified Model.Core.Core       as C
-import qualified Model.Journals        as J
-import qualified Model.Core.Dates      as D
-import qualified Model.Text.Templates  as Temp
-import qualified Model.Text.Core       as Tc
-import           Data.Text                      ( Text           )
-import           Data.Char                      ( isSpace        )
-import           Model.Text.Templates           ( fill, fillNone )
+import qualified Data.Text        as Tx
+import qualified Data.Map.Strict  as Map
+import qualified Model.Core.Types as T
+import qualified Model.Core.Core  as C
+import qualified Model.Journals   as J
+import qualified Model.Core.Dates as D
+import qualified View.Templates   as Temp
+import qualified View.Core        as Tc
+import           Data.Text                ( Text           )
+import           Data.Char                ( isSpace        )
+import           View.Templates           ( fill, fillNone )
 
 -- =============================================================== --
 -- Helper functions

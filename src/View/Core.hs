@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Text.Core
+module View.Core
     ( authorsToTxt
     ) where
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model.Text.Help
+module View.Help
     ( summary
     , details
     , version

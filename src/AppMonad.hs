@@ -26,9 +26,9 @@ import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
 import qualified Model.Journals            as J
-import qualified Model.Text.Formatting     as F
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
+import qualified View.View                 as V
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           System.IO                          ( hFlush, stdout )
@@ -101,7 +101,7 @@ getIssue abbr v n = references >>= maybe err pure . go
 downloadPMIDs :: T.HasIssue a => a -> T.AppMonad [Text]
 downloadPMIDs iss = do
     let query = J.tocESearchQuery iss
-    liftIO . Tx.putStr $ "Downloading " <> F.issueToTxt iss <> " PMIDs..."
+    liftIO . Tx.putStr $ "Downloading " <> V.issueToTxt iss <> " PMIDs..."
     liftIO . hFlush $ stdout
     result <- liftIO . runExceptT $ C.webRequest query J.eSearchUrl
     case result >>= P.parsePMIDs of

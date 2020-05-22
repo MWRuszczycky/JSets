@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Model.Text.Templates
+module View.Templates
     ( TemplateText (..)
     , Template
     , fill
