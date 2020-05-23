@@ -8,6 +8,7 @@ import qualified Data.Text             as Tx
 import qualified Data.Attoparsec.Text  as At
 import qualified Model.Core.Types      as T
 import qualified Model.Parsers.CSV     as CSV
+import qualified Model.Parsers.Core    as P
 import qualified Model.Journals        as J
 import           Data.Bifunctor               ( bimap              )
 import           Data.Text                    ( Text               )
@@ -30,7 +31,7 @@ parseCsv :: [T.Issue] -> Text -> Either T.ErrString (T.Collection T.Selection)
 -- All issues must be valid and the first row must be the journals.
 parseCsv refs x = let err = (<>) "Cannot parse CSV: "
                   in  bimap err id $ CSV.parse x
-                                     >>= toRawCollection
+                                     >>= getRawCollection
                                      >>= validate refs
 
 parseTxt :: [T.Issue] -> Text -> Either T.ErrString (T.Collection T.Selection)
@@ -40,6 +41,10 @@ parseTxt refs t = let err = (<>) "Cannot parse selection: "
 
 -- =============================================================== --
 -- Local types
+-- CSV and text formatted journal sets and selections are first
+-- parsed to just get the information into a 'raw' structured data
+-- type. These structured, raw values are then validated and the
+-- actual issue and journal set values are constructed.
 
 -- | Set number and raw selections
 type RawJset      = ( Int, [RawSelection] )
@@ -51,10 +56,7 @@ type RawSelection = (RawIssue, [T.PMID])
 type RawIssue     = ( Text, Int, Int )
 
 -- =============================================================== --
--- Parsed issue validation and packing results
--- Check to make sure there is a valid reference for the parsed
--- journal. This does not check to make sure the issue and volume
--- numbers are valid for the given issue.
+-- Parsed journal set/issue validation and construction
 
 validate :: T.References -> [RawJset]
             -> Either T.ErrString (T.Collection T.Selection)
@@ -79,106 +81,87 @@ packCollection js
 -- Component parsers for TXT
 
 rawJsets :: At.Parser [RawJset]
-rawJsets = many rawJset <* At.endOfInput
+rawJsets = many rawJset <* At.skipSpace <* At.endOfInput
 
 rawJset :: At.Parser RawJset
 rawJset = do
     At.skipSpace
-    setNo <- setNoParser <* At.skipSpace
-    xs    <- many rawSelection
+    n  <- setNoParser
     At.skipSpace
-    pure (setNo, xs)
+    xs <- many rawSelection
+    pure (n, xs)
 
 setNoParser :: At.Parser Int
-setNoParser = do
-    setNo <- intParser
-    At.skipSpace *> At.char '|' *> At.skipSpace
-    dateParser *> At.skipSpace
-    pure setNo
+setNoParser = P.unsigned' <* P.pipe' <* P.dateN
 
 rawSelection :: At.Parser RawSelection
 rawSelection = do
     iss <- rawIssue
-    At.skipWhile At.isHorizontalSpace <* At.endOfLine
-    indent <- At.takeWhile At.isHorizontalSpace
-    if Tx.null indent
-       then pure (iss, [])
-       else do p  <- pmid
-               At.skipWhile At.isHorizontalSpace *> At.endOfLine
-               ps <- many (indentedPMID indent)
-               At.skipSpace
-               pure $ (iss, p : ps)
+    P.spacesToEoL
+    ids <- indentedPMIDs
+    At.skipSpace
+    pure (iss, ids)
 
 rawIssue :: At.Parser RawIssue
 rawIssue = do
     journal <- Tx.init <$> At.takeWhile1 ( not . isDigit )
-    volNo   <- intParser <* At.skipSpace
-    issNo   <- intParser <* At.skipSpace
-    At.char '(' *> dateParser *> At.char ')'
+    volNo <- P.unsigned'
+    P.colon'
+    issNo <- P.unsigned'
+    At.skipSpace
+    P.dateP
     pure (journal, volNo, issNo)
 
-indentedPMID :: Text -> At.Parser T.PMID
-indentedPMID indent = do
-    At.string indent
-    pmid <* At.skipWhile At.isHorizontalSpace <* At.endOfLine
+indentedPMIDs :: At.Parser [T.PMID]
+indentedPMIDs = At.option [] go
+    where go = do indent <- Tx.pack <$> some ( At.char ' ' )
+                  x      <- pmidToEoL
+                  xs     <- many $ At.string indent *> pmidToEoL
+                  pure $ x : xs
 
-pmid :: At.Parser T.PMID
-pmid = Tx.pack <$> some (At.satisfy isAlphaNum)
-
----------------------------------------------------------------------
--- General component parsers
-
-intParser :: At.Parser Int
-intParser = some At.digit >>= pure . read
-
-dateParser :: At.Parser (Int, Int, Int)
-dateParser = (,,) <$> ( intParser <* At.char '-'  )
-                  <*> ( intParser <* At.char '-'  )
-                  <*> ( intParser                 )
+pmidToEoL :: At.Parser T.PMID
+pmidToEoL = Tx.pack <$> some (At.satisfy isAlphaNum) <* P.spacesToEoL
 
 -- =============================================================== --
 -- Component parsers for CSV
 
-toRawCollection :: CSV.CSV -> Either T.ErrString [RawJset]
+getRawCollection :: CSV.CSV -> Either T.ErrString [RawJset]
 -- ^Convert a parsed CSV file to a raw collection.
 -- The input is a list of lists of Text, where each sublist is a row
 -- in the CSV file and each Text is a cell in that row.
-toRawCollection []     = pure []
-toRawCollection (x:xs) = do
-    abbrs <- toJournalAbbrs x
-    mapM (toRawJset abbrs) xs
+getRawCollection []     = pure []
+getRawCollection (x:xs) = do
+    abbrs <- getJournalAbbrs x
+    mapM (getRawJset abbrs) xs
 
-toRawJset :: [Text] -> [Text] -> Either T.ErrString RawJset
--- ^Convert all csv cell Text values to a raw selection.
--- The journal set must begin with a correctly formatted key.
-toRawJset _     []     = Left "Missing key for journal set."
-toRawJset abbrs (x:xs) = (,) <$> toSetNo x <*> toRawSelection abbrs xs
-
----------------------------------------------------------------------
--- Journal abbreviations
-
-toJournalAbbrs :: [Text] -> Either T.ErrString [Text]
+getJournalAbbrs :: [Text] -> Either T.ErrString [Text]
 -- ^The first row in the csv file is the journal abbreviations. The
 -- first element is a dummy header for the journal set keys, so it
 -- needs to be dropped.
-toJournalAbbrs []     = Left "Missing CSV journal key headers."
-toJournalAbbrs (_:[]) = Left "Missing CSV journal key headers."
-toJournalAbbrs (_:ks) = pure ks
+getJournalAbbrs []     = Left "Missing CSV journal key headers."
+getJournalAbbrs (_:[]) = Left "Missing CSV journal key headers."
+getJournalAbbrs (_:ks) = pure ks
+
+getRawJset :: [Text] -> [Text] -> Either T.ErrString RawJset
+-- ^Convert all csv cell Text values to a raw selection.
+-- The journal set must begin with a correctly formatted key.
+getRawJset _     []     = Left "Missing key for journal set."
+getRawJset abbrs (x:xs) = (,) <$> getSetNo x <*> getRawSelection abbrs xs
 
 ---------------------------------------------------------------------
 -- Individual journal sets and issues
 
-toSetNo :: Text -> Either String Int
+getSetNo :: Text -> Either String Int
 -- ^Parse the journal set number, which is just an integer.
-toSetNo t = maybe err pure . readMaybeTxt . Tx.takeWhile (not . isSpace) $ t
+getSetNo t = maybe err pure . readMaybeTxt . Tx.takeWhile (not . isSpace) $ t
     where err = Left $ "Invalid journal set key: " ++ Tx.unpack t
 
-toRawSelection :: [Text] -> [Text] -> Either T.ErrString [RawSelection]
+getRawSelection :: [Text] -> [Text] -> Either T.ErrString [RawSelection]
 -- ^Generate the issues for each journal in a csv line corresponding
 -- to a single journal set. The first argument is the list of
 -- journal abbreviations. The second argument is the volume and issue numbers
 -- for the corresponding journal in the same order.
-toRawSelection abbrs xs = fmap concat . sequence . zipWith go abbrs $ ys
+getRawSelection abbrs xs = fmap concat . sequence . zipWith go abbrs $ ys
     where ys     = xs ++ replicate (length abbrs - length xs) Tx.empty
           go j y = (mapM toVolIssNo . Tx.lines) y
                    >>= pure . map ( \ (v,n) -> ( (j,v,n), [] ) )
