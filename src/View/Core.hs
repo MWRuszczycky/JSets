@@ -13,6 +13,7 @@ module View.Core
     , volIss
     , authorLine
     , pageRange
+    , citationLength
       -- Markdown
     , mkdBrackets
     , mkdBd
@@ -108,6 +109,14 @@ authorLine c
 pageRange :: T.Citation -> Text
 pageRange x = C.tshow p1 <> "-" <> C.tshow p2
     where (p1,p2) = T.pages x
+
+citationLength :: T.Citation -> Text
+citationLength c
+    | diff < 0    = " (online)"
+    | dn - d0 < 6 = " (short: " <> C.tshow diff <> "p)"
+    | otherwise   = " (long: "  <> C.tshow diff <> "p)"
+    where (T.PageNumber _ d0, T.PageNumber _ dn) = T.pages c
+          diff = dn - d0
 
 -- =============================================================== --
 -- Helper functions

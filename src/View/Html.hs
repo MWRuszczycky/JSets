@@ -117,20 +117,12 @@ onlySelectedHtml toc = Tx.unlines . zipWith go [1..] $ ds
           go k d = fill ( Map.insert "index" (C.tshow k) d )
                         Temp.citationHtml
 
-citationLength :: T.Citation -> Text
-citationLength c
-    | diff < 0    = " (online)"
-    | dn - d0 < 6 = " (short)"
-    | otherwise   = " (long)"
-    where (T.PageNumber _ d0, T.PageNumber _ dn) = T.pages c
-          diff = dn - d0
-
 selectedDict :: T.IssueContent -> [Map.Map Text Text]
 selectedDict (T.IssueContent sel cs) = map go cs
     where go c = Map.union ( ud c ) . citationDict sel $ c
-          ud c = Map.fromList [ ( "length", citationLength c )
-                              , ( "type",   "text")
-                              , ( "class",  "_citation"      )
+          ud c = Map.fromList [ ( "length", Vc.citationLength c )
+                              , ( "type",   "text"              )
+                              , ( "class",  "_citation"         )
                               ]
 
 ---------------------------------------------------------------------
