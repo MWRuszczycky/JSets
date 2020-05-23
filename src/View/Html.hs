@@ -37,11 +37,11 @@ htmlToCPropose :: T.JournalSet T.IssueContent -> Text
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
 -- The 'propose' style is used to select citations for consideration.
-htmlToCPropose jset = fill (Map.fromList xys) Temp.tocsTemplate
+htmlToCPropose jset = fill (Map.fromList xys) Temp.tocsHtml
     where xys = [ ( "jsetTitle",  "Journal Set " <> C.tshow (T.setNo jset) )
                 , ( "jsetHeader", Vc.jsetHeader jset                       )
                 , ( "savePrefix", savePrefix jset                          )
-                , ( "instr",      fillNone Temp.instrCTemplate             )
+                , ( "instr",      fillNone Temp.instrProposeHtml           )
                 , ( "issues",     issuesArray . T.issues $ jset            )
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
@@ -51,17 +51,17 @@ htmlToCSelect :: T.JournalSet T.IssueContent -> Text
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
 -- The 'select' style is used for selecting citations for review.
-htmlToCSelect jset = fill (Map.fromList xys) Temp.tocsTemplate
+htmlToCSelect jset = fill (Map.fromList xys) Temp.tocsHtml
     where xys = [ ( "jsetTitle",  "Journal Set " <> C.tshow (T.setNo jset) )
                 , ( "jsetHeader", Vc.jsetHeader jset                       )
                 , ( "savePrefix", savePrefix jset                          )
-                , ( "instr",      fillNone Temp.instrRTemplate             )
+                , ( "instr",      fillNone Temp.instrSelectHtml            )
                 , ( "issues",     issuesArray . T.issues $ jset            )
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
 htmlToCRank :: T.JournalSet T.IssueContent -> Text
-htmlToCRank jset = fill (Map.fromList xys) Temp.ranksTemplate
+htmlToCRank jset = fill (Map.fromList xys) Temp.rankingHtml
     where iss = map J.restrictContent . T.issues $ jset
           xys = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
                 , ( "citations", onlySelectedHtml iss                     )
@@ -77,7 +77,7 @@ issuesArray :: T.HasIssue a => [a] -> Text
 issuesArray = Tx.intercalate ",\n" . map issueElement
 
 issueElement :: T.HasIssue a => a -> Text
-issueElement iss = fill xys Temp.issueTemplate
+issueElement iss = fill xys Temp.issueJS
     where xys = Map.fromList [ ("class",  className            iss )
                              , ("title",  (T.abbr . T.journal) iss )
                              , ("vol",    (C.tshow . T.volNo)  iss )
@@ -98,12 +98,12 @@ allCitations (T.IssueContent sel cs) =
         bdy | null cs   = Tx.replicate 12 " " <> msg
             | otherwise = Tx.intercalate "\n" . map (citationHtml sel) $ cs
         xys = Map.fromList [ ("issue", issueHeader sel), ("citations", bdy) ]
-    in  fill xys Temp.tocTemplate
+    in  fill xys Temp.tocHtml
 
 citationHtml :: T.Selection -> T.Citation -> Text
 citationHtml sel@(T.Selection _ ps) c
-    | elem p ps = fill ( go " class=\"selected\"" ) Temp.citationTemplate
-    | otherwise = fill ( go Tx.empty              ) Temp.citationTemplate
+    | elem p ps = fill ( go " class=\"selected\"" ) Temp.citationHtml
+    | otherwise = fill ( go Tx.empty              ) Temp.citationHtml
     where p    = T.pmid c
           go u = Map.insert "selected" u . citationDict sel $ c
 
@@ -115,7 +115,7 @@ onlySelectedHtml :: [T.IssueContent] -> Text
 onlySelectedHtml toc = Tx.unlines . zipWith go [1..] $ ds
     where ds     = concatMap selectedDict toc
           go k d = fill ( Map.insert "index" (C.tshow k) d )
-                        Temp.citationTemplate
+                        Temp.citationHtml
 
 citationLength :: T.Citation -> Text
 citationLength c

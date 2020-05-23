@@ -9,14 +9,14 @@ module View.Templates
     , fillDef
     , parseTemplate
       -- Templates
-      -- html
-    , citationTemplate
-    , issueTemplate
-    , tocsTemplate
-    , tocTemplate
-    , instrCTemplate
-    , instrRTemplate
-    , ranksTemplate
+      -- html/JavaScript
+    , citationHtml
+    , issueJS
+    , tocsHtml
+    , tocHtml
+    , instrProposeHtml
+    , instrSelectHtml
+    , rankingHtml
       -- markdown
     , citationMkd
     ) where
@@ -102,40 +102,40 @@ freeAt = do
 ---------------------------------------------------------------------
 -- html templates for building tables of contents web documents
 
-tocsTemplate :: Template
+tocsHtml :: Template
 -- ^Full html document for table of contents selections
 -- jsetTitle  : title of html document
 -- jsetHeader : header for te journal set (number and date)
 -- savePrefix : file name prefix for saving
 -- newIssues  : new issue elements for the 'journals' array
 -- tocs       : table of contents html for all issues
-tocsTemplate = parseTemplate' "res/html/tocsTemplate.html"
-               $(FE.embedStringFile "res/html/tocsTemplate.html")
+tocsHtml = parseTemplate' "res/html/tocs.html"
+           $(FE.embedStringFile "res/html/tocs.html")
 
-issueTemplate :: Template
+issueJS :: Template
 -- ^Element of the 'issues array'
 -- class  : issue class
 -- title  : Journal title
 -- vol    : issue volume
 -- number : issue number
 -- date   : issue date
-issueTemplate = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
+issueJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
     where t = [ Tx.replicate 22 " "
-               , "new JournalIssue(\"@{class}\","
-               , "\"@{title}\","
-               , "\"@{vol}\","
-               , "\"@{number}\","
-               , "\"@{date}\")"
-               ]
+              , "new JournalIssue(\"@{class}\","
+              , "\"@{title}\","
+              , "\"@{vol}\","
+              , "\"@{number}\","
+              , "\"@{date}\")"
+              ]
 
-tocTemplate :: Template
+tocHtml :: Template
 -- ^Table of contents for a given issue
 -- issue    : issue header
 -- articles : html for all articles in the issue
-tocTemplate = parseTemplate' "res/html/tocTemplate.html"
-              $(FE.embedStringFile "res/html/tocTemplate.html")
+tocHtml = parseTemplate' "res/html/toc.html"
+          $(FE.embedStringFile "res/html/toc.html")
 
-citationTemplate :: Template
+citationHtml :: Template
 -- ^Paragraph environment for a single article citation
 -- selected : optional class for selected citations
 -- id       : article id
@@ -148,28 +148,28 @@ citationTemplate :: Template
 -- number   : issue number
 -- pages    : pages string
 -- pmid     : pubmed uid
-citationTemplate = parseTemplate' "res/html/citationTemplate.html"
-                   $(FE.embedStringFile "res/html/citationTemplate.html")
+citationHtml = parseTemplate' "res/html/citation.html"
+               $(FE.embedStringFile "res/html/citation.html")
 
-instrCTemplate :: Template
+instrProposeHtml :: Template
 -- ^Instructions for including articles for consideration.
 -- There are no no variables.
-instrCTemplate = parseTemplate' "res/html/instrCTemplate.html"
-                 $(FE.embedStringFile "res/html/instrCTemplate.html")
+instrProposeHtml = parseTemplate' "res/html/instrPropose.html"
+                   $(FE.embedStringFile "res/html/instrPropose.html")
 
-instrRTemplate :: Template
+instrSelectHtml :: Template
 -- ^Instructions for including articles for review.
 -- There are no variables.
-instrRTemplate = parseTemplate' "res/html/instrRTemplate.html"
-                 $(FE.embedStringFile "res/html/instrRTemplate.html")
+instrSelectHtml = parseTemplate' "res/html/instrSelect.html"
+                  $(FE.embedStringFile "res/html/instrSelect.html")
 
-ranksTemplate :: Template
+rankingHtml :: Template
 -- ^Full html template document for generating rankings for articles.
 -- selected for review.
 -- jsetTitle : Title of the journal set (e.g., Journal Set 6)
 -- citations : Individual citations for ranking.
-ranksTemplate = parseTemplate' "res/html/ranksTemplate.html"
-                $(FE.embedStringFile "res/html/ranksTemplate.html")
+rankingHtml = parseTemplate' "res/html/ranking.html"
+              $(FE.embedStringFile "res/html/ranking.html")
 
 ---------------------------------------------------------------------
 -- Markdown templates
@@ -183,5 +183,5 @@ citationMkd :: Template
 -- volIss  : volume issue pair
 -- pages   : page range
 -- pmid    : pubmed id
-citationMkd = parseTemplate' "res/markdown/citationTemplate.mkd"
-              $(FE.embedStringFile "res/markdown/citationTemplate.mkd")
+citationMkd = parseTemplate' "res/mkd/citation.mkd"
+              $(FE.embedStringFile "res/mkd/citation.mkd")
