@@ -160,11 +160,10 @@ tocsToMkd (T.JSet setNo cs) = Tx.unlines . (:) hdr . map tocToMkd $ cs
     where hdr = "# Journal Set " <> C.tshow setNo
 
 tocToMkd :: T.IssueContent -> Text
-tocToMkd (T.IssueContent x []) = "## " <> issueToMkd x
-tocToMkd (T.IssueContent x cs) = ( "## " <> )
-                                 . Tx.unlines
-                                 . (issueToMkd x :)
-                                 . map (citationToMkd x) $ cs
+tocToMkd (T.IssueContent x cs)
+    | null cs   = "## " <> issueToMkd x <> "\nNo citations listed at PubMed.\n"
+    | otherwise = "## " <> xs
+    where xs = Tx.unlines . (issueToMkd x :) . map (citationToMkd x) $ cs
 
 ---------------------------------------------------------------------
 -- As HTML
