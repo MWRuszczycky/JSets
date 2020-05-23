@@ -3,12 +3,13 @@ module Model.Parsers.References
     ( parseReferences
     ) where
 
-import qualified Model.Core.Types     as T
-import qualified Model.Core.Core      as C
 import qualified Data.Text            as Tx
 import qualified Data.Time            as Tm
 import qualified Data.Char            as Ch
 import qualified Data.Attoparsec.Text as At
+import qualified Model.Core.Types     as T
+import qualified Model.Core.Core      as C
+import qualified Model.Parsers.Core   as P
 import           Data.Text                   ( Text              )
 import           Data.List                   ( nub, intercalate  )
 import           Data.Bifunctor              ( bimap             )
@@ -207,24 +208,18 @@ field = At.choice $ map keyValuePair [ "day"
                                      , "year"
                                      ]
 
-comment :: At.Parser ()
-comment = At.char '#' *> At.takeTill At.isEndOfLine *> At.skipSpace
-
-comments :: At.Parser ()
-comments = At.skipSpace *> many comment *> pure ()
-
 validValue :: At.Parser Text
 validValue = fmap Tx.pack . some . At.satisfy $ At.notInClass ":#\n\r\t"
 
 keyValuePair :: Text -> At.Parser (Text, Text)
 keyValuePair key = do
-    comments
+    P.comments
     k <- At.string key
-    comments
+    P.comments
     At.char ':'
-    comments
+    P.comments
     v <- validValue
-    comment <|> At.endOfLine
+    P.comment <|> At.endOfLine
     pure (k,v)
 
 ---------------------------------------------------------------------
@@ -232,9 +227,9 @@ keyValuePair key = do
 
 refDicts :: At.Parser [Dict]
 refDicts = do
-    comments
+    P.comments
     ds <- many refDict
-    comments
+    P.comments
     At.endOfInput
     pure ds
 
@@ -242,5 +237,5 @@ refDict :: At.Parser Dict
 refDict = do
     jh <- keyValuePair "journal"
     fs <- some field
-    comments
+    P.comments
     pure $ jh : fs

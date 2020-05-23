@@ -18,6 +18,8 @@ module Model.Parsers.Core
     , colon'
     , pipe
     , pipe'
+    , comment
+    , comments
     ) where
 
 import qualified Data.Text            as Tx
@@ -108,3 +110,9 @@ pipe = At.skipSpace *> At.char '|' *> At.skipSpace
 
 pipe' :: At.Parser ()
 pipe' = horizontalSpaces *> At.char '|' *> horizontalSpaces
+
+comment :: At.Parser ()
+comment = At.char '#' *> At.takeTill At.isEndOfLine *> At.skipSpace
+
+comments :: At.Parser ()
+comments = At.skipSpace *> many comment *> pure ()
