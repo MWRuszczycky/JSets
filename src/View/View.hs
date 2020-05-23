@@ -101,8 +101,7 @@ jsetToMkd jset = Tx.concat $ hdr : iss
 issueToTxt :: T.HasIssue a => a -> Text
 -- ^Format an issue as "abbr volume number (year-month-day)".
 issueToTxt iss = Tx.unwords . map ($iss) $ [ T.abbr  . T.journal
-                                           , C.tshow . T.volNo
-                                           , C.tshow . T.issNo
+                                           , Vc.volIss
                                            , Vc.dateP
                                            ]
 
