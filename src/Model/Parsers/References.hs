@@ -23,24 +23,25 @@ type Dict = [(Text, Text)]
 -- =============================================================== --
 -- Parser
 
-parseReferences :: String -> Text -> Either T.ErrString [T.Issue]
+parseReferences :: String -> Text -> Either T.ErrString (Dict, [T.Issue])
 parseReferences fp txt = bimap (parseError fp) id
-                         . handleParseResult txt
-                         . At.parse refDicts
+                         . handleResult txt
+                         . At.parse dicts
                          $ txt
 
-handleParseResult :: Text -> At.Result [Dict] -> Either T.ErrString [T.Issue]
-handleParseResult xs (At.Fail ys _  _) = handleParseFail xs ys
-handleParseResult xs (At.Partial go  ) = handleParseResult xs . go $ Tx.empty
-handleParseResult _  (At.Done    _  r) = validate r
+handleResult :: Text -> At.Result [Dict] -> Either T.ErrString (Dict, [T.Issue])
+handleResult xs (At.Fail ys _  _) = handleFail xs ys
+handleResult xs (At.Partial go  ) = handleResult xs . go $ Tx.empty
+handleResult _  (At.Done    _  r) = validate r
 
-handleParseFail :: Text -> Text -> Either T.ErrString [T.Issue]
-handleParseFail input rest = Left msg
-    where n   = length . Tx.lines $ input
-          m   = length . Tx.lines $ rest
-          msg = unwords [ "Parse failure at line "
-                        , show (n - m + 1) <> " : "
-                        , Tx.unpack . Tx.takeWhile (not . Ch.isSpace) $ rest
+handleFail :: Text -> Text -> Either T.ErrString (Dict, [T.Issue])
+handleFail input rest = Left msg
+    where n     = length . Tx.lines $ input
+          m     = length . Tx.lines $ rest
+          atEnd = flip elem ['\n', '\r']
+          msg = unwords [ "Parse failure at line"
+                        , show (n - m + 1) <> " : ..."
+                        , Tx.unpack . Tx.takeWhile (not . atEnd) $ rest
                         , "..."
                         ]
 
@@ -48,11 +49,11 @@ handleParseFail input rest = Left msg
 -- Error message construction
 
 parseError :: String -> T.ErrString -> T.ErrString
-parseError fp err = "Unable to parse references file " <> fp <> "!\n" <> err
+parseError fp err = "Unable to parse references file " <> fp <> "\n" <> err
 
 validationError :: Dict -> T.ErrString -> T.ErrString
 validationError d err = maybe noJournal go . lookup "journal" $ d
-    where noJournal = "Fields provided without preceding <journal:> header!"
+    where noJournal = "Fields provided without preceding <journal> header!"
           go x = concat [ "Unable read journal reference for " <> Tx.unpack  x
                         , "\n" <> err
                         ]
@@ -79,8 +80,10 @@ frequencyError = intercalate "\n" hs
 ---------------------------------------------------------------------
 -- Reference construction and validation after file parsing
 
-validate :: [Dict] -> Either T.ErrString [T.Issue]
-validate ds = mapM readRef ds >>= checkForDuplicates
+validate :: [Dict] -> Either T.ErrString (Dict, [T.Issue])
+validate []     = pure ([],[])
+validate (d:ds) = (,) d <$> refs
+    where refs = mapM readRef ds >>= checkForDuplicates
 
 checkForDuplicates :: [T.Issue] -> Either T.ErrString [T.Issue]
 -- ^Journal entries are all keyed by their abbreviations. So, the
@@ -195,18 +198,53 @@ readJournalHeader =  maybe (Left "") go . lookup "journal"
 -- Dict parser for parsing the file prior to reference construction
 
 ---------------------------------------------------------------------
--- Helpers
+-- Configuration and reference dict parsers
 
-field :: At.Parser (Text, Text)
-field = At.choice $ map keyValuePair [ "day"
-                                     , "frequency"
-                                     , "issue"
-                                     , "month"
-                                     , "pubmed"
-                                     , "resets"
-                                     , "volume"
-                                     , "year"
-                                     ]
+dicts :: At.Parser [Dict]
+dicts = (:) <$> configDict <*> refDicts
+
+---------------------------------------------------------------------
+-- Configuration dicts
+
+configDict :: At.Parser Dict
+configDict = P.comments *> many configField
+
+configField :: At.Parser (Text, Text)
+configField = At.choice $ map keyValuePair [ "email"
+                                           , "user"
+                                           ]
+
+---------------------------------------------------------------------
+-- Reference dicts
+
+refDicts :: At.Parser [Dict]
+refDicts = do
+    P.comments
+    ds <- many refDict
+    P.comments
+    At.endOfInput
+    pure ds
+
+refDict :: At.Parser Dict
+refDict = do
+    jh <- keyValuePair "journal"
+    fs <- some refField
+    P.comments
+    pure $ jh : fs
+
+refField :: At.Parser (Text, Text)
+refField = At.choice $ map keyValuePair [ "day"
+                                        , "frequency"
+                                        , "issue"
+                                        , "month"
+                                        , "pubmed"
+                                        , "resets"
+                                        , "volume"
+                                        , "year"
+                                        ]
+
+---------------------------------------------------------------------
+-- Helpers
 
 validValue :: At.Parser Text
 validValue = fmap Tx.pack . some . At.satisfy $ At.notInClass ":#\n\r\t"
@@ -221,21 +259,3 @@ keyValuePair key = do
     v <- validValue
     P.comment <|> At.endOfLine
     pure (k,v)
-
----------------------------------------------------------------------
--- Reference Dict parsers
-
-refDicts :: At.Parser [Dict]
-refDicts = do
-    P.comments
-    ds <- many refDict
-    P.comments
-    At.endOfInput
-    pure ds
-
-refDict :: At.Parser Dict
-refDict = do
-    jh <- keyValuePair "journal"
-    fs <- some field
-    P.comments
-    pure $ jh : fs

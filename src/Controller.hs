@@ -43,7 +43,7 @@ configure = do
 getRefs :: T.Config -> T.ErrMonad T.Config
 getRefs c = do
     let path = T.cRefPath c
-    rs <- C.readFileErr path >>= liftEither . P.parseReferences path
+    ( _ , rs ) <- C.readFileErr path >>= liftEither . P.parseReferences path
     pure $ c { T.cReferences = rs }
 
 initConfig :: IO T.Config
