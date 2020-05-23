@@ -73,7 +73,7 @@ jsetToCsv abbrs jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ abbrs
 -- As Text
 
 jsetsToTxt :: T.HasIssue a => T.Collection a -> Text
-jsetsToTxt = Tx.unlines . map jsetToTxt . J.unpack
+jsetsToTxt = Tx.intercalate "\n" . map jsetToTxt . J.unpack
 
 jsetToTxt :: T.HasIssue a => T.JournalSet a -> Text
 -- ^Convert a journal set to easily readable, formatted text.
@@ -144,10 +144,10 @@ citationToMkd sel x = fill dict Temp.citationMkd
 -- As Text
 
 tocsToTxt :: T.JournalSet T.IssueContent -> Text
-tocsToTxt (T.JSet _ cs) = Tx.unlines . map tocToTxt $ cs
+tocsToTxt (T.JSet _ cs) = Tx.intercalate "\n" . map tocToTxt $ cs
 
 tocToTxt :: T.IssueContent -> Text
-tocToTxt (T.IssueContent sel cs) = Tx.unlines
+tocToTxt (T.IssueContent sel cs) = Tx.intercalate "\n"
                                  . (issueToTxt sel <> "\n" :)
                                  . map ( citationToTxt sel ) $ cs
 
@@ -180,7 +180,7 @@ tocsToHtml T.Rank    jset = Html.htmlToCRank    jset
 
 selectionToTxt :: T.JournalSet T.Selection -> Text
 selectionToTxt jset@(T.JSet _ xs) =
-    let go x = issueToTxt x : map ( \ n -> "    " <> C.tshow n ) (T.selected x)
+    let go x = issueToTxt x : map ( Tx.append "    " ) (T.selected x)
     in  Tx.unlines $ Vc.jsetHeader jset : concatMap go xs
 
 -- =============================================================== --

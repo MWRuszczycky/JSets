@@ -234,5 +234,5 @@ display :: Text -> T.AppMonad ()
 display xs = do
     mbPath <- asks T.cOutputPath
     case mbPath of
-         Nothing -> liftIO . Tx.putStrLn $ xs
+         Nothing -> liftIO . Tx.putStr $ xs
          Just fp -> lift . C.writeFileErr fp $ xs
