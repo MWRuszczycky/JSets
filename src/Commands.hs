@@ -160,7 +160,7 @@ refsCmd _ = do
     rs <- map V.referenceToTxt <$> A.references
     p  <- asks T.cRefPath
     let hdr = Tx.pack $ "References file: " <> p <> "\n"
-    display . Tx.unlines $ hdr : rs
+    display . Tx.intercalate "\n" $ hdr : rs
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
