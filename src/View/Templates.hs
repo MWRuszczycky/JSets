@@ -17,6 +17,8 @@ module View.Templates
     , instrCTemplate
     , instrRTemplate
     , ranksTemplate
+      -- markdown
+    , citationMkd
     ) where
 
 import qualified Data.Text            as Tx
@@ -168,3 +170,18 @@ ranksTemplate :: Template
 -- citations : Individual citations for ranking.
 ranksTemplate = parseTemplate' "res/html/ranksTemplate.html"
                 $(FE.embedStringFile "res/html/ranksTemplate.html")
+
+---------------------------------------------------------------------
+-- Markdown templates
+
+citationMkd :: Template
+-- ^Template for citations in Markdown.
+-- title   : title of journal
+-- doi     : doi of citation
+-- authors : authors of the cited article
+-- journal : journal name
+-- volIss  : volume issue pair
+-- pages   : page range
+-- pmid    : pubmed id
+citationMkd = parseTemplate' "res/markdown/citationTemplate.mkd"
+              $(FE.embedStringFile "res/markdown/citationTemplate.mkd")

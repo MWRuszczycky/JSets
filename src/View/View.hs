@@ -27,14 +27,17 @@ module View.View
     ) where
 
 import qualified Data.Text        as Tx
+import qualified Data.Map.Strict  as Map
 import qualified Model.Core.Core  as C
 import qualified Model.Core.Types as T
 import qualified Model.Journals   as J
 import qualified View.Core        as Vc
 import qualified View.Html        as Html
+import qualified View.Templates   as Temp
 import           Data.Text                ( Text      )
 import           Data.List                ( sortBy    )
 import           Data.Ord                 ( comparing )
+import           View.Templates           ( fill      )
 
 -- =============================================================== --
 -- Viewing journal sets
@@ -125,15 +128,15 @@ citationToTxt iss c = Tx.unlines parts
                   ]
 
 citationToMkd :: T.Selection -> T.Citation -> Text
-citationToMkd sel x = Vc.mkdBrackets . Tx.unlines $ parts
-    where jrnl  = T.journal sel
-          parts = [ ( Vc.mkdBd $ Vc.mkdLink (T.title x) (T.doi x) ) <> "\\"
-                  , Vc.authorLine x <> "\\"
-                  , Tx.unwords [ Vc.mkdIt . T.name $ jrnl
-                               , Vc.volIss sel
-                               , Vc.pageRange x
-                               ]
-                  ]
+citationToMkd sel x = fill dict Temp.citationMkd
+    where dict = Map.fromList [ ( "title",   Vc.mkdBrackets . T.title $ x )
+                              , ( "doi",     T.doi x                      )
+                              , ( "authors", Vc.authorLine x              )
+                              , ( "journal", T.name . T.journal $ sel     )
+                              , ( "volIss",  Vc.volIss sel                )
+                              , ( "pages",   Vc.pageRange x               )
+                              , ( "pmid",    T.pmid x                     )
+                              ]
 
 -- =============================================================== --
 -- Viewing tables of contents

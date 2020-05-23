@@ -1,0 +1,4 @@
+**[@{title}](@{doi})**\
+@{authors}\
+*@{journal}* @{volIss}, @{pages}, PMID: @{pmid}
+
