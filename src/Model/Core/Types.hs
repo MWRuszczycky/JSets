@@ -211,8 +211,7 @@ type PMID = Text
 data PageNumber = PageNumber String Int deriving ( Eq )
 
 instance Show PageNumber where
-    show (PageNumber p d) | null p    = show d
-                          | otherwise = p <> ":" <> show d
+    show (PageNumber p d) = p <> show d
 
 instance Ord PageNumber where
     compare (PageNumber p1 d1) (PageNumber p2 d2)
