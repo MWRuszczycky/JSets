@@ -14,12 +14,14 @@ module Model.Core.Core
     , zipLists
     , collectBy
     , splitMaybe
+    , choice
     ) where
 
-import qualified Data.Text as Tx
-import           Data.Text       ( Text      )
-import           Text.Read       ( readMaybe )
-import           Data.List       ( foldl'    )
+import qualified Data.Text           as Tx
+import           Data.Text                  ( Text                    )
+import           Text.Read                  ( readMaybe               )
+import           Data.List                  ( foldl'                  )
+import           Control.Applicative        ( (<|>), Alternative (..) )
 
 -- =============================================================== --
 -- Working with Text strings
@@ -120,3 +122,6 @@ splitMaybe :: [(a, Maybe b)] -> ([(a,b)], [a])
 splitMaybe = foldr go ([],[])
     where go (k, Just v ) (js,ns) = ( (k,v):js, ns  )
           go (k, Nothing) (js,ns) = ( js,       k:ns)
+
+choice :: Alternative f => [f a] -> f a
+choice = foldr (<|>) empty
