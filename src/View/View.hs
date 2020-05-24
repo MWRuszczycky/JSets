@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module View.View
-    ( -- Viewing journal sets
-      jsetsToCsv
+    ( runView
+      -- Viewing journal sets
+    , jsetsToCsv
     , jsetToCsv
     , jsetsToTxt
     , jsetToTxt
@@ -34,10 +35,17 @@ import qualified Model.Journals   as J
 import qualified View.Core        as Vc
 import qualified View.Html        as Html
 import qualified View.Templates   as Temp
-import           Data.Text                ( Text      )
-import           Data.List                ( sortBy    )
-import           Data.Ord                 ( comparing )
-import           View.Templates           ( fill      )
+import           Data.Text                ( Text                 )
+import           Data.List                ( sortBy               )
+import           Control.Monad.Reader     ( ask, asks, runReader )
+import           Data.Ord                 ( comparing            )
+import           View.Templates           ( fill                 )
+
+-- =============================================================== --
+-- Viewer
+
+runView :: T.ViewMonad a -> T.AppMonad a
+runView go = ask >>= pure . runReader go
 
 -- =============================================================== --
 -- Viewing journal sets
@@ -143,34 +151,40 @@ citationToMkd sel x = fill dict Temp.citationMkd
 ---------------------------------------------------------------------
 -- As Text
 
-tocsToTxt :: T.JournalSet T.IssueContent -> Text
-tocsToTxt (T.JSet _ cs) = Tx.intercalate "\n" . map tocToTxt $ cs
+tocsToTxt :: T.JournalSet T.IssueContent -> T.ViewMonad Text
+tocsToTxt (T.JSet _ cs) = Tx.intercalate "\n" <$> mapM tocToTxt cs
 
-tocToTxt :: T.IssueContent -> Text
-tocToTxt (T.IssueContent sel cs) = Tx.intercalate "\n"
-                                 . (issueToTxt sel <> "\n" :)
-                                 . map ( citationToTxt sel ) $ cs
+tocToTxt :: T.IssueContent -> T.ViewMonad Text
+tocToTxt (T.IssueContent sel cs) = pure . Tx.intercalate "\n"
+                                        . (issueToTxt sel <> "\n" :)
+                                        . map ( citationToTxt sel ) $ cs
 
 ---------------------------------------------------------------------
 -- As Markdown
 
-tocsToMkd :: T.JournalSet T.IssueContent -> Text
-tocsToMkd (T.JSet setNo cs) = Tx.unlines . (:) hdr . map tocToMkd $ cs
+tocsToMkd :: T.JournalSet T.IssueContent -> T.ViewMonad Text
+tocsToMkd (T.JSet setNo cs) = Tx.unlines . (:) hdr <$> mapM tocToMkd cs
     where hdr = "# Journal Set " <> C.tshow setNo
 
-tocToMkd :: T.IssueContent -> Text
+tocToMkd :: T.IssueContent -> T.ViewMonad Text
 tocToMkd (T.IssueContent x cs)
-    | null cs   = "## " <> issueToMkd x <> "\nNo citations listed at PubMed.\n"
-    | otherwise = "## " <> xs
-    where xs = Tx.unlines . (issueToMkd x :) . map (citationToMkd x) $ cs
+    | null cs   = pure $ "## " <> issueToMkd x <> msg
+    | otherwise = pure $ "## " <> xs
+    where xs  = Tx.unlines . (issueToMkd x :) . map (citationToMkd x) $ cs
+          msg = "\nNo citations listed at PubMed.\n"
 
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: T.ToCStyle -> Text -> Text -> T.JournalSet T.IssueContent -> Text
-tocsToHtml T.Propose name email jset = Html.htmlToCPropose name email jset
-tocsToHtml T.Select  name email jset = Html.htmlToCSelect  name email jset
-tocsToHtml T.Rank    name email jset = Html.htmlToCRank    name email jset
+tocsToHtml :: T.JournalSet T.IssueContent -> T.ViewMonad Text
+tocsToHtml jset = do
+    style <- asks T.cToCStyle
+    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
+    email <- asks $ maybe "their email address" id . T.cEmail
+    case style of
+         T.Select  -> pure . Html.htmlToCSelect  name email $ jset
+         T.Rank    -> pure . Html.htmlToCRank    name email $ jset
+         T.Propose -> pure . Html.htmlToCPropose name email $ jset
 
 -- =============================================================== --
 -- Formatting selection sets

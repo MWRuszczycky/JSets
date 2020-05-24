@@ -14,7 +14,6 @@ module AppMonad
       -- Internet requests
     , downloadPubMed
       -- General helper functions
-    , getNicknameOrName
     , getFormat
     , requireKey
     ) where
@@ -33,7 +32,6 @@ import qualified View.View                 as V
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           System.IO                          ( hFlush, stdout )
-import           Control.Applicative                ( (<|>)          )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , runExceptT
@@ -142,12 +140,6 @@ getFormat = do
          Just "mkd"  -> pure T.MKD
          Just "md"   -> pure T.MKD
          _           -> pure T.TXT
-
-getNicknameOrName :: T.AppMonad Text
-getNicknameOrName = do
-    name <- asks T.cUser
-    nick <- asks T.cNick
-    pure . maybe "Somebody" id $ nick <|> name
 
 requireKey :: T.AppMonad Int
 requireKey = asks T.cJsetKey >>= maybe err pure

@@ -192,16 +192,13 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [String] -> T.AppMonad ()
 tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
-    T.JSet n iss <- A.readJset fp
-    ics   <- mapM A.downloadPubMed iss
-    style <- asks T.cToCStyle
-    name  <- A.getNicknameOrName
-    email <- asks ( maybe "their email address" id . T.cEmail )
-    fmt   <- A.getFormat
+    T.JSet n xs <- A.readJset fp
+    jset        <- mapM A.downloadPubMed xs >>= pure . T.JSet n
+    fmt         <- A.getFormat
     case fmt of
-         T.HTML -> display . V.tocsToHtml style name email . T.JSet n $ ics
-         T.MKD  -> display . V.tocsToMkd                   . T.JSet n $ ics
-         _      -> display . V.tocsToTxt                   . T.JSet n $ ics
+         T.HTML -> V.runView ( V.tocsToHtml jset ) >>= display
+         T.MKD  -> V.runView ( V.tocsToMkd  jset ) >>= display
+         _      -> V.runView ( V.tocsToTxt  jset ) >>= display
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
