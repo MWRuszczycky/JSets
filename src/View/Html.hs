@@ -32,38 +32,44 @@ className iss = Tx.intercalate "-" xs
 -- =============================================================== --
 -- Exported html document compositors
 
-htmlToCPropose :: T.JournalSet T.IssueContent -> Text
+htmlToCPropose :: Text -> Text -> T.JournalSet T.IssueContent -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
 -- The 'propose' style is used to select citations for consideration.
-htmlToCPropose jset = fill (Map.fromList xys) Temp.tocsHtml
+htmlToCPropose name email jset = fill (Map.fromList xys) Temp.tocsHtml
     where xys = [ ( "jsetTitle",  "Journal Set " <> C.tshow (T.setNo jset) )
                 , ( "jsetHeader", Vc.jsetHeader jset                       )
                 , ( "savePrefix", savePrefix jset                          )
+                , ( "name",       name                                     )
+                , ( "email",      " at " <> email                          )
                 , ( "instr",      fillNone Temp.instrProposeHtml           )
                 , ( "issues",     issuesArray . T.issues $ jset            )
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
-htmlToCSelect :: T.JournalSet T.IssueContent -> Text
+htmlToCSelect :: Text -> Text -> T.JournalSet T.IssueContent -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
 -- The 'select' style is used for selecting citations for review.
-htmlToCSelect jset = fill (Map.fromList xys) Temp.tocsHtml
+htmlToCSelect name email jset = fill (Map.fromList xys) Temp.tocsHtml
     where xys = [ ( "jsetTitle",  "Journal Set " <> C.tshow (T.setNo jset) )
                 , ( "jsetHeader", Vc.jsetHeader jset                       )
                 , ( "savePrefix", savePrefix jset                          )
+                , ( "name",       name                                     )
+                , ( "email",      " at " <> email                          )
                 , ( "instr",      fillNone Temp.instrSelectHtml            )
                 , ( "issues",     issuesArray . T.issues $ jset            )
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
-htmlToCRank :: T.JournalSet T.IssueContent -> Text
-htmlToCRank jset = fill (Map.fromList xys) Temp.rankingHtml
+htmlToCRank :: Text -> Text -> T.JournalSet T.IssueContent -> Text
+htmlToCRank name email jset = fill (Map.fromList xys) Temp.rankingHtml
     where iss = map J.restrictContent . T.issues $ jset
           xys = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
+                , ( "name",      name                                     )
+                , ( "email",     " at " <> email                          )
                 , ( "citations", onlySelectedHtml iss                     )
                 ]
 

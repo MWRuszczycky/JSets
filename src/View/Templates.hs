@@ -107,6 +107,8 @@ tocsHtml :: Template
 -- jsetTitle  : title of html document
 -- jsetHeader : header for te journal set (number and date)
 -- savePrefix : file name prefix for saving
+-- name       : nickname of person to send selections to
+-- email      : email string for person to send selections to
 -- newIssues  : new issue elements for the 'journals' array
 -- tocs       : table of contents html for all issues
 tocsHtml = parseTemplate' "res/html/tocs.html"
@@ -167,6 +169,8 @@ rankingHtml :: Template
 -- ^Full html template document for generating rankings for articles.
 -- selected for review.
 -- jsetTitle : Title of the journal set (e.g., Journal Set 6)
+-- name      : Nickname of person to send rankings to
+-- email     : email string for person to send rankings to
 -- citations : Individual citations for ranking.
 rankingHtml = parseTemplate' "res/html/ranking.html"
               $(FE.embedStringFile "res/html/ranking.html")

@@ -167,10 +167,10 @@ tocToMkd (T.IssueContent x cs)
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: T.ToCStyle -> T.JournalSet T.IssueContent -> Text
-tocsToHtml T.Propose jset = Html.htmlToCPropose jset
-tocsToHtml T.Select  jset = Html.htmlToCSelect  jset
-tocsToHtml T.Rank    jset = Html.htmlToCRank    jset
+tocsToHtml :: T.ToCStyle -> Text -> Text -> T.JournalSet T.IssueContent -> Text
+tocsToHtml T.Propose name email jset = Html.htmlToCPropose name email jset
+tocsToHtml T.Select  name email jset = Html.htmlToCSelect  name email jset
+tocsToHtml T.Rank    name email jset = Html.htmlToCRank    name email jset
 
 -- =============================================================== --
 -- Formatting selection sets
