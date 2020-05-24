@@ -21,7 +21,6 @@ module AppMonad
 
 import qualified Data.Text                 as Tx
 import qualified Data.Map.Strict           as Map
-import qualified Data.Time                 as Tm
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
@@ -36,8 +35,7 @@ import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , runExceptT
                                                     , lift
-                                                    , throwError
-                                                    , liftEither     )
+                                                    , throwError     )
 
 -- =============================================================== --
 -- Data structure construction & acquisition
