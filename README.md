@@ -2,6 +2,7 @@
 
 ## To Do
 
+* Convert all of the View functions to use `ViewMonad`
 * List journal set numbers and dates without issue information
 * Space journal sets out with specified lead time
 * Configure new references using PubMed if possible
