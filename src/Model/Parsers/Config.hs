@@ -11,28 +11,24 @@ import qualified Data.Attoparsec.Text as At
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
 import qualified Model.Parsers.Core   as P
-import           Data.Text                   ( Text              )
-import           Data.List                   ( nub, intercalate  )
-import           Data.Bifunctor              ( bimap             )
-import           Control.Applicative         ( (<|>), many, some )
-
--- =============================================================== --
--- Local types
-
-type Dict = [(Text, Text)]
+import           Model.Core.Types            ( Dict, ConfigFile  (..) )
+import           Data.Text                   ( Text                   )
+import           Data.List                   ( nub, intercalate       )
+import           Data.Bifunctor              ( bimap                  )
+import           Control.Applicative         ( (<|>), many, some      )
 
 -- =============================================================== --
 -- Parser
 
-parseConfig :: Text -> Either T.ErrString [Dict]
-parseConfig txt = handleResult txt . At.parse dicts $ txt
+parseConfig :: Text -> Either T.ErrString ConfigFile
+parseConfig txt = handleResult txt . At.parse configFile $ txt
 
-handleResult :: Text -> At.Result [Dict] -> Either T.ErrString [Dict]
+handleResult :: Text -> At.Result ConfigFile -> Either T.ErrString ConfigFile
 handleResult xs (At.Fail ys _  _) = handleFail xs ys
 handleResult xs (At.Partial go  ) = handleResult xs . go $ Tx.empty
 handleResult _  (At.Done    _  r) = pure r
 
-handleFail :: Text -> Text -> Either T.ErrString [Dict]
+handleFail :: Text -> Text -> Either T.ErrString a
 handleFail input rest = Left msg
     where n     = length . Tx.lines $ input
           m     = length . Tx.lines $ rest
@@ -46,8 +42,8 @@ handleFail input rest = Left msg
 -- =============================================================== --
 -- Error message construction
 
-validationError :: Dict -> T.ErrString -> T.ErrString
-validationError d err = maybe noJournal go . lookup "journal" $ d
+readError :: Dict -> T.ErrString -> T.ErrString
+readError d err = maybe noJournal go . lookup "journal" $ d
     where noJournal = "Fields provided without preceding <journal> header!"
           go x = concat [ "Unable read journal reference for " <> Tx.unpack  x
                         , "\n" <> err
@@ -92,7 +88,7 @@ checkForDuplicates xs
           zs     = map (T.abbr . T.journal) xs
 
 readRef :: Dict -> Either T.ErrString T.Issue
-readRef d = bimap (validationError d) id ref
+readRef d = bimap (readError d) id ref
     where ref = T.Issue <$> readDate    d
                         <*> readInt     d "volume"
                         <*> readInt     d "issue"
@@ -193,8 +189,8 @@ readJournalHeader =  maybe (Left "") go . lookup "journal"
 ---------------------------------------------------------------------
 -- Configuration and reference dict parsers
 
-dicts :: At.Parser [Dict]
-dicts = (:) <$> configDict <*> refDicts
+configFile :: At.Parser ConfigFile
+configFile = ConfigFile <$> configDict <*> refDicts
 
 ---------------------------------------------------------------------
 -- Configuration dicts

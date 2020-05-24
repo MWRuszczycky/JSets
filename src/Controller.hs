@@ -62,10 +62,9 @@ byFile (cmds, config) = do
          Left  pErr -> configError config pErr
          Right xs   -> readConfig xs config >>= pure . (,) cmds
 
-readConfig :: [[(Text, Text)]] -> T.Config -> T.ErrMonad T.Config
-readConfig []     config = pure config
-readConfig (_:xs) config = do
-    case P.readRefs xs of
+readConfig :: T.ConfigFile -> T.Config -> T.ErrMonad T.Config
+readConfig (T.ConfigFile hdr refs) config = do
+    case P.readRefs refs of
          Left err -> configError config err
          Right rs -> pure $ config { T.cReferences = rs }
 

@@ -5,6 +5,8 @@ module Model.Core.Types
       ErrString
     , ErrMonad
     , AppMonad
+    , Dict
+    , ConfigFile        (..)
     , Config            (..)
     , Command           (..)
     , Format            (..)
@@ -50,6 +52,12 @@ type AppMonad  = ReaderT Config ErrMonad
 
 ---------------------------------------------------------------------
 -- Program configuration
+
+type Dict = [(Text, Text)]
+
+-- |Structured data from a parsed configuration file. The first Dict
+-- is the header information. The second Dict is the references.
+data ConfigFile = ConfigFile Dict [Dict] deriving ( Show )
 
 -- |Application configuration
 data Config = Config {
