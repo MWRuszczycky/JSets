@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase        #-}
+
 module Commands
     ( -- Commands
       commands
@@ -56,11 +58,9 @@ groupHelp = (s, Tx.unlines hs)
 
 groupCmd :: [String] -> T.AppMonad ()
 groupCmd []  = throwError "A selection file must be sepecified!"
-groupCmd fps = do
-    mbSel <- mapM A.readJset fps >>= pure . J.groupJsets
-    case mbSel of
-         Nothing  -> throwError "No Issues in selection!"
-         Just sel -> display . V.selectionToTxt $ sel
+groupCmd fps = mapM A.readJset fps >>= pure . J.groupJsets >>= \case
+                   Nothing  -> throwError "No Issues in selection!"
+                   Just sel -> display . V.selectionToTxt $ sel
 
 ---------------------------------------------------------------------
 -- Downloading raw json from pubmed
@@ -194,11 +194,10 @@ tocCmd []     = throwError "Path to the journal sets file is needed!"
 tocCmd (fp:_) = do
     T.JSet n xs <- A.readJset fp
     jset        <- mapM A.downloadPubMed xs >>= pure . T.JSet n
-    fmt         <- A.getFormat
-    case fmt of
-         T.HTML -> V.runView ( V.tocsToHtml jset ) >>= display
-         T.MKD  -> V.runView ( V.tocsToMkd  jset ) >>= display
-         _      -> V.runView ( V.tocsToTxt  jset ) >>= display
+    A.getFormat >>= \case
+        T.HTML -> V.runView ( V.tocsToHtml jset ) >>= display
+        T.MKD  -> V.runView ( V.tocsToMkd  jset ) >>= display
+        _      -> V.runView ( V.tocsToTxt  jset ) >>= display
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
@@ -221,8 +220,7 @@ yearCmd (x:_) = do
     theYear <- maybe (throwError "Invalid year.") pure . readMaybe $ x
     jsets   <- A.references >>= pure . J.yearly26Sets theYear
     abbrs   <- A.issueRefAbbrs
-    fmt     <- A.getFormat
-    case fmt of
+    A.getFormat >>= \case
          T.CSV -> display . V.jsetsToCsv abbrs $ jsets
          _     -> display . V.jsetsToTxt $ jsets
 
@@ -230,8 +228,6 @@ yearCmd (x:_) = do
 -- Output handling
 
 display :: Text -> T.AppMonad ()
-display xs = do
-    mbPath <- asks T.cOutputPath
-    case mbPath of
-         Nothing -> liftIO . Tx.putStr $ xs
-         Just fp -> lift . C.writeFileErr fp $ xs
+display xs = asks T.cOutputPath >>= \case
+                 Nothing -> liftIO . Tx.putStr $ xs
+                 Just fp -> lift . C.writeFileErr fp $ xs

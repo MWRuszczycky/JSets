@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase        #-}
 
 module AppMonad
     ( -- Data structer construction & aquisition
@@ -131,15 +132,13 @@ downloadPubMed sel = downloadPMIDs sel
 -- General Helper Commands
 
 getFormat :: T.AppMonad T.Format
-getFormat = do
-    path <- asks T.cOutputPath
-    case C.extension <$> path of
-         Just "txt"  -> pure T.TXT
-         Just "csv"  -> pure T.CSV
-         Just "html" -> pure T.HTML
-         Just "mkd"  -> pure T.MKD
-         Just "md"   -> pure T.MKD
-         _           -> pure T.TXT
+getFormat = asks ( fmap C.extension . T.cOutputPath )
+            >>= \case Just "txt"  -> pure T.TXT
+                      Just "csv"  -> pure T.CSV
+                      Just "html" -> pure T.HTML
+                      Just "mkd"  -> pure T.MKD
+                      Just "md"   -> pure T.MKD
+                      _           -> pure T.TXT
 
 requireKey :: T.AppMonad Int
 requireKey = asks T.cJsetKey >>= maybe err pure
