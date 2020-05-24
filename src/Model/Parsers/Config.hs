@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Model.Parsers.References
-    ( parseReferences
+module Model.Parsers.Config
+    ( parseConfig
     ) where
 
 import qualified Data.Text            as Tx
@@ -23,11 +23,11 @@ type Dict = [(Text, Text)]
 -- =============================================================== --
 -- Parser
 
-parseReferences :: String -> Text -> Either T.ErrString (Dict, [T.Issue])
-parseReferences fp txt = bimap (parseError fp) id
-                         . handleResult txt
-                         . At.parse dicts
-                         $ txt
+parseConfig :: String -> Text -> Either T.ErrString (Dict, [T.Issue])
+parseConfig fp txt = bimap (parseError fp) id
+                           . handleResult txt
+                           . At.parse dicts
+                           $ txt
 
 handleResult :: Text -> At.Result [Dict] -> Either T.ErrString (Dict, [T.Issue])
 handleResult xs (At.Fail ys _  _) = handleFail xs ys

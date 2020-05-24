@@ -5,20 +5,20 @@ module Controller
     , configure
     ) where
 
-import qualified System.Console.GetOpt     as Opt
-import qualified Data.Text.IO              as Tx
-import qualified Model.Core.Types          as T
-import qualified Model.Core.CoreIO         as C
-import qualified Model.Parsers.References  as P
-import qualified View.Help                 as H
-import           System.Directory                 ( getHomeDirectory       )
-import           System.Environment               ( getArgs                )
-import           Text.Read                        ( readMaybe              )
-import           Data.List                        ( intercalate            )
-import           Control.Monad                    ( foldM                  )
-import           Control.Monad.Except             ( throwError, liftEither )
-import           Control.Monad.Reader             ( runReaderT, liftIO     )
-import           Commands                         ( runCommands, commands  )
+import qualified System.Console.GetOpt as Opt
+import qualified Data.Text.IO          as Tx
+import qualified Model.Core.Types      as T
+import qualified Model.Core.CoreIO     as C
+import qualified Model.Parsers.Config  as P
+import qualified View.Help             as H
+import           System.Directory             ( getHomeDirectory       )
+import           System.Environment           ( getArgs                )
+import           Text.Read                    ( readMaybe              )
+import           Data.List                    ( intercalate            )
+import           Control.Monad                ( foldM                  )
+import           Control.Monad.Except         ( throwError, liftEither )
+import           Control.Monad.Reader         ( runReaderT, liftIO     )
+import           Commands                     ( runCommands, commands  )
 
 -- =============================================================== --
 -- Main control point and routers
@@ -57,7 +57,7 @@ byCommandLine config = do
 byFile :: ([String], T.Config) -> T.ErrMonad ([String], T.Config)
 byFile (cmds, config) = do
     let path = T.cRefPath config
-    ( _ , rs ) <- C.readFileErr path >>= liftEither . P.parseReferences path
+    ( _ , rs ) <- C.readFileErr path >>= liftEither . P.parseConfig path
     pure . (,) cmds $ config { T.cReferences = rs }
 
 -- =============================================================== --

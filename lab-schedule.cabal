@@ -30,12 +30,12 @@ library lab-schedule-internal
                       , Model.Core.Types
                       , Model.Core.Dates
                       , Model.Journals
+                      , Model.Parsers.Config
                       , Model.Parsers.Core
                       , Model.Parsers.CSV
                       , Model.Parsers.JSON
                       , Model.Parsers.JournalSets
                       , Model.Parsers.PubMed
-                      , Model.Parsers.References
                       , View.Core
                       , View.Help
                       , View.Html
