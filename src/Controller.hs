@@ -11,7 +11,6 @@ import qualified Model.Core.Types      as T
 import qualified Model.Core.CoreIO     as C
 import qualified Model.Parsers.Config  as P
 import qualified View.Help             as H
-import           Data.Text                    ( Text                   )
 import           System.Directory             ( getHomeDirectory       )
 import           System.Environment           ( getArgs                )
 import           Text.Read                    ( readMaybe              )
@@ -45,6 +44,7 @@ initConfig :: T.ErrMonad T.Config
 initConfig = do
     hmPath <- liftIO getHomeDirectory
     pure T.Config { T.cUser       = Nothing
+                  , T.cNick       = Nothing
                   , T.cEmail      = Nothing
                   , T.cOutputPath = Nothing
                   , T.cJsetKey    = Nothing

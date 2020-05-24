@@ -72,6 +72,7 @@ configDict = P.comments *> many configField
 configField :: At.Parser (Text, Text)
 configField = At.choice $ map keyValuePair [ "email"
                                            , "user"
+                                           , "nickname"
                                            ]
 
 ---------------------------------------------------------------------
@@ -141,6 +142,10 @@ readHeader c ("email", e)
     | Tx.null . Tx.strip $ e = Left "Invalid email configured!"
     | otherwise              = let c' = c { T.cEmail = Just e }
                                in  pure . maybe c' (const c) $ T.cEmail c
+readHeader c ("nickname", n)
+    | Tx.null . Tx.strip $ n = Left "Invalid nickname configured!"
+    | otherwise              = let c' = c { T.cNick = Just n }
+                               in  pure . maybe c' (const c) $ T.cNick c
 readHeader c _               = pure c
 
 ---------------------------------------------------------------------
