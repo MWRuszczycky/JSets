@@ -117,7 +117,7 @@ keyValuePair key = do
     P.comments
     At.char ':'
     P.comments
-    v <- validValue
+    v <- Tx.strip <$> validValue
     P.comment <|> At.endOfLine
     pure (k,v)
 
@@ -134,18 +134,12 @@ readRefs :: [Dict] -> Either T.ErrString [T.Issue]
 readRefs ds = mapM readRef ds >>= checkForDuplicates
 
 readHeader :: T.Config -> (Text,Text) -> Either T.ErrString T.Config
-readHeader c ("user", u )
-    | Tx.null . Tx.strip $ u = Left "Invalid user name configured!"
-    | otherwise              = let c' = c { T.cUser = Just u }
-                               in  pure . maybe c' (const c) $ T.cUser c
-readHeader c ("email", e)
-    | Tx.null . Tx.strip $ e = Left "Invalid email configured!"
-    | otherwise              = let c' = c { T.cEmail = Just e }
-                               in  pure . maybe c' (const c) $ T.cEmail c
-readHeader c ("nickname", n)
-    | Tx.null . Tx.strip $ n = Left "Invalid nickname configured!"
-    | otherwise              = let c' = c { T.cNick = Just n }
-                               in  pure . maybe c' (const c) $ T.cNick c
+readHeader c ("user", u ) = pure . maybe c' (const c) $ T.cUser c
+     where c' = c { T.cUser = Just u }
+readHeader c ("email", e)    = pure . maybe c' (const c) $ T.cEmail c
+     where c' = c { T.cEmail = Just e }
+readHeader c ("nickname", n) = pure . maybe c' (const c) $ T.cNick c
+     where c' = c { T.cNick = Just n }
 readHeader c _               = pure c
 
 ---------------------------------------------------------------------
