@@ -1,7 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Core.CoreIO
-    ( writeFileErr
+    ( putTxtMIO
+    , putTxtLnMIO
+    , putStrMIO
+    , putStrLnMIO
+    , writeFileErr
     , readFileErr
     , webRequest
     ) where
@@ -10,6 +14,8 @@ import qualified Data.Text.IO           as Tx
 import qualified Model.Core.Types       as T
 import qualified Network.Wreq           as Wreq
 import qualified Data.ByteString.Lazy   as BSL
+import           Control.Monad.IO.Class         ( MonadIO, liftIO   )
+import           System.IO                      ( hFlush, stdout    )
 import           Data.Text                      ( Text              )
 import           Data.Text.Encoding             ( decodeUtf8        )
 import           Data.ByteString.Lazy           ( toStrict          )
@@ -20,6 +26,25 @@ import           Control.Exception              ( IOException
                                                 , displayException
                                                 , catch
                                                 )
+
+-- =============================================================== --
+-- A little cleaner string and text printing
+
+putTxtMIO :: MonadIO m => Text -> m ()
+putTxtMIO t = do
+    liftIO . Tx.putStr $ t
+    liftIO . hFlush $ stdout
+
+putTxtLnMIO :: MonadIO m => Text -> m ()
+putTxtLnMIO = liftIO . Tx.putStrLn
+
+putStrMIO :: MonadIO m => String -> m ()
+putStrMIO s = do
+     liftIO . putStr $ s
+     liftIO . hFlush $ stdout
+
+putStrLnMIO :: MonadIO m => String -> m ()
+putStrLnMIO = liftIO . putStrLn
 
 -- =============================================================== --
 -- File IO management
