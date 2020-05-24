@@ -11,12 +11,13 @@ import qualified Model.Core.Types      as T
 import qualified Model.Core.CoreIO     as C
 import qualified Model.Parsers.Config  as P
 import qualified View.Help             as H
+import           Data.Text                    ( Text                   )
 import           System.Directory             ( getHomeDirectory       )
 import           System.Environment           ( getArgs                )
 import           Text.Read                    ( readMaybe              )
 import           Data.List                    ( intercalate            )
 import           Control.Monad                ( foldM                  )
-import           Control.Monad.Except         ( throwError, liftEither )
+import           Control.Monad.Except         ( throwError             )
 import           Control.Monad.Reader         ( runReaderT, liftIO     )
 import           Commands                     ( runCommands, commands  )
 
@@ -41,7 +42,7 @@ initConfig = do
     pure T.Config { T.cOutputPath = Nothing
                   , T.cJsetKey    = Nothing
                   , T.cHelp       = False
-                  , T.cRefPath    = hmPath <> "/.config/jsets/references"
+                  , T.cRefPath    = hmPath <> "/.config/jsets/config"
                   , T.cReferences = []
                   , T.cToCStyle   = T.Propose
                   , T.cShowVer    = False
@@ -56,9 +57,22 @@ byCommandLine config = do
 
 byFile :: ([String], T.Config) -> T.ErrMonad ([String], T.Config)
 byFile (cmds, config) = do
-    let path = T.cRefPath config
-    ( _ , rs ) <- C.readFileErr path >>= liftEither . P.parseConfig path
-    pure . (,) cmds $ config { T.cReferences = rs }
+    content <- C.readFileErr . T.cRefPath $ config
+    case P.parseConfig content of
+         Left  pErr -> configError config pErr
+         Right xs   -> readConfig xs config >>= pure . (,) cmds
+
+readConfig :: [[(Text, Text)]] -> T.Config -> T.ErrMonad T.Config
+readConfig []     config = pure config
+readConfig (_:xs) config = do
+    case P.readRefs xs of
+         Left err -> configError config err
+         Right rs -> pure $ config { T.cReferences = rs }
+
+configError :: T.Config -> T.ErrString -> T.ErrMonad a
+configError config err = throwError msg
+    where msg = "Unable to parse configuration file "
+                <> T.cRefPath config <> "\n" <> err
 
 -- =============================================================== --
 -- Options

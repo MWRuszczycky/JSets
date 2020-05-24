@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Parsers.Config
     ( parseConfig
+    , readRefs
     ) where
 
 import qualified Data.Text            as Tx
@@ -23,23 +24,20 @@ type Dict = [(Text, Text)]
 -- =============================================================== --
 -- Parser
 
-parseConfig :: String -> Text -> Either T.ErrString (Dict, [T.Issue])
-parseConfig fp txt = bimap (parseError fp) id
-                           . handleResult txt
-                           . At.parse dicts
-                           $ txt
+parseConfig :: Text -> Either T.ErrString [Dict]
+parseConfig txt = handleResult txt . At.parse dicts $ txt
 
-handleResult :: Text -> At.Result [Dict] -> Either T.ErrString (Dict, [T.Issue])
+handleResult :: Text -> At.Result [Dict] -> Either T.ErrString [Dict]
 handleResult xs (At.Fail ys _  _) = handleFail xs ys
 handleResult xs (At.Partial go  ) = handleResult xs . go $ Tx.empty
-handleResult _  (At.Done    _  r) = validate r
+handleResult _  (At.Done    _  r) = pure r
 
-handleFail :: Text -> Text -> Either T.ErrString (Dict, [T.Issue])
+handleFail :: Text -> Text -> Either T.ErrString [Dict]
 handleFail input rest = Left msg
     where n     = length . Tx.lines $ input
           m     = length . Tx.lines $ rest
           atEnd = flip elem ['\n', '\r']
-          msg = unwords [ "Parse failure at line"
+          msg = unwords [ "Parse failure at or after line"
                         , show (n - m + 1) <> " : ..."
                         , Tx.unpack . Tx.takeWhile (not . atEnd) $ rest
                         , "..."
@@ -47,9 +45,6 @@ handleFail input rest = Left msg
 
 -- =============================================================== --
 -- Error message construction
-
-parseError :: String -> T.ErrString -> T.ErrString
-parseError fp err = "Unable to parse references file " <> fp <> "\n" <> err
 
 validationError :: Dict -> T.ErrString -> T.ErrString
 validationError d err = maybe noJournal go . lookup "journal" $ d
@@ -80,10 +75,8 @@ frequencyError = intercalate "\n" hs
 ---------------------------------------------------------------------
 -- Reference construction and validation after file parsing
 
-validate :: [Dict] -> Either T.ErrString (Dict, [T.Issue])
-validate []     = pure ([],[])
-validate (d:ds) = (,) d <$> refs
-    where refs = mapM readRef ds >>= checkForDuplicates
+readRefs :: [Dict] -> Either T.ErrString [T.Issue]
+readRefs ds = mapM readRef ds >>= checkForDuplicates
 
 checkForDuplicates :: [T.Issue] -> Either T.ErrString [T.Issue]
 -- ^Journal entries are all keyed by their abbreviations. So, the
