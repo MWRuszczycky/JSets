@@ -44,8 +44,8 @@ configError config err = throwError msg
 initConfig :: T.ErrMonad T.Config
 initConfig = do
     hmPath <- liftIO getHomeDirectory
-    pure T.Config { T.cUser       = ""
-                  , T.cEmail      = ""
+    pure T.Config { T.cUser       = Nothing
+                  , T.cEmail      = Nothing
                   , T.cOutputPath = Nothing
                   , T.cJsetKey    = Nothing
                   , T.cHelp       = False

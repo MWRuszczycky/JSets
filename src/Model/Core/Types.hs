@@ -61,8 +61,8 @@ data ConfigFile = ConfigFile Dict [Dict] deriving ( Show )
 
 -- |Application configuration
 data Config = Config {
-      cUser       :: Text           -- user's name
-    , cEmail      :: Text           -- user's email
+      cUser       :: Maybe Text     -- user's name
+    , cEmail      :: Maybe Text     -- user's email
     , cOutputPath :: Maybe FilePath -- file output path
     , cJsetKey    :: Maybe Int      -- journal set key
     , cHelp       :: Bool           -- user requested help

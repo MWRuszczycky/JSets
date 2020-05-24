@@ -135,10 +135,12 @@ readRefs ds = mapM readRef ds >>= checkForDuplicates
 readHeader :: T.Config -> (Text,Text) -> Either T.ErrString T.Config
 readHeader c ("user", u )
     | Tx.null . Tx.strip $ u = Left "Invalid user name configured!"
-    | otherwise              = pure $ c { T.cUser = Tx.strip u }
+    | otherwise              = let c' = c { T.cUser = Just u }
+                               in  pure . maybe c' (const c) $ T.cUser c
 readHeader c ("email", e)
     | Tx.null . Tx.strip $ e = Left "Invalid email configured!"
-    | otherwise              = pure $ c { T.cEmail = Tx.strip e}
+    | otherwise              = let c' = c { T.cEmail = Just e }
+                               in  pure . maybe c' (const c) $ T.cEmail c
 readHeader c _               = pure c
 
 ---------------------------------------------------------------------
