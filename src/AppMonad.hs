@@ -19,7 +19,6 @@ module AppMonad
     , requireKey
     ) where
 
-import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
 import qualified Data.Map.Strict           as Map
 import qualified Data.Time                 as Tm
@@ -32,7 +31,6 @@ import qualified Model.Parsers.JournalSets as P
 import qualified View.View                 as V
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
-import           System.IO                          ( hFlush, stdout )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , runExceptT
@@ -102,26 +100,24 @@ getIssue abbr v n = references >>= maybe err pure . go
 downloadPMIDs :: T.HasIssue a => a -> T.AppMonad [Text]
 downloadPMIDs iss = do
     let query = J.tocESearchQuery iss
-    liftIO . Tx.putStr $ "Downloading " <> V.issueToTxt iss <> " PMIDs..."
-    liftIO . hFlush $ stdout
+    C.putTxtMIO $ "Downloading " <> V.issueToTxt iss <> " PMIDs..."
     result <- liftIO . runExceptT $ C.webRequest query J.eSearchUrl
     case result >>= P.parsePMIDs of
-         Left err  -> (liftIO . putStrLn) err *> pure []
-         Right []  -> (liftIO . putStrLn) "None found at PubMed." *> pure []
-         Right ids -> do liftIO . putStr $ "OK, Downloading Citations..."
-                         liftIO . hFlush $ stdout
-                         pure ids
+         Left err  -> C.putStrLnMIO err                    *> pure []
+         Right []  -> C.putStrLnMIO "None found at PubMed" *> pure []
+         Right ids -> C.putStrMIO   "OK "                  *> pure ids
 
 downloadCitations :: [Text] -> T.AppMonad [T.Citation]
 downloadCitations []    = pure []
 downloadCitations pmids = do
+    C.putTxtMIO "Downloading Citations..."
     let query = J.tocESumQuery pmids
     result <- liftIO . runExceptT $ C.webRequest query J.eSummaryUrl
     case result >>= P.parseCitations of
-         Left  err     -> (liftIO . putStrLn) err     *> pure []
-         Right ([],cs) -> (liftIO . putStrLn) "Done." *> pure cs
+         Left  err     -> C.putStrLnMIO err    *> pure []
+         Right ([],cs) -> C.putStrLnMIO "Done" *> pure cs
          Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
-                          in  (liftIO . Tx.putStrLn) msg *> pure cs
+                          in  C.putTxtLnMIO msg *> pure cs
 
 downloadPubMed :: T.Selection -> T.AppMonad T.IssueContent
 downloadPubMed sel = downloadPMIDs sel
