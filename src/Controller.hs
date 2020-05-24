@@ -33,22 +33,11 @@ runApp (cmds, config)
 -- Configuration
 
 configure :: T.ErrMonad ([String], T.Config)
-configure = do
-    args <- liftIO getArgs
-    ci   <- liftIO initConfig
-    case Opt.getOpt Opt.Permute options args of
-         (fs, cs, [] ) -> foldM (flip ($)) ci fs >>= fmap ( (,) cs ) . getRefs
-         (_,  _ , err) -> throwError . intercalate "\n" $ err
+configure = initConfig >>= byCommandLine >>= byFile
 
-getRefs :: T.Config -> T.ErrMonad T.Config
-getRefs c = do
-    let path = T.cRefPath c
-    ( _ , rs ) <- C.readFileErr path >>= liftEither . P.parseReferences path
-    pure $ c { T.cReferences = rs }
-
-initConfig :: IO T.Config
+initConfig :: T.ErrMonad T.Config
 initConfig = do
-    hmPath <- getHomeDirectory
+    hmPath <- liftIO getHomeDirectory
     pure T.Config { T.cOutputPath = Nothing
                   , T.cJsetKey    = Nothing
                   , T.cHelp       = False
@@ -57,6 +46,19 @@ initConfig = do
                   , T.cToCStyle   = T.Propose
                   , T.cShowVer    = False
                   }
+
+byCommandLine :: T.Config -> T.ErrMonad ([String], T.Config)
+byCommandLine config = do
+    args <- liftIO getArgs
+    case Opt.getOpt Opt.Permute options args of
+         (fs, cs, [] ) -> foldM (flip ($)) config fs >>= pure . ( (,) cs )
+         (_,  _ , err) -> throwError . intercalate "\n" $ err
+
+byFile :: ([String], T.Config) -> T.ErrMonad ([String], T.Config)
+byFile (cmds, config) = do
+    let path = T.cRefPath config
+    ( _ , rs ) <- C.readFileErr path >>= liftEither . P.parseReferences path
+    pure . (,) cmds $ config { T.cReferences = rs }
 
 -- =============================================================== --
 -- Options
