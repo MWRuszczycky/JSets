@@ -5,6 +5,7 @@ module Model.Core.Types
       ErrString
     , ErrMonad
     , AppMonad
+    , ViewMonad
     , Dict
     , ConfigFile        (..)
     , Config            (..)
@@ -35,7 +36,7 @@ import Data.Time            ( Day, toGregorian )
 import Data.Text            ( Text             )
 import Data.Map.Strict      ( Map              )
 import Control.Monad.Except ( ExceptT          )
-import Control.Monad.Reader ( ReaderT          )
+import Control.Monad.Reader ( ReaderT, Reader  )
 
 -- =============================================================== --
 -- State
@@ -49,6 +50,9 @@ type ErrMonad  = ExceptT ErrString IO
 -- |Core application monad
 -- |AppMonad a = IO ( Either ErrString ( Reader Config a ) )
 type AppMonad  = ReaderT Config ErrMonad
+
+-- |Non-IO monad for use with generating formatted output
+type ViewMonad = Reader Config
 
 ---------------------------------------------------------------------
 -- Program configuration
