@@ -29,6 +29,7 @@ import qualified Model.Journals            as J
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
 import qualified View.View                 as V
+import           Network.Wreq.Session               ( newSession     )
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           Control.Monad.Reader               ( asks           )
@@ -97,32 +98,33 @@ getIssue abbr v n = references >>= maybe err pure . go
 -- =============================================================== --
 -- PubMed Pipeline
 
-downloadPMIDs :: T.HasIssue a => a -> T.AppMonad [Text]
-downloadPMIDs iss = do
+downloadPMIDs :: T.HasIssue a => C.WebRequest -> a -> T.AppMonad [Text]
+downloadPMIDs wreq iss = do
     let query = J.tocESearchQuery iss
     C.putTxtMIO $ "Downloading " <> V.issueToTxt iss <> " PMIDs..."
-    result <- liftIO . runExceptT $ C.webRequest query J.eSearchUrl
+    result <- liftIO . runExceptT . wreq query $ J.eSearchUrl
     case result >>= P.parsePMIDs of
          Left err  -> C.putStrLnMIO err                    *> pure []
          Right []  -> C.putStrLnMIO "None found at PubMed" *> pure []
          Right ids -> C.putStrMIO   "OK "                  *> pure ids
 
-downloadCitations :: [Text] -> T.AppMonad [T.Citation]
-downloadCitations []    = pure []
-downloadCitations pmids = do
+downloadCitations :: C.WebRequest -> [Text] -> T.AppMonad [T.Citation]
+downloadCitations _    []    = pure []
+downloadCitations wreq pmids = do
     C.putTxtMIO "Downloading Citations..."
     let query = J.tocESumQuery pmids
-    result <- liftIO . runExceptT $ C.webRequest query J.eSummaryUrl
+    result <- liftIO . runExceptT . wreq query $ J.eSummaryUrl
     case result >>= P.parseCitations of
-         Left  err     -> C.putStrLnMIO err    *> pure []
-         Right ([],cs) -> C.putStrLnMIO "Done" *> pure cs
+         Left  err     -> C.putStrLnMIO err  *> pure []
+         Right ([],cs) -> C.putStrLnMIO "OK" *> pure cs
          Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
                           in  C.putTxtLnMIO msg *> pure cs
 
 downloadPubMed :: T.Selection -> T.AppMonad T.IssueContent
-downloadPubMed sel = downloadPMIDs sel
-                     >>= downloadCitations
-                     >>= pure . T.IssueContent sel
+downloadPubMed sel = do
+    wreq <- C.webRequestIn <$> liftIO newSession
+    downloadPMIDs wreq sel >>= downloadCitations wreq
+                           >>= pure . T.IssueContent sel
 
 -- =============================================================== --
 -- General Helper Commands
