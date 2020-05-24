@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Parsers.Config
     ( parseConfig
-    , readRefs
+    , readConfig
     ) where
 
 import qualified Data.Text            as Tx
@@ -16,9 +16,30 @@ import           Data.Text                   ( Text                   )
 import           Data.List                   ( nub, intercalate       )
 import           Data.Bifunctor              ( bimap                  )
 import           Control.Applicative         ( (<|>), many, some      )
+import           Control.Monad               ( foldM                  )
 
 -- =============================================================== --
--- Parser
+-- Configuration file parsers and readers
+
+-- Configuration file parsing takes place in two stages.
+--
+-- 1. The raw text file is parsed to structured data in the form of
+--    of Text -> Text dictionaries pairing a configuraton parameter
+--    with a configured value. The general configuration parameters
+--    are parsed into a single such dictionary. Each following
+--    journal reference issue dictionary is then parsed into its own
+--    Text -> Text dictionary. These dictionaries of type Dict are
+--    then packaged into a ConfigFile value.
+--    This parsing is handeled by parseConfig.
+--
+-- 2. The parsed, structured data representing the configuration file
+--    as a value of type ConfigFile is then read into reference
+--    reference issues and the final configuration value.
+--    This reading is handeled by readConfig.
+
+-- =============================================================== --
+-- Parsing a configuration file to a configuration dictionary before
+-- reading to the file configuration.
 
 parseConfig :: Text -> Either T.ErrString ConfigFile
 parseConfig txt = handleResult txt . At.parse configFile $ txt
@@ -39,8 +60,102 @@ handleFail input rest = Left msg
                         , "..."
                         ]
 
+---------------------------------------------------------------------
+-- Configuration dicts
+
+configFile :: At.Parser ConfigFile
+configFile = ConfigFile <$> configDict <*> refDicts
+
+configDict :: At.Parser Dict
+configDict = P.comments *> many configField
+
+configField :: At.Parser (Text, Text)
+configField = At.choice $ map keyValuePair [ "email"
+                                           , "user"
+                                           ]
+
+---------------------------------------------------------------------
+-- Parsing reference dictionaries
+
+refDicts :: At.Parser [Dict]
+refDicts = do
+    P.comments
+    ds <- many refDict
+    P.comments
+    At.endOfInput
+    pure ds
+
+refDict :: At.Parser Dict
+refDict = do
+    jh <- keyValuePair "journal"
+    fs <- some refField
+    P.comments
+    pure $ jh : fs
+
+refField :: At.Parser (Text, Text)
+refField = At.choice $ map keyValuePair [ "day"
+                                        , "frequency"
+                                        , "issue"
+                                        , "month"
+                                        , "pubmed"
+                                        , "resets"
+                                        , "volume"
+                                        , "year"
+                                        ]
+
+---------------------------------------------------------------------
+-- Parse helpers
+
+validValue :: At.Parser Text
+validValue = fmap Tx.pack . some . At.satisfy $ At.notInClass ":#\n\r\t"
+
+keyValuePair :: Text -> At.Parser (Text, Text)
+keyValuePair key = do
+    P.comments
+    k <- At.string key
+    P.comments
+    At.char ':'
+    P.comments
+    v <- validValue
+    P.comment <|> At.endOfLine
+    pure (k,v)
+
 -- =============================================================== --
--- Error message construction
+-- Reading configuration files and journal issue references
+
+readConfig :: T.Config -> T.ConfigFile -> Either T.ErrString T.Config
+readConfig config (T.ConfigFile hdrs dicts) = do
+    config' <- foldM readHeader config hdrs
+    refs    <- readRefs dicts
+    pure $ config' { T.cReferences = refs }
+
+readRefs :: [Dict] -> Either T.ErrString [T.Issue]
+readRefs ds = mapM readRef ds >>= checkForDuplicates
+
+readHeader :: T.Config -> (Text,Text) -> Either T.ErrString T.Config
+readHeader c ("user", u )
+    | Tx.null . Tx.strip $ u = Left "Invalid user name configured!"
+    | otherwise              = pure $ c { T.cUser = Tx.strip u }
+readHeader c ("email", e)
+    | Tx.null . Tx.strip $ e = Left "Invalid email configured!"
+    | otherwise              = pure $ c { T.cEmail = Tx.strip e}
+readHeader c _               = pure c
+
+---------------------------------------------------------------------
+-- Read validation and error handling
+
+checkForDuplicates :: [T.Issue] -> Either T.ErrString [T.Issue]
+-- ^Journal entries are all keyed by their abbreviations. So, the
+-- journal abbreviations must be unique. However, this function also
+-- checks to make sure the journal names are also unique.
+checkForDuplicates xs
+    | gNames && gAbbrs = pure xs
+    | gNames           = Left "References have repeated journal abbreviations!"
+    | otherwise        = Left "References have repeated journal names!"
+    where gNames = ys == nub ys
+          gAbbrs = zs == nub zs
+          ys     = map (T.name . T.journal) xs
+          zs     = map (T.abbr . T.journal) xs
 
 readError :: Dict -> T.ErrString -> T.ErrString
 readError d err = maybe noJournal go . lookup "journal" $ d
@@ -65,37 +180,8 @@ frequencyError = intercalate "\n" hs
                , "Use 'monthly' if there are 12 issues every year."
                ]
 
--- =============================================================== --
--- Construction and validation of issues and journals
-
 ---------------------------------------------------------------------
--- Reference construction and validation after file parsing
-
-readRefs :: [Dict] -> Either T.ErrString [T.Issue]
-readRefs ds = mapM readRef ds >>= checkForDuplicates
-
-checkForDuplicates :: [T.Issue] -> Either T.ErrString [T.Issue]
--- ^Journal entries are all keyed by their abbreviations. So, the
--- journal abbreviations must be unique. However, this function also
--- checks to make sure the journal names are also unique.
-checkForDuplicates xs
-    | gNames && gAbbrs = pure xs
-    | gNames           = Left "References have repeated journal abbreviations!"
-    | otherwise        = Left "References have repeated journal names!"
-    where gNames = ys == nub ys
-          gAbbrs = zs == nub zs
-          ys     = map (T.name . T.journal) xs
-          zs     = map (T.abbr . T.journal) xs
-
-readRef :: Dict -> Either T.ErrString T.Issue
-readRef d = bimap (readError d) id ref
-    where ref = T.Issue <$> readDate    d
-                        <*> readInt     d "volume"
-                        <*> readInt     d "issue"
-                        <*> readJournal d
-
----------------------------------------------------------------------
--- General helpers
+-- General helpers for reading journal issue references
 
 readString :: Dict -> Text -> Either T.ErrString Text
 readString d k = maybe err go . lookup k $ d
@@ -137,7 +223,14 @@ prepString :: Text -> Text
 prepString = Tx.map Ch.toLower . Tx.strip
 
 ---------------------------------------------------------------------
--- Journal construction and validation
+-- Reading journal issue references dictionaries
+
+readRef :: Dict -> Either T.ErrString T.Issue
+readRef d = bimap (readError d) id ref
+    where ref = T.Issue <$> readDate    d
+                        <*> readInt     d "volume"
+                        <*> readInt     d "issue"
+                        <*> readJournal d
 
 readJournal :: Dict -> Either T.ErrString T.Journal
 readJournal d = do
@@ -182,69 +275,3 @@ readJournalHeader =  maybe (Left "") go . lookup "journal"
                        (_   ,'/':[]  ) -> Left " Missing journal abbreviation!"
                        (name,'/':abbr) -> pure (Tx.pack name, Tx.pack abbr)
                        (_   , _      ) -> Left " Missing journal abbreviation!"
-
--- =============================================================== --
--- Dict parser for parsing the file prior to reference construction
-
----------------------------------------------------------------------
--- Configuration and reference dict parsers
-
-configFile :: At.Parser ConfigFile
-configFile = ConfigFile <$> configDict <*> refDicts
-
----------------------------------------------------------------------
--- Configuration dicts
-
-configDict :: At.Parser Dict
-configDict = P.comments *> many configField
-
-configField :: At.Parser (Text, Text)
-configField = At.choice $ map keyValuePair [ "email"
-                                           , "user"
-                                           ]
-
----------------------------------------------------------------------
--- Reference dicts
-
-refDicts :: At.Parser [Dict]
-refDicts = do
-    P.comments
-    ds <- many refDict
-    P.comments
-    At.endOfInput
-    pure ds
-
-refDict :: At.Parser Dict
-refDict = do
-    jh <- keyValuePair "journal"
-    fs <- some refField
-    P.comments
-    pure $ jh : fs
-
-refField :: At.Parser (Text, Text)
-refField = At.choice $ map keyValuePair [ "day"
-                                        , "frequency"
-                                        , "issue"
-                                        , "month"
-                                        , "pubmed"
-                                        , "resets"
-                                        , "volume"
-                                        , "year"
-                                        ]
-
----------------------------------------------------------------------
--- Helpers
-
-validValue :: At.Parser Text
-validValue = fmap Tx.pack . some . At.satisfy $ At.notInClass ":#\n\r\t"
-
-keyValuePair :: Text -> At.Parser (Text, Text)
-keyValuePair key = do
-    P.comments
-    k <- At.string key
-    P.comments
-    At.char ':'
-    P.comments
-    v <- validValue
-    P.comment <|> At.endOfLine
-    pure (k,v)

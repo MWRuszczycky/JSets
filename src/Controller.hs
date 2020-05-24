@@ -34,12 +34,19 @@ runApp (cmds, config)
 -- Configuration
 
 configure :: T.ErrMonad ([String], T.Config)
-configure = initConfig >>= byCommandLine >>= byFile
+configure = initConfig >>= configFromCommandLine >>= configFromFile
+
+configError :: T.Config -> T.ErrString -> T.ErrMonad a
+configError config err = throwError msg
+    where msg = "Unable to parse configuration file "
+                <> T.cRefPath config <> "\n" <> err
 
 initConfig :: T.ErrMonad T.Config
 initConfig = do
     hmPath <- liftIO getHomeDirectory
-    pure T.Config { T.cOutputPath = Nothing
+    pure T.Config { T.cUser       = ""
+                  , T.cEmail      = ""
+                  , T.cOutputPath = Nothing
                   , T.cJsetKey    = Nothing
                   , T.cHelp       = False
                   , T.cRefPath    = hmPath <> "/.config/jsets/config"
@@ -48,30 +55,19 @@ initConfig = do
                   , T.cShowVer    = False
                   }
 
-byCommandLine :: T.Config -> T.ErrMonad ([String], T.Config)
-byCommandLine config = do
+configFromCommandLine :: T.Config -> T.ErrMonad ([String], T.Config)
+configFromCommandLine config = do
     args <- liftIO getArgs
     case Opt.getOpt Opt.Permute options args of
          (fs, cs, [] ) -> foldM (flip ($)) config fs >>= pure . ( (,) cs )
          (_,  _ , err) -> throwError . intercalate "\n" $ err
 
-byFile :: ([String], T.Config) -> T.ErrMonad ([String], T.Config)
-byFile (cmds, config) = do
+configFromFile :: ([String], T.Config) -> T.ErrMonad ([String], T.Config)
+configFromFile (cmds, config) = do
     content <- C.readFileErr . T.cRefPath $ config
-    case P.parseConfig content of
-         Left  pErr -> configError config pErr
-         Right xs   -> readConfig xs config >>= pure . (,) cmds
-
-readConfig :: T.ConfigFile -> T.Config -> T.ErrMonad T.Config
-readConfig (T.ConfigFile hdr refs) config = do
-    case P.readRefs refs of
-         Left err -> configError config err
-         Right rs -> pure $ config { T.cReferences = rs }
-
-configError :: T.Config -> T.ErrString -> T.ErrMonad a
-configError config err = throwError msg
-    where msg = "Unable to parse configuration file "
-                <> T.cRefPath config <> "\n" <> err
+    case P.parseConfig content >>= P.readConfig config of
+         Left  pErr    -> configError config pErr
+         Right config' -> pure ( cmds , config' )
 
 -- =============================================================== --
 -- Options
