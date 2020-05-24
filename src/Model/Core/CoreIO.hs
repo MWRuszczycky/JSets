@@ -7,25 +7,28 @@ module Model.Core.CoreIO
     , putStrLnMIO
     , writeFileErr
     , readFileErr
+    , WebRequest
     , webRequest
+    , webRequestIn
     ) where
 
 import qualified Data.Text.IO           as Tx
 import qualified Model.Core.Types       as T
 import qualified Network.Wreq           as Wreq
+import qualified Network.Wreq.Session   as WreqS
 import qualified Data.ByteString.Lazy   as BSL
-import           Control.Monad.IO.Class         ( MonadIO, liftIO   )
-import           System.IO                      ( hFlush, stdout    )
-import           Data.Text                      ( Text              )
-import           Data.Text.Encoding             ( decodeUtf8        )
-import           Data.ByteString.Lazy           ( toStrict          )
-import           Control.Monad.Except           ( ExceptT (..)      )
-import           Lens.Micro                     ( (^.)              )
-import           Control.Exception              ( IOException
-                                                , SomeException
-                                                , displayException
-                                                , catch
-                                                )
+import           Control.Monad.IO.Class          ( MonadIO, liftIO   )
+import           System.IO                       ( hFlush, stdout    )
+import           Data.Text                       ( Text              )
+import           Data.Text.Encoding              ( decodeUtf8        )
+import           Data.ByteString.Lazy            ( toStrict          )
+import           Control.Monad.Except            ( ExceptT (..)      )
+import           Lens.Micro                      ( (^.)              )
+import           Control.Exception               ( IOException
+                                                 , SomeException
+                                                 , displayException
+                                                 , catch
+                                                 )
 
 -- =============================================================== --
 -- A little cleaner string and text printing
@@ -66,6 +69,8 @@ readFileErr p = ExceptT $ catch ( pure <$> Tx.readFile p ) hndlErr
 -- =============================================================== --
 -- Internet IO management
 
+type WebRequest = Wreq.Options -> String -> T.ErrMonad Text
+
 -- For this to work, the GHC.IO.Encoding should be set to utf8 in the
 -- Main application source.
 
@@ -73,6 +78,14 @@ webRequest :: Wreq.Options -> String -> T.ErrMonad Text
 -- ^Make a web request using the provided options and address.
 webRequest os ad = ExceptT $ catch (readResponse <$> Wreq.getWith os ad) hndlErr
     where hndlErr :: SomeException -> IO ( Either T.ErrString Text)
+          hndlErr = pure .Left . (msg <>) . displayException
+          msg     = "Unable to make http request at: " <> ad <> ". Details:\n"
+
+webRequestIn :: WreqS.Session -> Wreq.Options -> String -> T.ErrMonad Text
+-- ^Make a web request using the provided options and address.
+webRequestIn s os ad = ExceptT run
+    where run     = catch (readResponse <$> WreqS.getWith os s ad) hndlErr
+          hndlErr :: SomeException -> IO ( Either T.ErrString Text)
           hndlErr = pure .Left . (msg <>) . displayException
           msg     = "Unable to make http request at: " <> ad <> ". Details:\n"
 
