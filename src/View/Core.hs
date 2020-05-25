@@ -7,6 +7,7 @@ module View.Core
     , dateN
     , dateP
     , dateW
+    , showPicoSec
       -- Text formatting of journal sets, issues, citations...
     , jsetHeader
     , jsetVHeader
@@ -66,6 +67,19 @@ dateW x = Tx.unwords [ go m, C.tshow d <> ",", C.tshow y ]
           go 11   = "November"
           go 12   = "December"
           go _    = "??"
+
+showPicoSec :: Integer -> Text
+showPicoSec x
+    | x < 0     = "<0 s"
+    | msec < 1  = "<1 ms"
+    | n < 1000  = Tx.pack $ secs <> "." <> msecs <> " s"
+    | otherwise = ">1 ks"
+    where msec       = truncate $ fromIntegral x / 10^9
+          (n:ns)     = fst . unzip . tail . scanl go (0,x) $ [12,11 ..]
+          secs       = show n
+          msecs      = concatMap show . take (4 - length secs) $ ns
+          go (_,v) n = let z = truncate $ fromIntegral v / 10^n
+                       in  (z, v - z * 10^n)
 
 -- =============================================================== --
 -- Text formatting of Journal set, issue, citation, etc. components
