@@ -9,11 +9,11 @@ import Test.Hspec                ( Spec (..)
 
 main :: IO ()
 main = hspec $ do
-    describe "showPico" $ do
-        showPicoSpec
+    describe "showPicoSec" $ do
+        showPicoSecSpec
 
-showPicoSpec :: Spec
-showPicoSpec = do
+showPicoSecSpec :: Spec
+showPicoSecSpec = do
     let go x = Vc.showPicoSec . truncate $ x * 10**12
     it "Works when x < 0" $ do
         go (-1)      `shouldBe` "<0 s"
