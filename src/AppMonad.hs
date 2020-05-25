@@ -24,10 +24,12 @@ import qualified Data.Map.Strict           as Map
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
+import qualified Model.Core.Dates          as D
 import qualified Model.Journals            as J
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
 import qualified View.View                 as V
+import qualified View.Core                 as Vc
 import           Network.Wreq.Session               ( newSession     )
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
@@ -102,9 +104,9 @@ downloadPMIDs wreq iss = do
     C.putTxtMIO $ "Downloading " <> V.issueToTxt iss <> " PMIDs..."
     result <- liftIO . runExceptT . wreq query $ J.eSearchUrl
     case result >>= P.parsePMIDs of
-         Left err  -> C.putStrLnMIO err                    *> pure []
-         Right []  -> C.putStrLnMIO "None found at PubMed" *> pure []
-         Right ids -> C.putStrMIO   "OK "                  *> pure ids
+         Left err  -> C.putStrMIO err                    *> pure []
+         Right []  -> C.putStrMIO "None found at PubMed" *> pure []
+         Right ids -> C.putStrMIO "OK "                  *> pure ids
 
 downloadCitations :: C.WebRequest -> [Text] -> T.AppMonad [T.Citation]
 downloadCitations _    []    = pure []
@@ -113,16 +115,19 @@ downloadCitations wreq pmids = do
     let query = J.tocESumQuery pmids
     result <- liftIO . runExceptT . wreq query $ J.eSummaryUrl
     case result >>= P.parseCitations of
-         Left  err     -> C.putStrLnMIO err  *> pure []
-         Right ([],cs) -> C.putStrLnMIO "OK" *> pure cs
+         Left  err     -> C.putStrMIO err  *> pure []
+         Right ([],cs) -> C.putStrMIO "OK" *> pure cs
          Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
-                          in  C.putTxtLnMIO msg *> pure cs
+                          in  C.putTxtMIO msg *> pure cs
 
 downloadPubMed :: T.Selection -> T.AppMonad T.IssueContent
 downloadPubMed sel = do
-    wreq <- C.webRequestIn <$> liftIO newSession
-    downloadPMIDs wreq sel >>= downloadCitations wreq
-                           >>= pure . T.IssueContent sel
+    start <- liftIO D.checkClock
+    wreq  <- C.webRequestIn <$> liftIO newSession
+    cites <- downloadPMIDs wreq sel >>= downloadCitations wreq
+    secs  <- fmap Vc.showPicoSec . liftIO . D.stopClock $ start
+    C.putTxtLnMIO $ " (" <> secs <> ")"
+    pure $ T.IssueContent sel cites
 
 -- =============================================================== --
 -- General Helper Commands
