@@ -8,6 +8,9 @@ module Model.Core.Dates
     , diffYears
     , diffMonths
     , diffDays
+      -- time
+    , checkClock
+    , stopClock
     ) where
 
 import qualified Data.Time        as Tm
@@ -48,3 +51,18 @@ diffDays :: Day -> Day -> Int
 diffDays d1 d0
     | d1 < d0   = 0
     | otherwise = fromIntegral $ Tm.diffDays d1 d0
+
+-- =============================================================== --
+-- Working with time
+
+checkClock :: IO Integer
+-- ^Picoseconds from midnight.
+checkClock = Tm.utctDayTime <$> Tm.getCurrentTime
+             >>= pure . Tm.diffTimeToPicoseconds
+
+stopClock :: Integer -> IO Integer
+-- ^Returns the difference between a start time and the call time in
+-- units of picoseconds. Use with checkClock to get the start time.
+stopClock start = do
+    stop <- checkClock
+    pure $ stop - start
