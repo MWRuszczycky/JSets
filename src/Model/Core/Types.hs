@@ -118,11 +118,13 @@ instance HasDate Day where
 
 -- |Things that may be combinable like a semigroup, but not always.
 -- In other words certain *values* can combine like a semigroup.
--- Mixability should be transitive:
+-- Miscibility should be transitive:
 --      a mixes with b and b mixes with c implies a mixes with c
--- Mixability should be reflexive:
+-- Miscibility should be reflexive:
+--      a mixes with itself
+-- Miscibility should be symmetric
 --      a mixes with b implies b mixes with a
--- Mixability should be associative:
+-- Mixing should be associative:
 --      if a, b, & c are miscible then
 --          (a `mix` b) `mix` c == a `mix` (b `mix` c)
 class MayMix a where
