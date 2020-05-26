@@ -38,10 +38,11 @@ import qualified Data.Text               as Tx
 import qualified Data.Time               as Tm
 import qualified Data.Map.Strict         as Map
 import qualified Network.Wreq            as Wreq
-import           Data.Time                          ( Day             )
-import           Data.Text                          ( Text            )
-import           Data.List                          ( find, nub, sort )
-import           Lens.Micro                         ( (.~), (&)       )
+import           Data.Time                          ( Day          )
+import           Data.Text                          ( Text         )
+import           Lens.Micro                         ( (.~), (&)    )
+import           Data.List                          ( find, nub
+                                                    , foldl', sort )
 
 -- =============================================================== --
 -- Working with journal sets
@@ -208,12 +209,15 @@ groupJsets ss@(x:_) = let setNo = T.setNo x
                                . groupSelections
                                . concatMap T.issues $ ss
 
+insertSelection :: [T.Selection] -> T.Selection -> [T.Selection]
+insertSelection []     s0 = [s0]
+insertSelection (s:ss) s0
+    | T.issue s0 == T.issue s = ( T.Selection (T.issue s0) . go s0 $ s ) : ss
+    | otherwise               = s : insertSelection ss s0
+    where go s0 s = sort . nub $ T.selected s0 <> T.selected s
+
 groupSelections :: [T.Selection] -> [T.Selection]
-groupSelections = concatMap rewrap . C.collectBy go
-    where go x y         = T.issue x == T.issue y
-          rewrap []      = []
-          rewrap (x:xs)  = [ T.Selection (T.issue x) . sort . nub
-                             . concatMap T.selected $ (x:xs) ]
+groupSelections = foldl' insertSelection []
 
 restrictContent :: T.IssueContent -> T.IssueContent
 restrictContent ic@(T.IssueContent iss cs) = ic { T.citations = cs' }
