@@ -2,7 +2,9 @@
 
 ## To Do
 
-* Convert all of the View functions to use `ViewMonad`
+* Convert more of the View functions to use `ViewMonad`
+* Combine the <read> and <group> commands by making Collection a MayMix instance.
+* All the <toc> command to accept multiple selections combining them using the MayMix methods.
 * List journal set numbers and dates without issue information
 * Space journal sets out with specified lead time
 * Configure new references using PubMed if possible
