@@ -1,8 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Core.Types
-    ( --State
-      ErrString
+    ( --Classes
+      HasDate           (..)
+    , HasIssue          (..)
+    , MayMix            (..)
+    , stirIn
+    , stir
+      --State
+    , ErrString
     , ErrMonad
     , AppMonad
     , ViewMonad
@@ -13,9 +19,7 @@ module Model.Core.Types
     , Format            (..)
     , ToCStyle          (..)
       -- Dates
-    , HasDate           (..)
       -- Journal sets
-    , MayMix            (..)
     , JournalSet        (..)
     , Collection        (..)
     , References
@@ -26,7 +30,6 @@ module Model.Core.Types
     , Issue             (..)
     , Selection         (..)
     , IssueContent      (..)
-    , HasIssue          (..)
       -- Table of contents and citations
     , Citation          (..)
     , PageNumber        (..)
@@ -39,6 +42,66 @@ import Data.Map.Strict      ( Map               )
 import Data.List            ( foldl', nub, sort )
 import Control.Monad.Except ( ExceptT           )
 import Control.Monad.Reader ( ReaderT, Reader   )
+
+-- =============================================================== --
+-- Classes
+
+---------------------------------------------------------------------
+-- Things that have dates
+
+class HasDate a where
+      date  :: a -> Day
+      year  :: a -> Int
+      month :: a -> Int
+      day   :: a -> Int
+      year  x = let (y,_,_) = toGregorian . date $ x in fromIntegral y
+      month x = let (_,m,_) = toGregorian . date $ x in m
+      day   x = let (_,_,d) = toGregorian . date $ x in d
+
+instance HasDate Day where
+    date = id
+
+---------------------------------------------------------------------
+-- Things that have an issue and associated journal
+class HasDate a => HasIssue a where
+    issue   :: a -> Issue
+    journal :: a -> Journal
+    volNo   :: a -> Int
+    issNo   :: a -> Int
+    journal = theJournal . issue
+    volNo   = theVolNo   . issue
+    issNo   = theIssNo   . issue
+
+---------------------------------------------------------------------
+-- Things that may be combinable like a semigroup, but not always.
+-- In other words certain *values* can combine like a semigroup.
+-- Miscibility should be transitive:
+--      a mixes with b and b mixes with c implies a mixes with c
+-- Miscibility should be reflexive:
+--      a mixes with itself
+-- Miscibility should be symmetric
+--      a mixes with b implies b mixes with a
+-- Mixing should be associative:
+--      if a, b, & c are miscible then
+--          (a `mix` b) `mix` c == a `mix` (b `mix` c)
+class MayMix a where
+    -- |Minimal definition defining when two values can mix and how
+    -- they do so. If they cannot mix, then mix evaluates to Nothing.
+    mix :: a -> a -> Maybe a
+
+    -- |Determine whether two MayMix values are miscible.
+    miscible :: a -> a -> Bool
+    miscible x y = maybe False (const True) . mix x $ y
+
+stirIn :: MayMix a => [a] -> a -> [a]
+-- ^Add a value to a list combining it with the first value it is
+-- miscible with. Otherwise, add it to the end of the list.
+stirIn []     x0 = [x0]
+stirIn (x:xs) x0 = maybe ( x : stirIn xs x0 ) (: xs) . mix x0 $ x
+
+stir :: MayMix a => [a] -> [a]
+-- ^Combine all miscible values in a list.
+stir = foldl' stirIn []
 
 -- =============================================================== --
 -- State
@@ -99,51 +162,7 @@ data ToCStyle =
       deriving ( Show, Eq )
 
 -- =============================================================== --
--- Dates
-
-class HasDate a where
-      date  :: a -> Day
-      year  :: a -> Int
-      month :: a -> Int
-      day   :: a -> Int
-      year  x = let (y,_,_) = toGregorian . date $ x in fromIntegral y
-      month x = let (_,m,_) = toGregorian . date $ x in m
-      day   x = let (_,_,d) = toGregorian . date $ x in d
-
-instance HasDate Day where
-    date = id
-
--- =============================================================== --
 -- Journal sets
-
--- |Things that may be combinable like a semigroup, but not always.
--- In other words certain *values* can combine like a semigroup.
--- Miscibility should be transitive:
---      a mixes with b and b mixes with c implies a mixes with c
--- Miscibility should be reflexive:
---      a mixes with itself
--- Miscibility should be symmetric
---      a mixes with b implies b mixes with a
--- Mixing should be associative:
---      if a, b, & c are miscible then
---          (a `mix` b) `mix` c == a `mix` (b `mix` c)
-class MayMix a where
-    -- |Minimal definition defining when two values can mix and how
-    -- they do so. If they cannot mix, then mix evaluates to Nothing.
-    mix :: a -> a -> Maybe a
-
-    miscible :: a -> a -> Bool
-    miscible x y = maybe False (const True) . mix x $ y
-
-    -- |Add a value to a list combining it with the first value it is
-    -- miscible with. Otherwise, add it to the end of the list.
-    stirIn :: [a] -> a -> [a]
-    stirIn []     x0 = [x0]
-    stirIn (x:xs) x0 = maybe ( x : stirIn xs x0 ) (: xs) . mix x0 $ x
-
-    -- |Combine all miscible values in a list.
-    stir :: [a] -> [a]
-    stir = foldl' stirIn []
 
 -- |A JournalSet is a list of all journal issues to be reviewed in
 -- a single along with an identifying INT key.
@@ -188,17 +207,6 @@ data Frequency =
 
 -- =============================================================== --
 -- Journal Issues
-
-class HasDate a => HasIssue a where
-    issue   :: a -> Issue
-    journal :: a -> Journal
-    volNo   :: a -> Int
-    issNo   :: a -> Int
-    journal = theJournal . issue
-    volNo   = theVolNo   . issue
-    issNo   = theIssNo   . issue
-
----------------------------------------------------------------------
 
 -- |Information about a given issue of a journal
 data Issue = Issue {
