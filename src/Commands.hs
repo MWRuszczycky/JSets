@@ -90,7 +90,7 @@ jsonCmd xs
         lift . C.writeFileErr "esummary.json" $ esummary
 
 ---------------------------------------------------------------------
--- Grouping multiple issue selections
+-- Providing help information
 
 helpHelp :: (Text, Text)
 helpHelp = (s, Tx.unlines hs)
