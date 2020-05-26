@@ -21,7 +21,6 @@ module Model.Journals
     , nextWeekly
     , nextMonthly
       -- Working with selection sets
-    , groupJsets
     , restrictContent
       -- Working with downloaded table of contents
     , eUtilsUrl
@@ -38,11 +37,10 @@ import qualified Data.Text               as Tx
 import qualified Data.Time               as Tm
 import qualified Data.Map.Strict         as Map
 import qualified Network.Wreq            as Wreq
-import           Data.Time                          ( Day          )
-import           Data.Text                          ( Text         )
-import           Lens.Micro                         ( (.~), (&)    )
-import           Data.List                          ( find, nub
-                                                    , foldl', sort )
+import           Data.Time                          ( Day       )
+import           Data.Text                          ( Text      )
+import           Lens.Micro                         ( (.~), (&) )
+import           Data.List                          ( find      )
 
 -- =============================================================== --
 -- Working with journal sets
@@ -198,27 +196,6 @@ nextWeekly x1
 
 -- =============================================================== --
 -- Working with selection sets for review
-
-groupJsets :: [T.JournalSet T.Selection] -> [T.JournalSet T.Selection]
-groupJsets = foldl' insertJset []
-
-insertJset :: [T.JournalSet T.Selection] -> T.JournalSet T.Selection
-              -> [T.JournalSet T.Selection]
-insertJset []     j0 = [j0]
-insertJset (j:js) j0
-    | T.setNo j0 == T.setNo j = ( T.JSet (T.setNo j0) . go j0 $ j ) : js
-    | otherwise               = j : insertJset js j0
-    where go j0 j = groupSelections . concatMap T.issues $ [j0, j]
-
-insertSelection :: [T.Selection] -> T.Selection -> [T.Selection]
-insertSelection []     s0 = [s0]
-insertSelection (s:ss) s0
-    | T.issue s0 == T.issue s = ( T.Selection (T.issue s0) . go s0 $ s ) : ss
-    | otherwise               = s : insertSelection ss s0
-    where go s0 s = sort . nub $ T.selected s0 <> T.selected s
-
-groupSelections :: [T.Selection] -> [T.Selection]
-groupSelections = foldl' insertSelection []
 
 restrictContent :: T.IssueContent -> T.IssueContent
 restrictContent ic@(T.IssueContent iss cs) = ic { T.citations = cs' }
