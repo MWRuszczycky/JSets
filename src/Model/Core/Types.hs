@@ -16,7 +16,7 @@ module Model.Core.Types
     , HasDate           (..)
       -- Journal sets
     , JournalSet        (..)
-    , Collection
+    , Collection        (..)
     , References
       -- Journals
     , Journal           (..)
@@ -125,7 +125,7 @@ instance HasDate a => HasDate (JournalSet a) where
     date = maximum . map date . issues
 
 -- |A Collection basic journal sets mapped by set number.
-type Collection a = Map Int [a]
+newtype Collection a = Collection ( Map Int [a] )
 
 -- |A list of reference issues
 type References = [Issue]

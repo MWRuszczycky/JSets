@@ -50,18 +50,18 @@ import           Lens.Micro                         ( (.~), (&)       )
 -- Basic operations
 
 pack :: [T.JournalSet a] -> T.Collection a
-pack = Map.fromList . map go
+pack = T.Collection . Map.fromList . map go
     where go (T.JSet k xs) = (k, xs)
 
 unpack :: T.Collection a -> [T.JournalSet a]
-unpack = map go . Map.toList
+unpack (T.Collection m) = map go . Map.toList $ m
     where go (k, xs) = T.JSet k xs
 
 emptyCollection :: T.Collection a
-emptyCollection = Map.empty
+emptyCollection = T.Collection Map.empty
 
 lookupJset :: T.HasIssue a => Int -> T.Collection a -> Maybe (T.JournalSet a)
-lookupJset k col = T.JSet k <$> Map.lookup k col
+lookupJset k (T.Collection m) = T.JSet k <$> Map.lookup k m
 
 selectNone :: T.JournalSet T.Issue -> T.JournalSet T.Selection
 selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
