@@ -199,15 +199,16 @@ nextWeekly x1
 -- =============================================================== --
 -- Working with selection sets for review
 
-groupJsets :: [T.JournalSet T.Selection] -> Maybe (T.JournalSet T.Selection)
--- ^Fold multiple journal set selections into a single journal set
--- selection by combining page numbers for the same issues between
--- the selection sets.
-groupJsets []       = Nothing
-groupJsets ss@(x:_) = let setNo = T.setNo x
-                      in  pure . T.JSet setNo
-                               . groupSelections
-                               . concatMap T.issues $ ss
+groupJsets :: [T.JournalSet T.Selection] -> [T.JournalSet T.Selection]
+groupJsets = foldl' insertJset []
+
+insertJset :: [T.JournalSet T.Selection] -> T.JournalSet T.Selection
+              -> [T.JournalSet T.Selection]
+insertJset []     j0 = [j0]
+insertJset (j:js) j0
+    | T.setNo j0 == T.setNo j = ( T.JSet (T.setNo j0) . go j0 $ j ) : js
+    | otherwise               = j : insertJset js j0
+    where go j0 j = groupSelections . concatMap T.issues $ [j0, j]
 
 insertSelection :: [T.Selection] -> T.Selection -> [T.Selection]
 insertSelection []     s0 = [s0]

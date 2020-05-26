@@ -59,8 +59,9 @@ groupHelp = (s, Tx.unlines hs)
 groupCmd :: [String] -> T.AppMonad ()
 groupCmd []  = throwError "A selection file must be sepecified!"
 groupCmd fps = mapM A.readJset fps >>= pure . J.groupJsets >>= \case
-                   Nothing  -> throwError "No Issues in selection!"
-                   Just sel -> display . V.selectionToTxt $ sel
+                    []       -> throwError "No Issues in selection!"
+                    (sel:[]) -> display . V.selectionToTxt $ sel
+                    _        -> throwError "More than one journal set!"
 
 ---------------------------------------------------------------------
 -- Downloading raw json from pubmed
