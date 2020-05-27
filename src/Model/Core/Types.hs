@@ -108,10 +108,7 @@ stir :: MayMix a => [a] -> [a]
 -- where mix is associative. Therefore, we get the following,
 --     stir ( stir xs )       == stir xs
 --     stir ( stir xs <> ys ) == stir ( xs <> ys ) == stir ( xs <> stir ys )
--- because mix is associative. Finally, we get by associativity of (<>)
---     stir ( stir (xs <> ys) <> zs ) == stir ( (xs <> ys) <> zs              )
---                                    == stir (  xs        <> (ys <> zs)      )
---                                    == stir (  xs        <> stir (ys <> zs) )
+-- because mix is associative.
 stir = foldl' stirIn []
 
 -- =============================================================== --
@@ -185,6 +182,11 @@ data JSet  a = JSet {
 instance HasDate a => HasDate (JSet a) where
     date = maximum . map date . issues
 
+-- The following instance satisifies associativety for mix of JSet
+-- whenever associativity of mix is satisifed for a because
+--   stir ( stir (xs <> ys) <> zs ) == stir ( (xs <> ys) <> zs              )
+--                                  == stir (  xs        <> (ys <> zs)      )
+--                                  == stir (  xs        <> stir (ys <> zs) )
 instance MayMix a => MayMix (JSet a) where
     mix (JSet n1 s1) (JSet n2 s2)
         | n1 == n2  = pure . JSet n1 . stir $ s1 <> s2
