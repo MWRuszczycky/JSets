@@ -135,10 +135,10 @@ downloadCitations wreq pmids = do
 
 downloadPubMed :: T.Selection -> T.AppMonad T.IssueContent
 downloadPubMed sel = do
-    start <- liftIO D.checkClock
+    start <- liftIO D.readClock
     wreq  <- C.webRequestIn <$> liftIO newSession
     cites <- downloadPMIDs wreq sel >>= downloadCitations wreq
-    secs  <- fmap Vc.showPicoSec . liftIO . D.stopClock $ start
+    secs  <- fmap Vc.showPicoSec . liftIO . D.deltaClock $ start
     C.putTxtLnMIO $ " (" <> secs <> ")"
     pure $ T.IssueContent sel cites
 

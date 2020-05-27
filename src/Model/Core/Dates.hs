@@ -9,13 +9,15 @@ module Model.Core.Dates
     , diffMonths
     , diffDays
       -- time
-    , checkClock
-    , stopClock
+    , readClock
+    , deltaClock
+    , wait
     ) where
 
-import qualified Data.Time        as Tm
-import qualified Model.Core.Types as T
-import           Data.Time              ( Day )
+import qualified Data.Time          as Tm
+import qualified Model.Core.Types   as T
+import           Control.Concurrent       ( threadDelay )
+import           Data.Time                ( Day         )
 
 -- =============================================================== --
 -- Working with dates
@@ -55,14 +57,18 @@ diffDays d1 d0
 -- =============================================================== --
 -- Working with time
 
-checkClock :: IO Integer
+readClock :: IO Integer
 -- ^Picoseconds from midnight.
-checkClock = Tm.utctDayTime <$> Tm.getCurrentTime
-             >>= pure . Tm.diffTimeToPicoseconds
+readClock = Tm.utctDayTime <$> Tm.getCurrentTime
+            >>= pure . Tm.diffTimeToPicoseconds
 
-stopClock :: Integer -> IO Integer
+deltaClock :: Integer -> IO Integer
 -- ^Returns the difference between a start time and the call time in
 -- units of picoseconds. Use with checkClock to get the start time.
-stopClock start = do
-    stop <- checkClock
-    pure $ stop - start
+deltaClock start = readClock >>= pure . subtract start
+
+wait :: Integer -> IO ()
+-- ^Delay current thread by n picoseconds.
+wait n | n > 0     = threadDelay u
+       | otherwise = pure ()
+       where u = round $ fromIntegral n / 10^^6
