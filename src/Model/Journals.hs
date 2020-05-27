@@ -4,7 +4,7 @@ module Model.Journals
     ( -- Working with journal sets
       pack
     , unpack
-    , emptyCollection
+    , emptyJSets
     , lookupJset
     , selectNone
     , yearly26Sets
@@ -30,17 +30,16 @@ module Model.Journals
     , tocESumQuery
     ) where
 
-import qualified Model.Core.Types        as T
-import qualified Model.Core.Dates        as D
-import qualified Model.Core.Core         as C
-import qualified Data.Text               as Tx
-import qualified Data.Time               as Tm
-import qualified Data.Map.Strict         as Map
-import qualified Network.Wreq            as Wreq
-import           Data.Time                          ( Day       )
-import           Data.Text                          ( Text      )
-import           Lens.Micro                         ( (.~), (&) )
-import           Data.List                          ( find      )
+import qualified Model.Core.Types as T
+import qualified Model.Core.Dates as D
+import qualified Model.Core.Core  as C
+import qualified Data.Text        as Tx
+import qualified Data.Time        as Tm
+import qualified Network.Wreq     as Wreq
+import           Data.Time                ( Day       )
+import           Data.Text                ( Text      )
+import           Lens.Micro               ( (.~), (&) )
+import           Data.List                ( find      )
 
 -- =============================================================== --
 -- Working with journal sets
@@ -48,27 +47,25 @@ import           Data.List                          ( find      )
 ---------------------------------------------------------------------
 -- Basic operations
 
-pack :: [T.JournalSet a] -> T.Collection a
-pack = T.Collection . Map.fromList . map go
-    where go (T.JSet k xs) = (k, xs)
+pack :: [T.JSet a] -> T.JSets a
+pack = T.JSets
 
-unpack :: T.Collection a -> [T.JournalSet a]
-unpack (T.Collection m) = map go . Map.toList $ m
-    where go (k, xs) = T.JSet k xs
+unpack :: T.JSets a -> [T.JSet a]
+unpack (T.JSets jsets) = jsets
 
-emptyCollection :: T.Collection a
-emptyCollection = T.Collection Map.empty
+emptyJSets :: T.JSets a
+emptyJSets = T.JSets []
 
-lookupJset :: T.HasIssue a => Int -> T.Collection a -> Maybe (T.JournalSet a)
-lookupJset k (T.Collection m) = T.JSet k <$> Map.lookup k m
+lookupJset :: T.HasIssue a => Int -> T.JSets a -> Maybe (T.JSet a)
+lookupJset k (T.JSets jsets) = find ( (==k) . T.setNo ) jsets
 
-selectNone :: T.JournalSet T.Issue -> T.JournalSet T.Selection
+selectNone :: T.JSet T.Issue -> T.JSet T.Selection
 selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
 
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
 
-yearly26Sets :: Int -> T.References -> T.Collection T.Issue
+yearly26Sets :: Int -> T.References -> T.JSets T.Issue
 ---- ^Compute 26 journal sets that cover all issues published in a
 ---- given year. The first 24 sets account for all monthly issues and
 ---- the first 48 weekly issues. The 25-th set accounts for 49-th and

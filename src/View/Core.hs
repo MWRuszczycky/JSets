@@ -87,7 +87,7 @@ showPicoSec x
 ---------------------------------------------------------------------
 -- Journal sets
 
-jsetHeader :: T.HasIssue a => T.JournalSet a -> Text
+jsetHeader :: T.HasIssue a => T.JSet a -> Text
 -- Formatted journal set header formotted with its availability date.
 -- Dates are listed year-month-day. For example: "1 | 2020-04-30"
 jsetHeader jset = Tx.unwords [ C.tshow . T.setNo $ jset
@@ -95,7 +95,7 @@ jsetHeader jset = Tx.unwords [ C.tshow . T.setNo $ jset
                              , dateN $ jset
                              ]
 
-jsetVHeader :: T.HasIssue a => T.JournalSet a -> Text
+jsetVHeader :: T.HasIssue a => T.JSet a -> Text
 -- Verbose formatting of journal set headers with availability date.
 -- For example: "Journal Set 1 | April 30, 2020"
 jsetVHeader jset = Tx.unwords [ "Journal Set"

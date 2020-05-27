@@ -53,7 +53,7 @@ runView go = ask >>= pure . runReader go
 ---------------------------------------------------------------------
 -- As CSV
 
-jsetsToCsv :: T.HasIssue a => [Text] -> T.Collection a -> Text
+jsetsToCsv :: T.HasIssue a => [Text] -> T.JSets a -> Text
 -- ^Convert a collection of journal sets to CSV. Every element is
 -- enclosed in double quotes. The first line is the list of journals
 -- by journal abbreviation as specified by the first argument. Every
@@ -63,7 +63,7 @@ jsetsToCsv abbrs col = hdr <> "\n" <> tbl
         where tbl  = Tx.unlines . map (jsetToCsv abbrs) . J.unpack $ col
               hdr  = Tx.intercalate "," $ "No. & Date" : abbrs
 
-jsetToCsv :: T.HasIssue a => [Text] -> T.JournalSet a -> Text
+jsetToCsv :: T.HasIssue a => [Text] -> T.JSet a -> Text
 -- ^Convert a journal set to a single line of CSV. The first argument
 -- is the list of journal abbreviations in the order they will be
 -- tabulated. The second argument is the journal set. The first cell
@@ -80,10 +80,10 @@ jsetToCsv abbrs jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ abbrs
 ---------------------------------------------------------------------
 -- As Text
 
-jsetsToTxt :: T.HasIssue a => T.Collection a -> Text
+jsetsToTxt :: T.HasIssue a => T.JSets a -> Text
 jsetsToTxt = Tx.intercalate "\n" . map jsetToTxt . J.unpack
 
-jsetToTxt :: T.HasIssue a => T.JournalSet a -> Text
+jsetToTxt :: T.HasIssue a => T.JSet a -> Text
 -- ^Convert a journal set to easily readable, formatted text.
 jsetToTxt jset = Vc.jsetHeader jset <> "\n" <> Tx.unlines xs
     where xs    = map issueToTxt . sortBy (comparing jName) . T.issues $ jset
@@ -92,10 +92,10 @@ jsetToTxt jset = Vc.jsetHeader jset <> "\n" <> Tx.unlines xs
 ---------------------------------------------------------------------
 -- to Markdown
 
-jsetsToMkd :: T.HasIssue a => T.Collection a -> Text
+jsetsToMkd :: T.HasIssue a => T.JSets a -> Text
 jsetsToMkd = Tx.unlines . map jsetToMkd . J.unpack
 
-jsetToMkd :: T.HasIssue a => T.JournalSet a -> Text
+jsetToMkd :: T.HasIssue a => T.JSet a -> Text
 jsetToMkd jset = Tx.concat $ hdr : iss
     where hdr = "## " <> Vc.jsetHeader jset <> "\n\n"
           iss = map ( Tx.append "* " . issueToMkd ) . T.issues $ jset
@@ -151,7 +151,7 @@ citationToMkd sel x = fill dict Temp.citationMkd
 ---------------------------------------------------------------------
 -- As Text
 
-tocsToTxt :: T.JournalSet T.IssueContent -> T.ViewMonad Text
+tocsToTxt :: T.JSet T.IssueContent -> T.ViewMonad Text
 tocsToTxt (T.JSet _ cs) = Tx.intercalate "\n" <$> mapM tocToTxt cs
 
 tocToTxt :: T.IssueContent -> T.ViewMonad Text
@@ -162,7 +162,7 @@ tocToTxt (T.IssueContent sel cs) = pure . Tx.intercalate "\n"
 ---------------------------------------------------------------------
 -- As Markdown
 
-tocsToMkd :: T.JournalSet T.IssueContent -> T.ViewMonad Text
+tocsToMkd :: T.JSet T.IssueContent -> T.ViewMonad Text
 tocsToMkd (T.JSet setNo cs) = Tx.unlines . (:) hdr <$> mapM tocToMkd cs
     where hdr = "# Journal Set " <> C.tshow setNo
 
@@ -176,7 +176,7 @@ tocToMkd (T.IssueContent x cs)
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: T.JournalSet T.IssueContent -> T.ViewMonad Text
+tocsToHtml :: T.JSet T.IssueContent -> T.ViewMonad Text
 tocsToHtml jset = do
     style <- asks T.cToCStyle
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
@@ -192,7 +192,7 @@ tocsToHtml jset = do
 ---------------------------------------------------------------------
 -- As text
 
-selectionToTxt :: T.JournalSet T.Selection -> Text
+selectionToTxt :: T.JSet T.Selection -> Text
 selectionToTxt jset@(T.JSet _ xs) =
     let go x = issueToTxt x : map ( Tx.append "    " ) (T.selected x)
     in  Tx.unlines $ Vc.jsetHeader jset : concatMap go xs

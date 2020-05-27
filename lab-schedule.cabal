@@ -48,8 +48,8 @@ library lab-schedule-internal
   build-depends:        base >= 4.7 && < 5
                       , attoparsec
                       , bytestring
-                      , containers
                       , directory
+                      , containers
                       , microlens
                       , mtl
                       , text

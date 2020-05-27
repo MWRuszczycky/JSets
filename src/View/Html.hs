@@ -32,7 +32,7 @@ className iss = Tx.intercalate "-" xs
 -- =============================================================== --
 -- Exported html document compositors
 
-htmlToCPropose :: Text -> Text -> T.JournalSet T.IssueContent -> Text
+htmlToCPropose :: Text -> Text -> T.JSet T.IssueContent -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
@@ -48,7 +48,7 @@ htmlToCPropose name email jset = fill (Map.fromList xys) Temp.tocsHtml
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
-htmlToCSelect :: Text -> Text -> T.JournalSet T.IssueContent -> Text
+htmlToCSelect :: Text -> Text -> T.JSet T.IssueContent -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
@@ -64,7 +64,7 @@ htmlToCSelect name email jset = fill (Map.fromList xys) Temp.tocsHtml
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
-htmlToCRank :: Text -> Text -> T.JournalSet T.IssueContent -> Text
+htmlToCRank :: Text -> Text -> T.JSet T.IssueContent -> Text
 htmlToCRank name email jset = fill (Map.fromList xys) Temp.rankingHtml
     where iss = map J.restrictContent . T.issues $ jset
           xys = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
@@ -162,7 +162,7 @@ citationDict (T.Selection iss _) c = Map.fromList xys
 -- --------------------------------------------------------------- --
 -- Javascript elements for building the selection text file
 
-savePrefix :: T.HasIssue a => T.JournalSet a -> Text
+savePrefix :: T.HasIssue a => T.JSet a -> Text
 -- ^Filename prefix for the selection text file.
 savePrefix jset = "sel" <> C.tshow y <> "-" <> ( C.tshow . T.setNo $ jset )
     where y = T.year jset

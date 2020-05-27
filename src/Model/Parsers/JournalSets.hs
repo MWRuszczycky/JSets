@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Parsers.JournalSets
-    ( parseCollection
+    ( parseJSets
     ) where
 
 import qualified Data.Text             as Tx
@@ -20,11 +20,10 @@ import           Data.Char                    ( isSpace, isDigit
 -- =============================================================== --
 -- Main parsers
 
-parseCollection :: [T.Issue] -> Text
-                   -> Either T.ErrString (T.Collection T.Selection)
-parseCollection refs x = parseCsv refs x <|> parseTxt refs x
+parseJSets :: [T.Issue] -> Text -> Either T.ErrString (T.JSets T.Selection)
+parseJSets refs x = parseCsv refs x <|> parseTxt refs x
 
-parseCsv :: [T.Issue] -> Text -> Either T.ErrString (T.Collection T.Selection)
+parseCsv :: [T.Issue] -> Text -> Either T.ErrString (T.JSets T.Selection)
 -- ^Parse a properly formatted csv file to a Collection.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
@@ -34,7 +33,7 @@ parseCsv refs x = let err = (<>) "Cannot parse CSV: "
                                      >>= getRawCollection
                                      >>= validate refs
 
-parseTxt :: [T.Issue] -> Text -> Either T.ErrString (T.Collection T.Selection)
+parseTxt :: [T.Issue] -> Text -> Either T.ErrString (T.JSets T.Selection)
 -- ^Parse a properly formatted text file to a Collection.
 parseTxt refs t = let err = (<>) "Cannot parse selection: "
                   in  bimap err id $ At.parseOnly rawJsets t >>= validate refs
@@ -58,12 +57,10 @@ type RawIssue     = ( Text, Int, Int )
 -- =============================================================== --
 -- Parsed journal set/issue validation and construction
 
-validate :: T.References -> [RawJset]
-            -> Either T.ErrString (T.Collection T.Selection)
-validate refs xs = mapM (validateJset refs) xs >>= packCollection
+validate :: T.References -> [RawJset] -> Either T.ErrString (T.JSets T.Selection)
+validate refs xs = mapM (validateJset refs) xs >>= packJSets
 
-validateJset :: T.References -> RawJset
-                -> Either T.ErrString (T.JournalSet T.Selection)
+validateJset :: T.References -> RawJset -> Either T.ErrString (T.JSet T.Selection)
 validateJset refs (setNo,xs) = T.JSet <$> pure setNo <*> mapM go xs
     where go (r,ys) = T.Selection <$> validateIssue refs r <*> pure ys
 
@@ -71,9 +68,8 @@ validateIssue :: T.References -> RawIssue -> Either T.ErrString T.Issue
 validateIssue refs (j,v,n) = maybe err pure . J.lookupIssue refs j $ (v,n)
     where err = Left $ invalidIssErr j v n
 
-packCollection :: [T.JournalSet T.Selection]
-                  -> Either T.ErrString (T.Collection T.Selection)
-packCollection js
+packJSets :: [T.JSet T.Selection] -> Either T.ErrString (T.JSets T.Selection)
+packJSets js
     | duplicateSetNos js = Left "There are duplicated journal set keys."
     | otherwise          = pure . J.pack $ js
 
@@ -169,7 +165,7 @@ getRawSelection abbrs xs = fmap concat . sequence . zipWith go abbrs $ ys
 -- =============================================================== --
 -- Helper functions
 
-duplicateSetNos :: [T.JournalSet a] -> Bool
+duplicateSetNos :: [T.JSet a] -> Bool
 -- ^Check for duplicated journal set numbers.
 duplicateSetNos = go . map T.setNo
     where go []     = False

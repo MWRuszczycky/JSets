@@ -20,8 +20,8 @@ module Model.Core.Types
     , ToCStyle          (..)
       -- Dates
       -- Journal sets
-    , JournalSet        (..)
-    , Collection        (..)
+    , JSet              (..)
+    , JSets             (..)
     , References
       -- Journals
     , Journal           (..)
@@ -38,7 +38,6 @@ module Model.Core.Types
 
 import Data.Time            ( Day, toGregorian  )
 import Data.Text            ( Text              )
-import Data.Map.Strict      ( Map               )
 import Data.List            ( foldl', nub, sort )
 import Control.Monad.Except ( ExceptT           )
 import Control.Monad.Reader ( ReaderT, Reader   )
@@ -164,23 +163,23 @@ data ToCStyle =
 -- =============================================================== --
 -- Journal sets
 
--- |A JournalSet is a list of all journal issues to be reviewed in
--- a single along with an identifying INT key.
-data JournalSet  a = JSet {
+-- |A Journal Set (JSet) is a list of all journal issues to be
+-- reviewed in a single along with an identifying INT key.
+data JSet  a = JSet {
       setNo  :: Int
     , issues :: [a]
     } deriving Show
 
-instance HasDate a => HasDate (JournalSet a) where
+instance HasDate a => HasDate (JSet a) where
     date = maximum . map date . issues
 
-instance MayMix a => MayMix (JournalSet a) where
+instance MayMix a => MayMix (JSet a) where
     mix (JSet n1 s1) (JSet n2 s2)
         | n1 == n2  = pure . JSet n1 . stir $ s1 <> s2
         | otherwise = Nothing
 
--- |A Collection basic journal sets mapped by set number.
-newtype Collection a = Collection ( Map Int [a] )
+-- |A Collection of journal sets
+newtype JSets a = JSets [JSet a]
 
 -- |A list of reference issues
 type References = [Issue]
