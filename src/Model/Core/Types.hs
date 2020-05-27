@@ -94,12 +94,24 @@ class MayMix a where
 
 stirIn :: MayMix a => [a] -> a -> [a]
 -- ^Add a value to a list combining it with the first value it is
--- miscible with. Otherwise, add it to the end of the list.
+-- miscible with. Otherwise, add it to the end of the list. The
+-- stirred value mixes right-to-left with the first miscible element
+-- of the list, i.e., x_miscible_in_list `mix` x_stirred_in
 stirIn []     x0 = [x0]
-stirIn (x:xs) x0 = maybe ( x : stirIn xs x0 ) (: xs) . mix x0 $ x
+stirIn (x:xs) x0 = maybe ( x : stirIn xs x0 ) (: xs) . mix x $ x0
 
 stir :: MayMix a => [a] -> [a]
--- ^Combine all miscible values in a list.
+-- ^Combine all miscible values in a list. Stir maintains the
+-- original order of first-unmiscible elemenents. For example,
+-- if xs = [ x1, x2, y1, z1, x3, z2, y2 ]
+-- then stir xs == [ ((x1 `mix` x2) `mix` x3), (y1 `mix` y2), (z1 `mix` z2) ]
+-- where mix is associative. Therefore, we get the following,
+--     stir ( stir xs )       == stir xs
+--     stir ( stir xs <> ys ) == stir ( xs <> ys ) == stir ( xs <> stir ys )
+-- because mix is associative. Finally, we get by associativity of (<>)
+--     stir ( stir (xs <> ys) <> zs ) == stir ( (xs <> ys) <> zs              )
+--                                    == stir (  xs        <> (ys <> zs)      )
+--                                    == stir (  xs        <> stir (ys <> zs) )
 stir = foldl' stirIn []
 
 -- =============================================================== --
