@@ -5,8 +5,9 @@ module Model.Journals
       pack
     , unpack
     , emptyJSets
-    , lookupJset
+    , lookupJSet
     , selectNone
+    , combineJSets
     , yearly26Sets
     , splitByFreq
     , issuesByAbbr
@@ -56,11 +57,14 @@ unpack (T.JSets jsets) = jsets
 emptyJSets :: T.JSets a
 emptyJSets = T.JSets []
 
-lookupJset :: T.HasIssue a => Int -> T.JSets a -> Maybe (T.JSet a)
-lookupJset k (T.JSets jsets) = find ( (==k) . T.setNo ) jsets
+lookupJSet :: T.HasIssue a => Int -> T.JSets a -> Maybe (T.JSet a)
+lookupJSet k (T.JSets jsets) = find ( (==k) . T.setNo ) jsets
 
 selectNone :: T.JSet T.Issue -> T.JSet T.Selection
 selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
+
+combineJSets :: T.MayMix a => [T.JSets a] -> T.JSets a
+combineJSets = pack . T.stir . concatMap unpack
 
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets

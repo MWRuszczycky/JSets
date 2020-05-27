@@ -22,6 +22,7 @@ module View.View
     , tocsToMkd
     , tocToMkd
       -- Viewing selections
+    , selectionsToTxt
     , selectionToTxt
       -- Viewing references
     , referenceToTxt
@@ -191,6 +192,11 @@ tocsToHtml jset = do
 
 ---------------------------------------------------------------------
 -- As text
+
+selectionsToTxt :: T.JSets T.Selection -> Text
+selectionsToTxt (T.JSets jsets) = Tx.intercalate "\n"
+                                  . map selectionToTxt
+                                  $ jsets
 
 selectionToTxt :: T.JSet T.Selection -> Text
 selectionToTxt jset@(T.JSet _ xs) =

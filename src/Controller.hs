@@ -47,7 +47,7 @@ initConfig = do
                   , T.cNick       = Nothing
                   , T.cEmail      = Nothing
                   , T.cOutputPath = Nothing
-                  , T.cJsetKey    = Nothing
+                  , T.cJSetKey    = Nothing
                   , T.cHelp       = False
                   , T.cRefPath    = hmPath <> "/.config/jsets/config"
                   , T.cReferences = []
@@ -106,5 +106,5 @@ options =
 configKey :: String -> T.Config -> T.ErrMonad T.Config
 configKey key config
     | n < 1     = throwError $ "Key must be a positive integer."
-    | otherwise = pure $ config { T.cJsetKey = Just n }
+    | otherwise = pure $ config { T.cJSetKey = Just n }
     where n = maybe 0 id . readMaybe $ key

@@ -3,9 +3,9 @@
 
 module AppMonad
     ( -- Data structer construction & aquisition
-      readJsets
-    , readJset
-    , getJset
+      readJSets
+    , getJSet
+    , getJSets
       -- Working with configured reference issues
     , isAvailable
     , references
@@ -16,11 +16,9 @@ module AppMonad
     , downloadPubMed
       -- General helper functions
     , getFormat
-    , requireKey
     ) where
 
 import qualified Data.Text                 as Tx
-import qualified Data.Map.Strict           as Map
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Core           as C
@@ -45,32 +43,47 @@ import           Control.Monad.Except               ( liftIO
 ---------------------------------------------------------------------
 -- Acquiring journal sets
 
-readJsets :: FilePath -> T.AppMonad (T.Collection T.Selection)
-readJsets fp = do
+readJSets :: FilePath -> T.AppMonad (T.JSets T.Selection)
+-- ^Obtain a collection of journal sets from a file.
+readJSets fp = do
     content <- lift . C.readFileErr $ fp
     refs    <- references
-    case P.parseCollection refs content of
+    case P.parseJSets refs content of
          Left err    -> throwError err
          Right jsets -> pure jsets
 
----------------------------------------------------------------------
--- Read a single journal set from a file
+getJSet :: T.HasIssue a => T.JSets a -> Maybe Int -> T.AppMonad (T.JSet a)
+-- ^Find a single journal set from a collection of journal sets
+-- consistent with any journal set key provided. If no key is
+-- provided and there is only journal set in the collection then
+-- return that single journal set.
+getJSet (T.JSets []) _ = throwError "No journal sets!"
+getJSet (T.JSets (j:[])) (Just k)
+    | k == T.setNo j = pure j
+    | otherwise      = throwError "Journal set does not match requested key!"
+getJSet (T.JSets (j:[])) Nothing  = pure j
+getJSet _     Nothing  = throwError "A valid journal set key is required!"
+getJSet jsets (Just k) =
+    let cannotFind = "Cannot find requested journal set!"
+    in  case J.lookupJSet k jsets of
+             Nothing   -> throwError cannotFind
+             Just jset -> pure jset
 
-getJset :: T.HasIssue a => T.Collection a -> T.AppMonad (T.JournalSet a)
-getJset col@(T.Collection m)
-    | Map.null m      = throwError noJsetsMsg
-    | Map.size m == 1 = pure . uncurry T.JSet . Map.findMin $ m
-    | otherwise       = requested
-    where noJsetsMsg = "There are no journal sets in the collection!"
-          missingKey = "Cannot find requested journal set in this collection!"
-          requested  = do key <- requireKey
-                          case J.lookupJset key col of
-                               Nothing   -> throwError missingKey
-                               Just jset -> pure jset
-
-readJset :: FilePath -> T.AppMonad (T.JournalSet T.Selection)
--- ^Get a journal set based on the configuration.
-readJset fp = readJsets fp >>= getJset
+getJSets :: T.HasIssue a => T.JSets a -> Maybe Int -> T.AppMonad (T.JSets a)
+-- ^This is the same as getJSet, but returns a JSets collection. If
+-- a key is provided, then the collection is restricted to the single
+-- requested journal set. Otherwise, all the journal sets are returned.
+getJSets (T.JSets []) _ = throwError "No journal sets!"
+getJSets (T.JSets (j:[])) (Just k)
+    | k == T.setNo j = pure . J.pack $ [j]
+    | otherwise      = throwError "Journal set does not match requested key!"
+getJSets (T.JSets (j:[])) Nothing  = pure . J.pack $ [j]
+getJSets jsets Nothing  = pure jsets
+getJSets jsets (Just k) =
+    let cannotFind = "Cannot find requested journal set!"
+    in  case J.lookupJSet k jsets of
+             Nothing   -> throwError cannotFind
+             Just jset -> pure . J.pack $ [jset]
 
 -- =============================================================== --
 -- Working with configured reference issues
@@ -140,7 +153,3 @@ getFormat = asks ( fmap C.extension . T.cOutputPath )
                       Just "mkd"  -> pure T.MKD
                       Just "md"   -> pure T.MKD
                       _           -> pure T.TXT
-
-requireKey :: T.AppMonad Int
-requireKey = asks T.cJsetKey >>= maybe err pure
-    where err = throwError "A valid journal set key is required."

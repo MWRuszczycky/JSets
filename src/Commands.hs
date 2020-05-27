@@ -29,8 +29,7 @@ import           Control.Monad.Except               ( liftIO, lift
 
 commands :: [ T.Command ]
 -- ^Commands should not be more than five characters long.
-commands = [ T.Command "group" groupCmd groupHelp
-           , T.Command "help"  helpCmd  helpHelp
+commands = [ T.Command "help"  helpCmd  helpHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "refs"  refsCmd  refsHelp
            , T.Command "json"  jsonCmd  jsonHelp
@@ -43,25 +42,6 @@ runCommands []     = pure ()
 runCommands (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
     where go  = flip T.cmdAction xs
           err = throwError $ "Unknown command: " <> x
-
----------------------------------------------------------------------
--- Grouping multiple issue selections
-
-groupHelp :: (Text, Text)
-groupHelp = (s, Tx.unlines hs)
-    where s  = "group issue selections for review"
-          hs = [ "Usage: jsets group file1.txt file2.txt file3.txt\n"
-               , "Selection file formats are the same as journal set text files"
-               , "with the first page of each selected article immediately"
-               , "following the issue header line."
-               ]
-
-groupCmd :: [String] -> T.AppMonad ()
-groupCmd []  = throwError "A selection file must be sepecified!"
-groupCmd fps = mapM A.readJset fps >>= pure . T.stir >>= \case
-                    []       -> throwError "No Issues in selection!"
-                    (sel:[]) -> display . V.selectionToTxt $ sel
-                    _        -> throwError "More than one journal set!"
 
 ---------------------------------------------------------------------
 -- Downloading raw json from pubmed
@@ -133,19 +113,16 @@ readHelp = (s, Tx.unlines hs)
                , "    jsets read jsets2019.csv --output=jsets2019.txt"
                ]
 
-readCmd :: [String] -> T.AppMonad ()
-readCmd []     = throwError "A path to the journal sets file required!"
-readCmd (fp:_) = do
-    fmt   <- A.getFormat
-    mbKey <- asks T.cJsetKey
+readCmd :: [FilePath] -> T.AppMonad ()
+readCmd []  = throwError "Path(s) to journal sets files are required!"
+readCmd fps = do
+    jsets <- J.combineJSets <$> mapM A.readJSets fps
+    key   <- asks T.cJSetKey
     abbrs <- A.issueRefAbbrs
-    case (mbKey, fmt) of
-         (Just _, T.CSV) -> A.readJset  fp >>= display . V.jsetToCsv abbrs
-         (Just _, T.MKD) -> A.readJset  fp >>= display . V.jsetToMkd
-         (Just _, _    ) -> A.readJset  fp >>= display . V.jsetToTxt
-         (_     , T.CSV) -> A.readJsets fp >>= display . V.jsetsToCsv abbrs
-         (_     , T.MKD) -> A.readJsets fp >>= display . V.jsetsToMkd
-         (_     , _    ) -> A.readJsets fp >>= display . V.jsetsToTxt
+    A.getFormat >>= \case
+         T.CSV -> A.getJSets jsets key >>= display . V.jsetsToCsv abbrs
+         T.MKD -> A.getJSets jsets key >>= display . V.jsetsToMkd
+         _     -> A.getJSets jsets key >>= display . V.selectionsToTxt
 
 ---------------------------------------------------------------------
 -- View configured journals
@@ -190,11 +167,12 @@ tocHelp = (s, Tx.unlines hs)
                , "    --rank/-r   : toc for ranking citations"
                ]
 
-tocCmd :: [String] -> T.AppMonad ()
-tocCmd []     = throwError "Path to the journal sets file is needed!"
-tocCmd (fp:_) = do
-    T.JSet n xs <- A.readJset fp
-    jset        <- mapM A.downloadPubMed xs >>= pure . T.JSet n
+tocCmd :: [FilePath] -> T.AppMonad ()
+tocCmd []  = throwError "Path(s) to journal sets files are required!"
+tocCmd fps = do
+    jsets        <- J.combineJSets <$> mapM A.readJSets fps
+    T.JSet n sel <- asks T.cJSetKey >>= A.getJSet jsets
+    jset         <- mapM A.downloadPubMed sel >>= pure . T.JSet n
     A.getFormat >>= \case
         T.HTML -> V.runView ( V.tocsToHtml jset ) >>= display
         T.MKD  -> V.runView ( V.tocsToMkd  jset ) >>= display
