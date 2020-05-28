@@ -34,7 +34,6 @@ import qualified View.Core                 as Vc
 import           Network.Wreq.Session               ( newSession     )
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
-import           Control.Monad                      ( when           )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , runExceptT
@@ -141,12 +140,11 @@ downloadContent :: C.WebRequest -> T.Selection -> T.AppMonad T.IssueContent
 downloadContent wreq sel = do
     start <- liftIO D.readClock
     cites <- downloadPMIDs wreq sel >>= downloadCitations wreq
-    -- PubMed allows at most 3 requests per second. We've alrady made
-    -- two at this point, so we wait out the rest of the second.
     delta <- liftIO . D.deltaClock $ start
-    when (delta < 10^12) . liftIO . D.wait $ 10^12 - delta
-    secs  <- fmap Vc.showPicoSec . liftIO . D.deltaClock $ start
-    C.putTxtLnMIO $ " (" <> secs <> ")"
+    C.putTxtLnMIO $ " (" <> Vc.showPicoSec delta <> ")"
+    -- PubMed allows at most 3 requests per second. We've alrady made
+    -- two at this point, so we pause for another second.
+    liftIO . D.wait $ 10^12
     pure $ T.IssueContent sel cites
 
 downloadContents :: [T.Selection] -> T.AppMonad [T.IssueContent]
