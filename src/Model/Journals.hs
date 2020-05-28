@@ -237,13 +237,13 @@ eSearchTerm x = Tx.intercalate " AND " keys
 tocESearchQuery :: T.HasIssue a => a -> Wreq.Options
 -- ^Build an E-Utilities query to obtain the PMIDs for all citations
 -- in the PubMed database associated with the given journal issue.
-tocESearchQuery x = Wreq.defaults & Wreq.param "term"    .~ [ eSearchTerm x ]
-                                  & Wreq.param "retmax"  .~ [ "150"         ]
-                                  & Wreq.param "retmode" .~ [ "json"        ]
+tocESearchQuery x = Wreq.defaults & Wreq.param "retmode" .~ [ "json"        ]
+                                  & Wreq.param "retmax"  .~ [ "200"         ]
+                                  & Wreq.param "term"    .~ [ eSearchTerm x ]
 
 tocESumQuery :: [Text] -> Wreq.Options
 -- ^Build an E-Utilities query to obtain the document summaries from
 -- the PubMed database for the indicated PMIDs.
 tocESumQuery pmids = let idstr = Tx.intercalate "," pmids
-                     in  Wreq.defaults & Wreq.param "id"      .~ [ idstr  ]
-                                       & Wreq.param "retmode" .~ [ "json" ]
+                     in  Wreq.defaults & Wreq.param "retmode" .~ [ "json" ]
+                                       & Wreq.param "id"      .~ [ idstr  ]
