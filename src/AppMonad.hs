@@ -13,7 +13,10 @@ module AppMonad
     , issueRefAbbrs
     , getIssue
       -- Internet requests
-    , downloadPubMed
+    , downloadPMIDs
+    , downloadCitations
+    , downloadSelection
+    , downloadSelections
       -- General helper functions
     , getFormat
     ) where
@@ -31,6 +34,7 @@ import qualified View.Core                 as Vc
 import           Network.Wreq.Session               ( newSession     )
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
+import           Control.Monad                      ( when           )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , runExceptT
@@ -133,14 +137,24 @@ downloadCitations wreq pmids = do
          Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
                           in  C.putTxtMIO msg *> pure cs
 
-downloadPubMed :: T.Selection -> T.AppMonad T.IssueContent
-downloadPubMed sel = do
+downloadSelection :: C.WebRequest -> T.Selection -> T.AppMonad T.IssueContent
+downloadSelection wreq sel = do
     start <- liftIO D.readClock
-    wreq  <- C.webRequestIn <$> liftIO newSession
     cites <- downloadPMIDs wreq sel >>= downloadCitations wreq
+    -- PubMed allows at most 3 requests per second. We've alrady made
+    -- two at this point, so we wait out the rest of the second.
+    delta <- liftIO . D.deltaClock $ start
+    when (delta < 10^12) . liftIO . D.wait $ 10^12 - delta
     secs  <- fmap Vc.showPicoSec . liftIO . D.deltaClock $ start
     C.putTxtLnMIO $ " (" <> secs <> ")"
     pure $ T.IssueContent sel cites
+
+downloadSelections :: [T.Selection] -> T.AppMonad [T.IssueContent]
+downloadSelections xs = do
+    wreq     <- C.webRequestIn <$> liftIO newSession
+    contents <- mapM (downloadSelection wreq) xs
+    C.putTxtLnMIO "Done"
+    pure contents
 
 -- =============================================================== --
 -- General Helper Commands

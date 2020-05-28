@@ -170,9 +170,9 @@ tocHelp = (s, Tx.unlines hs)
 tocCmd :: [FilePath] -> T.AppMonad ()
 tocCmd []  = throwError "Path(s) to journal sets files are required!"
 tocCmd fps = do
-    jsets        <- J.combineJSets <$> mapM A.readJSets fps
-    T.JSet n sel <- asks T.cJSetKey >>= A.getJSet jsets
-    jset         <- mapM A.downloadPubMed sel >>= pure . T.JSet n
+    jsets       <- J.combineJSets <$> mapM A.readJSets fps
+    T.JSet n ss <- asks T.cJSetKey >>= A.getJSet jsets
+    jset        <- A.downloadSelections ss >>= pure . T.JSet n
     A.getFormat >>= \case
         T.HTML -> V.runView ( V.tocsToHtml jset ) >>= display
         T.MKD  -> V.runView ( V.tocsToMkd  jset ) >>= display
