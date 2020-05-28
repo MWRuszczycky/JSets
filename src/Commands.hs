@@ -172,7 +172,7 @@ tocCmd []  = throwError "Path(s) to journal sets files are required!"
 tocCmd fps = do
     jsets       <- J.combineJSets <$> mapM A.readJSets fps
     T.JSet n ss <- asks T.cJSetKey >>= A.getJSet jsets
-    jset        <- A.downloadSelections ss >>= pure . T.JSet n
+    jset        <- A.downloadContents ss >>= pure . T.JSet n
     A.getFormat >>= \case
         T.HTML -> V.runView ( V.tocsToHtml jset ) >>= display
         T.MKD  -> V.runView ( V.tocsToMkd  jset ) >>= display

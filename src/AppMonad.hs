@@ -15,8 +15,8 @@ module AppMonad
       -- Internet requests
     , downloadPMIDs
     , downloadCitations
-    , downloadSelection
-    , downloadSelections
+    , downloadContent
+    , downloadContents
       -- General helper functions
     , getFormat
     ) where
@@ -137,8 +137,8 @@ downloadCitations wreq pmids = do
          Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
                           in  C.putTxtMIO msg *> pure cs
 
-downloadSelection :: C.WebRequest -> T.Selection -> T.AppMonad T.IssueContent
-downloadSelection wreq sel = do
+downloadContent :: C.WebRequest -> T.Selection -> T.AppMonad T.IssueContent
+downloadContent wreq sel = do
     start <- liftIO D.readClock
     cites <- downloadPMIDs wreq sel >>= downloadCitations wreq
     -- PubMed allows at most 3 requests per second. We've alrady made
@@ -149,10 +149,10 @@ downloadSelection wreq sel = do
     C.putTxtLnMIO $ " (" <> secs <> ")"
     pure $ T.IssueContent sel cites
 
-downloadSelections :: [T.Selection] -> T.AppMonad [T.IssueContent]
-downloadSelections xs = do
+downloadContents :: [T.Selection] -> T.AppMonad [T.IssueContent]
+downloadContents xs = do
     wreq     <- C.webRequestIn <$> liftIO newSession
-    contents <- mapM (downloadSelection wreq) xs
+    contents <- mapM (downloadContent wreq) xs
     C.putTxtLnMIO "Done"
     pure contents
 

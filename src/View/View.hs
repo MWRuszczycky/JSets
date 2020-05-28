@@ -12,10 +12,10 @@ module View.View
       -- Viewing Issues
     , issueToTxt
     , issueToMkd
-      -- Viewing cations
+      -- Viewing citations
     , citationToTxt
     , citationToMkd
-      -- Viewing tables of contents
+      -- Viewing issue contents (tables of contents)
     , tocsToTxt
     , tocToTxt
     , tocsToHtml
@@ -147,7 +147,7 @@ citationToMkd sel x = fill dict Temp.citationMkd
                               ]
 
 -- =============================================================== --
--- Viewing tables of contents
+-- Viewing Issue Contents (tables of contents and ranking lists)
 
 ---------------------------------------------------------------------
 -- As Text
