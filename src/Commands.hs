@@ -101,6 +101,12 @@ ranksHelp = (s, Tx.unlines hs)
                , "where FILE is a selections file."
                ]
 
+-- This function needs to be refactored and tests need to be written
+-- for all the library functions. But it 'seems' to work just fine
+-- right now.
+-- Also need to change the toc style options and how the view of the
+-- ranks is produced.
+
 ranksCmd :: [FilePath] -> T.AppMonad ()
 ranksCmd [] = throwError "Path(s) to journal set selection files required!"
 ranksCmd fps = do
@@ -108,7 +114,7 @@ ranksCmd fps = do
     key   <- asks T.cJSetKey
     jset  <- A.getJSet jsets key
     cites <- A.downloadCitations C.webRequest (J.selectedPMIDs jset)
-    C.putStrLnMIO "Done"
+    C.putStrLnMIO "\nDone"
     let (ics, cs)  = J.addContent cites . T.issues $ jset
         orphans    = Tx.unwords . map T.pmid $ cs
         missing    = concatMap J.missingPMIDs $ ics
