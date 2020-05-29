@@ -25,7 +25,6 @@ module Model.Journals
     , emptyContent
     , restrictContent
     , missingPMIDs
-    , selectedPMIDs
     , addContent
     , addCitations
       -- Working with downloaded table of contents
@@ -219,10 +218,6 @@ missingPMIDs :: T.IssueContent -> [T.PMID]
 missingPMIDs content = sPMIDs \\ cPMIDs
     where cPMIDs = map T.pmid . T.citations $ content
           sPMIDs = T.selected . T.selection $ content
-
-selectedPMIDs :: T.JSet T.Selection -> [T.PMID]
--- ^Pull all the selected PubMed IDs from the Journal Set.
-selectedPMIDs = concatMap T.selected . T.issues
 
 addContent :: [T.Citation] -> [T.Selection] -> ([T.IssueContent], [T.Citation])
 -- ^Take a list of selections and a list of citation and add the
