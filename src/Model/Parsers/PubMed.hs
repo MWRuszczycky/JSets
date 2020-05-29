@@ -26,6 +26,10 @@ parsePMIDs json = JS.parse json >>= maybe err pure . go
 -- Parsing PubMed Entrez ESummary results
 
 parseCitations :: Text -> Either T.ErrString ([T.PMID], [T.Citation])
+-- ^Parse esummary json from PubMed to construct citations. If any
+-- pmids are indexed in the json but do not have corresponding
+-- document summaries, these pmids are also returned; however, this
+-- should never happen unless PubMed is not working correctly.
 parseCitations txt = do
     json  <- JS.parse txt
     pmids <- getResultIDs json
