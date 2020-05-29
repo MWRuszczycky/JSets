@@ -19,6 +19,7 @@ import qualified View.Help                 as H
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
+import           Control.Monad                      ( when           )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO, lift
                                                     , liftEither
@@ -30,6 +31,7 @@ import           Control.Monad.Except               ( liftIO, lift
 commands :: [ T.Command ]
 -- ^Commands should not be more than five characters long.
 commands = [ T.Command "help"  helpCmd  helpHelp
+           , T.Command "ranks" ranksCmd ranksHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "refs"  refsCmd  refsHelp
            , T.Command "json"  jsonCmd  jsonHelp
@@ -89,7 +91,36 @@ helpCmd (c:_) = maybe err go . find ( (==c) . T.cmdName ) $ commands
           go  = display . H.details
 
 ---------------------------------------------------------------------
--- File format reading and conversion
+-- Generating output for ranking articles
+
+ranksHelp :: (Text, Text)
+ranksHelp = (s, Tx.unlines hs)
+    where s  = "output a list of selected articles generating a ranklist"
+          hs = [ "Usage:"
+               , "  ranks FILE [FILE]"
+               , "where FILE is a selections file."
+               ]
+
+ranksCmd :: [FilePath] -> T.AppMonad ()
+ranksCmd [] = throwError "Path(s) to journal set selection files required!"
+ranksCmd fps = do
+    jsets <- J.combineJSets <$> mapM A.readJSets fps
+    key   <- asks T.cJSetKey
+    jset  <- A.getJSet jsets key
+    cites <- A.downloadCitations C.webRequest (J.selectedPMIDs jset)
+    C.putStrLnMIO "Done"
+    let (ics, cs)  = J.addContent cites . T.issues $ jset
+        orphans    = Tx.unwords . map T.pmid $ cs
+        missing    = concatMap J.missingPMIDs $ ics
+        anyOrphans = not . null $ cs
+        anyMissing = not . null $ missing
+        jset'      = T.JSet (T.setNo jset) ics
+    when anyOrphans . C.putTxtLnMIO $ "There are orphan citations: " <> orphans
+    when anyMissing . C.putTxtLnMIO $ "There are missing citations: " <> Tx.unwords missing
+    V.runView ( V.ranksToHtml jset' ) >>= display
+
+---------------------------------------------------------------------
+-- File reading and conversion
 
 readHelp :: (Text, Text)
 readHelp = (s, Tx.unlines hs)

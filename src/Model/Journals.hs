@@ -6,7 +6,6 @@ module Model.Journals
     , unpack
     , emptyJSets
     , lookupJSet
-    , selectNone
     , combineJSets
     , yearly26Sets
     , splitByFreq
@@ -22,7 +21,13 @@ module Model.Journals
     , nextWeekly
     , nextMonthly
       -- Working with selection sets
+    , selectNone
+    , emptyContent
     , restrictContent
+    , missingPMIDs
+    , selectedPMIDs
+    , addContent
+    , addCitations
       -- Working with downloaded table of contents
     , eUtilsUrl
     , eSearchUrl
@@ -37,10 +42,11 @@ import qualified Model.Core.Core  as C
 import qualified Data.Text        as Tx
 import qualified Data.Time        as Tm
 import qualified Network.Wreq     as Wreq
-import           Data.Time                ( Day       )
-import           Data.Text                ( Text      )
-import           Lens.Micro               ( (.~), (&) )
-import           Data.List                ( find      )
+import           Data.Bifunctor           ( bimap      )
+import           Data.Time                ( Day        )
+import           Data.Text                ( Text       )
+import           Lens.Micro               ( (.~), (&)  )
+import           Data.List                ( (\\), find )
 
 -- =============================================================== --
 -- Working with journal sets
@@ -59,9 +65,6 @@ emptyJSets = T.JSets []
 
 lookupJSet :: T.HasIssue a => Int -> T.JSets a -> Maybe (T.JSet a)
 lookupJSet k (T.JSets jsets) = find ( (==k) . T.setNo ) jsets
-
-selectNone :: T.JSet T.Issue -> T.JSet T.Selection
-selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
 
 combineJSets :: T.MayMix a => [T.JSets a] -> T.JSets a
 combineJSets = pack . T.stir . concatMap unpack
@@ -198,10 +201,44 @@ nextWeekly x1
 -- =============================================================== --
 -- Working with selection sets for review
 
+selectNone :: T.JSet T.Issue -> T.JSet T.Selection
+selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
+
+emptyContent :: T.JSet T.Selection -> T.JSet T.IssueContent
+emptyContent jset = T.JSet (T.setNo jset) . map go . T.issues $ jset
+    where go = flip T.IssueContent []
+
 restrictContent :: T.IssueContent -> T.IssueContent
 restrictContent ic@(T.IssueContent iss cs) = ic { T.citations = cs' }
     where sel = T.selected iss
           cs' = filter ( flip elem sel . T.pmid ) cs
+
+missingPMIDs :: T.IssueContent -> [T.PMID]
+-- ^Given an issue content with citations, return the PMIDs of all
+-- citations that were selected but are not in the content citations.
+missingPMIDs content = sPMIDs \\ cPMIDs
+    where cPMIDs = map T.pmid . T.citations $ content
+          sPMIDs = T.selected . T.selection $ content
+
+selectedPMIDs :: T.JSet T.Selection -> [T.PMID]
+-- ^Pull all the selected PubMed IDs from the Journal Set.
+selectedPMIDs = concatMap T.selected . T.issues
+
+addContent :: [T.Citation] -> [T.Selection] -> ([T.IssueContent], [T.Citation])
+-- ^Take a list of selections and a list of citation and add the
+-- citation to the appropriate selection in former to generate a list
+-- of contents. Return any left-over citations that were not among
+-- the selections. Repeated selections will not be populated.
+addContent cites = foldr go ([],cites)
+    where go x (xs,cs) = bimap (:xs) id $ addCitations x cs
+
+addCitations :: T.Selection -> [T.Citation] -> (T.IssueContent, [T.Citation])
+-- ^Add citations to a selection if they have been selected to
+-- generate an issue content and return any left over citations.
+addCitations sel = bimap (T.IssueContent sel) id . foldr go ([],[])
+    where pmids        = T.selected sel
+          go c (xs,cs) | elem (T.pmid c) pmids = (c:xs,cs)
+                       | otherwise             = (xs,c:cs)
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues

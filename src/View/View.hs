@@ -18,9 +18,10 @@ module View.View
       -- Viewing issue contents (tables of contents)
     , tocsToTxt
     , tocToTxt
-    , tocsToHtml
     , tocsToMkd
     , tocToMkd
+    , tocsToHtml
+    , ranksToHtml
       -- Viewing selections
     , selectionsToTxt
     , selectionToTxt
@@ -186,6 +187,12 @@ tocsToHtml jset = do
          T.Select  -> pure . Html.htmlToCSelect  name email $ jset
          T.Rank    -> pure . Html.htmlToCRank    name email $ jset
          T.Propose -> pure . Html.htmlToCPropose name email $ jset
+
+ranksToHtml :: T.JSet T.IssueContent -> T.ViewMonad Text
+ranksToHtml jset = do
+    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
+    email <- asks $ maybe "their email address" id . T.cEmail
+    pure . Html.htmlToCRank name email $ jset
 
 -- =============================================================== --
 -- Formatting selection sets
