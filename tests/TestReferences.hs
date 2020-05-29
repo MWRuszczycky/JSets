@@ -1,10 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module TestReferences
-    ( -- Utilities
-      isAvailable
-    , refIssue
-    , issueRefAbbrs
+    ( refIssue
     , issueRefs
     ) where
 
@@ -14,18 +11,11 @@ import           Data.Text              ( Text )
 import           Data.List              ( find )
 
 -- =============================================================== --
--- Utilities
-
-isAvailable :: Text -> Bool
--- ^Determine whether a given journal has a reference issue.
-isAvailable = maybe False (const True) . refIssue
+-- Accessors
 
 refIssue :: Text -> Maybe T.Issue
 -- ^Find a reference issue by its journal abbreviation.
 refIssue abbr = find ( (== abbr) . T.abbr . T.journal ) issueRefs
-
-issueRefAbbrs :: [Text]
-issueRefAbbrs = map ( T.abbr . T.journal ) issueRefs
 
 issueRefs :: [T.Issue]
 -- ^List of all available reference issues.
