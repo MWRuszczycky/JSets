@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase        #-}
 
 module View.View
     ( runView
@@ -16,12 +17,12 @@ module View.View
     , citationToTxt
     , citationToMkd
       -- Viewing issue contents (tables of contents)
+    , viewRanks
     , tocsToTxt
     , tocToTxt
     , tocsToMkd
     , tocToMkd
     , tocsToHtml
-    , ranksToHtml
       -- Viewing selections
     , selectionsToTxt
     , selectionToTxt
@@ -48,6 +49,15 @@ import           View.Templates           ( fill                 )
 
 runView :: T.ViewMonad a -> T.AppMonad a
 runView go = ask >>= pure . runReader go
+
+format :: T.ViewMonad T.Format
+format = asks ( fmap C.extension . T.cOutputPath )
+         >>= \case Just "txt"  -> pure T.TXT
+                   Just "csv"  -> pure T.CSV
+                   Just "html" -> pure T.HTML
+                   Just "mkd"  -> pure T.MKD
+                   Just "md"   -> pure T.MKD
+                   _           -> pure T.TXT
 
 -- =============================================================== --
 -- Viewing journal sets
@@ -150,6 +160,21 @@ citationToMkd sel x = fill dict Temp.citationMkd
 -- =============================================================== --
 -- Viewing Issue Contents (tables of contents and ranking lists)
 
+viewRanks :: T.JSet T.IssueContent -> T.ViewMonad Text
+viewRanks (T.JSet n ics) = do
+    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
+    email <- asks $ maybe "their email address" id . T.cEmail
+    format >>= \case
+        T.HTML -> pure . Html.htmlToCRank name email $ T.JSet n ics
+        T.MKD  -> Tx.intercalate "\n" <$> mapM tocToMkd ics
+        _      -> Tx.intercalate "\n" <$> mapM tocToTxt ics
+
+-- ranksToHtml :: T.JSet T.IssueContent -> T.ViewMonad Text
+-- ranksToHtml jset = do
+--     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
+--     email <- asks $ maybe "their email address" id . T.cEmail
+--     pure . Html.htmlToCRank name email $ jset
+
 ---------------------------------------------------------------------
 -- As Text
 
@@ -187,12 +212,6 @@ tocsToHtml jset = do
          T.Select  -> pure . Html.htmlToCSelect  name email $ jset
          T.Rank    -> pure . Html.htmlToCRank    name email $ jset
          T.Propose -> pure . Html.htmlToCPropose name email $ jset
-
-ranksToHtml :: T.JSet T.IssueContent -> T.ViewMonad Text
-ranksToHtml jset = do
-    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
-    email <- asks $ maybe "their email address" id . T.cEmail
-    pure . Html.htmlToCRank name email $ jset
 
 -- =============================================================== --
 -- Formatting selection sets
