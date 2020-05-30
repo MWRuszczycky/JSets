@@ -4,14 +4,18 @@ module JournalsTests
     ) where
 
 import qualified Data.Time             as Tm
+import qualified Data.Text.IO          as Tx
 import qualified Model.Core.Types      as T
 import qualified TestReferences        as TR
 import qualified Model.Journals        as J
-import Test.Hspec                            ( Spec (..)
+import qualified Model.Parsers.PubMed  as P
+import           Data.Ord                    ( comparing    )
+import           Data.List                   ( sort, sortBy )
+import           Test.Hspec                  ( Spec (..)
                                              , hspec
                                              , it
                                              , describe
-                                             , shouldBe )
+                                             , shouldBe     )
 
 spec :: IO ()
 spec = hspec $ do
@@ -20,6 +24,14 @@ spec = hspec $ do
         testScience
         testJacs
         testCellChemBiol
+    describe "addCitations & missingPMIDs" $ do
+        it "addCitations works with no missing PMIDs" $
+            addCitationsNoMissingSpec
+        it "addCitations & missingPMIDs work with missing PMIDs" $
+            addCitationsMissingSpec
+
+---------------------------------------------------------------------
+-- Testing Model.Journals.issueAtDate
 
 checkVolNum :: T.Issue -> Int -> Int -> IO ()
 checkVolNum x v n = (T.volNo x, T.issNo x) `shouldBe` (v, n)
@@ -199,3 +211,62 @@ testCellChemBiol = do
         checkVolNum n7 23 11
         checkVolNum n8 23 12
         checkVolNum n9 24 1
+
+--------------------------------------------------------------------
+-- Testing the construction of IssueContents
+
+testBV58N49 :: IO (T.Issue, [T.Citation])
+-- ^Citations for Biochemistry (2019) Volume 58 Issue 49.
+testBV58N49 = do
+    let Just iss = J.lookupIssue TR.issueRefs "Biochemistry" (58,49)
+    esummary <- Tx.readFile "tests/res/Biochemistry_V58N49_esummary.json"
+    case P.parseCitations esummary of
+         Right ([], cs) -> pure (iss, sortBy (comparing T.pmid) cs)
+         Right (_, _  ) -> error $ "Test Error:"
+                                   <> " res/Biochemistry_V58N49_esummary.json"
+                                   <> " has missing citations!"
+         _              -> error $ "Test Error:"
+                                   <> " Cannot parse: "
+                                   <> " res/Biochemistry_V58N49_esummary.json"
+
+checkAddCitations :: (T.IssueContent, [T.Citation]) -> [T.PMID] -> IO ()
+checkAddCitations (T.IssueContent sel cs, rest) allpmids = do
+    let selected = T.selected sel
+        added    = map T.pmid cs
+        notAdded = map T.pmid rest
+    added                    `shouldBe` selected
+    sort (added <> notAdded) `shouldBe` allpmids
+
+addCitationsNoMissingSpec :: IO ()
+addCitationsNoMissingSpec = do
+    (iss, cites) <- testBV58N49
+    let pmids = sort . map T.pmid $ cites
+        sel0  = []
+        sel1  = [ "31710808" ]
+        sel3  = [ "31710808", "31743022", "31746596" ]
+        toSel = T.Selection iss
+    checkAddCitations (J.addCitations (toSel sel0)  cites) pmids
+    checkAddCitations (J.addCitations (toSel sel1)  cites) pmids
+    checkAddCitations (J.addCitations (toSel sel3)  cites) pmids
+    checkAddCitations (J.addCitations (toSel pmids) cites) pmids
+
+addCitationsMissingSpec :: IO ()
+addCitationsMissingSpec = do
+    (iss, cites) <- testBV58N49
+    let pmids = sort . map T.pmid $ cites
+        sel0  = [ "31710808", "31743022", "31746596" ]
+        sel1  = [ "00000000", "31710808" ]
+        sel2  = [ "00000000", "11111111" ]
+        sel3  = [ "31710808", "00000000", "31743022", "31746596", "11111111" ]
+        seln  = "00000000" : pmids <> [ "11111111" ]
+        toSel = T.Selection iss
+    (J.missingPMIDs . fst $ J.addCitations (toSel sel0) cites)
+        `shouldBe` []
+    (J.missingPMIDs . fst $ J.addCitations (toSel sel1) cites)
+        `shouldBe` [ "00000000" ]
+    (J.missingPMIDs . fst $ J.addCitations (toSel sel2) cites)
+        `shouldBe` [ "00000000", "11111111" ]
+    (J.missingPMIDs . fst $ J.addCitations (toSel sel3) cites)
+        `shouldBe` [ "00000000", "11111111" ]
+    (J.missingPMIDs . fst $ J.addCitations (toSel seln) cites)
+        `shouldBe` [ "00000000", "11111111" ]

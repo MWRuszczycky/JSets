@@ -1,0 +1,57 @@
+{
+    "header": {
+        "type": "esearch",
+        "version": "0.3"
+    },
+    "esearchresult": {
+        "count": "11",
+        "retmax": "11",
+        "retstart": "0",
+        "idlist": [
+            "31755702",
+            "31746596",
+            "31743022",
+            "31738538",
+            "31736312",
+            "31724401",
+            "31724398",
+            "31724397",
+            "31713418",
+            "31710808",
+            "31702900"
+        ],
+        "translationset": [
+        ],
+        "translationstack": [
+            {
+                "term": "\"Biochemistry\"[journal]",
+                "field": "journal",
+                "count": "65617",
+                "explode": "N"
+            },
+            {
+                "term": "2019[ppdat]",
+                "field": "ppdat",
+                "count": "1026159",
+                "explode": "N"
+            },
+            "AND",
+            {
+                "term": "49[issue]",
+                "field": "issue",
+                "count": "22489",
+                "explode": "N"
+            },
+            "AND",
+            {
+                "term": "journal article[pt]",
+                "field": "pt",
+                "count": "28985865",
+                "explode": "Y"
+            },
+            "AND"
+        ],
+        "querytranslation": "\"Biochemistry\"[journal] AND 2019[ppdat] AND 49[issue] AND journal article[pt]"
+    }
+}
+

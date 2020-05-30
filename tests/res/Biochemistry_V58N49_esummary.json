@@ -1,0 +1,1372 @@
+{
+    "header": {
+        "type": "esummary",
+        "version": "0.3"
+    },
+    "result": {
+        "uids": [
+            "31755702",
+            "31746596",
+            "31743022",
+            "31738538",
+            "31736312",
+            "31724401",
+            "31724398",
+            "31724397",
+            "31713418",
+            "31710808",
+            "31702900"
+        ],
+        "31755702": {
+            "uid": "31755702",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Dec 2",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Osko JD",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Christianson DW",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Christianson DW",
+            "title": "Structural Basis of Catalysis and Inhibition of HDAC6 CD1, the Enigmatic Catalytic Domain of Histone Deacetylase 6.",
+            "sorttitle": "structural basis of catalysis and inhibition of hdac6 cd1 the enigmatic catalytic domain of histone deacetylase 6",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4912-4924",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31755702"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00934"
+                },
+                {
+                    "idtype": "pmc",
+                    "idtypen": 8,
+                    "value": "PMC6904440"
+                },
+                {
+                    "idtype": "mid",
+                    "idtypen": 8,
+                    "value": "NIHMS1060941"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31755702"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31755702"
+                },
+                {
+                    "idtype": "pmcid",
+                    "idtypen": 5,
+                    "value": "pmc-id: PMC6904440;manuscript-id: NIHMS1060941;embargo-date: 2020/12/10;"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pmc-release",
+                    "date": "2020/12/10 00:00"
+                },
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/23 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/23 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/23 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": 1,
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00934",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Osko JD",
+            "vernaculartitle": ""
+        },
+        "31746596": {
+            "uid": "31746596",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Dec 2",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Herbst-Gervasoni CJ",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Christianson DW",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Christianson DW",
+            "title": "Binding of &lt;i&gt;N&lt;/i&gt;&lt;sup&gt;8&lt;/sup&gt;-Acetylspermidine Analogues to Histone Deacetylase 10 Reveals Molecular Strategies for Blocking Polyamine Deacetylation.",
+            "sorttitle": "binding of i n i sup 8 sup acetylspermidine analogues to histone deacetylase 10 reveals molecular strategies for blocking polyamine deacetylation",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4957-4969",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31746596"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00906"
+                },
+                {
+                    "idtype": "pmc",
+                    "idtypen": 8,
+                    "value": "PMC6904438"
+                },
+                {
+                    "idtype": "mid",
+                    "idtypen": 8,
+                    "value": "NIHMS1060565"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31746596"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31746596"
+                },
+                {
+                    "idtype": "pmcid",
+                    "idtypen": 5,
+                    "value": "pmc-id: PMC6904438;manuscript-id: NIHMS1060565;embargo-date: 2020/12/10;"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pmc-release",
+                    "date": "2020/12/10 00:00"
+                },
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/21 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/21 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/21 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": 1,
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00906",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Herbst-Gervasoni CJ",
+            "vernaculartitle": ""
+        },
+        "31743022": {
+            "uid": "31743022",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Nov 27",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Feliciano PR",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Drennan CL",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Drennan CL",
+            "title": "Structural and Biochemical Investigations of the [4Fe-4S] Cluster-Containing Fumarate Hydratase from &lt;i&gt;Leishmania major&lt;/i&gt;.",
+            "sorttitle": "structural and biochemical investigations of the 4fe 4s cluster containing fumarate hydratase from i leishmania major i",
+            "volume": "58",
+            "issue": "49",
+            "pages": "5011-5021",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31743022"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00923"
+                },
+                {
+                    "idtype": "pmc",
+                    "idtypen": 8,
+                    "value": "PMC7065722"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31743022"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31743022"
+                },
+                {
+                    "idtype": "pmcid",
+                    "idtypen": 5,
+                    "value": "pmc-id: PMC7065722;embargo-date: 2020/11/19;"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pmc-release",
+                    "date": "2020/11/19 00:00"
+                },
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/20 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/20 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/20 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": "",
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00923",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Feliciano PR",
+            "vernaculartitle": ""
+        },
+        "31738538": {
+            "uid": "31738538",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Dec 2",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "White JT",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Cato T",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Deramchi N",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Gabunilas J",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Roy KR",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Wang C",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Chanfreau GF",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Clarke SG",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Clarke SG",
+            "title": "Protein Methylation and Translation: Role of Lysine Modification on the Function of Yeast Elongation Factor 1A.",
+            "sorttitle": "protein methylation and translation role of lysine modification on the function of yeast elongation factor 1a",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4997-5010",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31738538"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00818"
+                },
+                {
+                    "idtype": "pmc",
+                    "idtypen": 8,
+                    "value": "PMC6913935"
+                },
+                {
+                    "idtype": "mid",
+                    "idtypen": 8,
+                    "value": "NIHMS1060233"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31738538"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31738538"
+                },
+                {
+                    "idtype": "pmcid",
+                    "idtypen": 5,
+                    "value": "pmc-id: PMC6913935;manuscript-id: NIHMS1060233;embargo-date: 2020/12/10;"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pmc-release",
+                    "date": "2020/12/10 00:00"
+                },
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/19 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/19 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/19 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": 1,
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00818",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "White JT",
+            "vernaculartitle": ""
+        },
+        "31736312": {
+            "uid": "31736312",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Nov 25",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Saini K",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Discher DE",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Discher DE",
+            "title": "Forced Unfolding of Proteins Directs Biochemical Cascades.",
+            "sorttitle": "forced unfolding of proteins directs biochemical cascades",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4893-4902",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31736312"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00839"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31736312"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31736312"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/19 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/19 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/19 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": 1,
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00839",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Saini K",
+            "vernaculartitle": ""
+        },
+        "31724401": {
+            "uid": "31724401",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Nov 26",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "DeColli AA",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Zhang X",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Heflin KL",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Jordan F",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Freel Meyers CL",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Freel Meyers CL",
+            "title": "Active Site Histidines Link Conformational Dynamics with Catalysis on Anti-Infective Target 1-Deoxy-d-xylulose 5-Phosphate Synthase.",
+            "sorttitle": "active site histidines link conformational dynamics with catalysis on anti infective target 1 deoxy d xylulose 5 phosphate synthase",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4970-4982",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31724401"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00878"
+                },
+                {
+                    "idtype": "pmc",
+                    "idtypen": 8,
+                    "value": "PMC6905430"
+                },
+                {
+                    "idtype": "mid",
+                    "idtypen": 8,
+                    "value": "NIHMS1061413"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31724401"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31724401"
+                },
+                {
+                    "idtype": "pmcid",
+                    "idtypen": 5,
+                    "value": "pmc-id: PMC6905430;manuscript-id: NIHMS1061413;"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/15 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/15 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/15 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": "",
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00878",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "DeColli AA",
+            "vernaculartitle": ""
+        },
+        "31724398": {
+            "uid": "31724398",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Nov 20",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Muta H",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "So M",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Sakurai K",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Kardos J",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Naiki H",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Goto Y",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Goto Y",
+            "title": "Amyloid Formation under Complicated Conditions in Which β&lt;sub&gt;2&lt;/sub&gt;-Microglobulin Coexists with Its Proteolytic Fragments.",
+            "sorttitle": "amyloid formation under complicated conditions in which sub 2 sub microglobulin coexists with its proteolytic fragments",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4925-4934",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31724398"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00917"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31724398"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31724398"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/15 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/15 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/15 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": "",
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00917",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Muta H",
+            "vernaculartitle": ""
+        },
+        "31724397": {
+            "uid": "31724397",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Nov 26",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Zhang M",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Li Z",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Jang H",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Hedman AC",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Sacks DB",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Nussinov R",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Nussinov R",
+            "title": "Ca&lt;sup&gt;2+&lt;/sup&gt;-Dependent Switch of Calmodulin Interaction Mode with Tandem IQ Motifs in the Scaffolding Protein IQGAP1.",
+            "sorttitle": "ca sup 2 sup dependent switch of calmodulin interaction mode with tandem iq motifs in the scaffolding protein iqgap1",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4903-4911",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31724397"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00854"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31724397"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31724397"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/15 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/15 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/15 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": "",
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00854",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Zhang M",
+            "vernaculartitle": ""
+        },
+        "31713418": {
+            "uid": "31713418",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Nov 21",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Smith AT",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Linkous RO",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Max NJ",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Sestok AE",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Szalai VA",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Chacón KN",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Chacón KN",
+            "title": "The FeoC [4Fe-4S] Cluster Is Redox-Active and Rapidly Oxygen-Sensitive.",
+            "sorttitle": "feoc 4fe 4s cluster is redox active and rapidly oxygen sensitive",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4935-4949",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31713418"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00745"
+                },
+                {
+                    "idtype": "pmc",
+                    "idtypen": 8,
+                    "value": "PMC6904521"
+                },
+                {
+                    "idtype": "mid",
+                    "idtypen": 8,
+                    "value": "NIHMS1061320"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31713418"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31713418"
+                },
+                {
+                    "idtype": "pmcid",
+                    "idtypen": 5,
+                    "value": "pmc-id: PMC6904521;manuscript-id: NIHMS1061320;"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/13 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/13 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/13 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": "",
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00745",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Smith AT",
+            "vernaculartitle": ""
+        },
+        "31710808": {
+            "uid": "31710808",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Nov 22",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Ruszczycky MW",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Liu HW",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Liu HW",
+            "title": "Measurement of Net Rate Constants from Enzyme Progress Curves without Curve Fitting.",
+            "sorttitle": "measurement of net rate constants from enzyme progress curves without curve fitting",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4950-4956",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31710808"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00762"
+                },
+                {
+                    "idtype": "pmc",
+                    "idtypen": 8,
+                    "value": "PMC6910778"
+                },
+                {
+                    "idtype": "mid",
+                    "idtypen": 8,
+                    "value": "NIHMS1061078"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31710808"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31710808"
+                },
+                {
+                    "idtype": "pmcid",
+                    "idtypen": 5,
+                    "value": "pmc-id: PMC6910778;manuscript-id: NIHMS1061078;"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/12 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/12 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/12 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": "",
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00762",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Ruszczycky MW",
+            "vernaculartitle": ""
+        },
+        "31702900": {
+            "uid": "31702900",
+            "pubdate": "2019 Dec 10",
+            "epubdate": "2019 Nov 20",
+            "source": "Biochemistry",
+            "authors": [
+                {
+                    "name": "Luo M",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Willis WT",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Coletta DK",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Langlais PR",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Mengos A",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Ma W",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Finlayson J",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Wagner GR",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Shi CX",
+                    "authtype": "Author",
+                    "clusterid": ""
+                },
+                {
+                    "name": "Mandarino LJ",
+                    "authtype": "Author",
+                    "clusterid": ""
+                }
+            ],
+            "lastauthor": "Mandarino LJ",
+            "title": "Deletion of the Mitochondrial Protein VWA8 Induces Oxidative Stress and an HNF4α Compensatory Response in Hepatocytes.",
+            "sorttitle": "deletion of the mitochondrial protein vwa8 induces oxidative stress and an hnf4 compensatory response in hepatocytes",
+            "volume": "58",
+            "issue": "49",
+            "pages": "4983-4996",
+            "lang": [
+                "eng"
+            ],
+            "nlmuniqueid": "0370623",
+            "issn": "0006-2960",
+            "essn": "1520-4995",
+            "pubtype": [
+                "Journal Article"
+            ],
+            "recordstatus": "PubMed - in process",
+            "pubstatus": "256",
+            "articleids": [
+                {
+                    "idtype": "pubmed",
+                    "idtypen": 1,
+                    "value": "31702900"
+                },
+                {
+                    "idtype": "doi",
+                    "idtypen": 3,
+                    "value": "10.1021/acs.biochem.9b00863"
+                },
+                {
+                    "idtype": "rid",
+                    "idtypen": 8,
+                    "value": "31702900"
+                },
+                {
+                    "idtype": "eid",
+                    "idtypen": 8,
+                    "value": "31702900"
+                }
+            ],
+            "history": [
+                {
+                    "pubstatus": "pubmed",
+                    "date": "2019/11/09 06:00"
+                },
+                {
+                    "pubstatus": "medline",
+                    "date": "2019/11/09 06:00"
+                },
+                {
+                    "pubstatus": "entrez",
+                    "date": "2019/11/09 06:00"
+                }
+            ],
+            "references": [
+            ],
+            "attributes": [
+                "Has Abstract"
+            ],
+            "pmcrefcount": 1,
+            "fulljournalname": "Biochemistry",
+            "elocationid": "doi: 10.1021/acs.biochem.9b00863",
+            "doctype": "citation",
+            "srccontriblist": [
+            ],
+            "booktitle": "",
+            "medium": "",
+            "edition": "",
+            "publisherlocation": "",
+            "publishername": "",
+            "srcdate": "",
+            "reportnumber": "",
+            "availablefromurl": "",
+            "locationlabel": "",
+            "doccontriblist": [
+            ],
+            "docdate": "",
+            "bookname": "",
+            "chapter": "",
+            "sortpubdate": "2019/12/10 00:00",
+            "sortfirstauthor": "Luo M",
+            "vernaculartitle": ""
+        }
+    }
+}
+

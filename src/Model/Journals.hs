@@ -220,7 +220,7 @@ missingPMIDs content = sPMIDs \\ cPMIDs
           sPMIDs = T.selected . T.selection $ content
 
 addContent :: [T.Citation] -> [T.Selection] -> ([T.IssueContent], [T.Citation])
--- ^Take a list of selections and a list of citation and add the
+-- ^Take a list of selections and a list of citations and add each
 -- citation to the appropriate selection in former to generate a list
 -- of contents. Return any left-over citations that were not among
 -- the selections. Repeated selections will not be populated.
