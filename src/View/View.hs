@@ -140,8 +140,7 @@ citationToTxt iss c = Tx.unlines parts
           parts = [ T.title c
                   , Vc.authorLine c
                   , Tx.unwords [ T.name jrnl
-                               , Vc.volIss iss
-                               , ", "
+                               , Vc.volIss iss <> ","
                                , Vc.pageRange c
                                ]
                   ]
@@ -161,19 +160,13 @@ citationToMkd sel x = fill dict Temp.citationMkd
 -- Viewing Issue Contents (tables of contents and ranking lists)
 
 viewRanks :: T.JSet T.IssueContent -> T.ViewMonad Text
-viewRanks (T.JSet n ics) = do
+viewRanks jset@(T.JSet _ ics) = do
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
     format >>= \case
-        T.HTML -> pure . Html.htmlToCRank name email $ T.JSet n ics
+        T.HTML -> pure . Html.htmlToCRank name email $ jset
         T.MKD  -> Tx.intercalate "\n" <$> mapM tocToMkd ics
         _      -> Tx.intercalate "\n" <$> mapM tocToTxt ics
-
--- ranksToHtml :: T.JSet T.IssueContent -> T.ViewMonad Text
--- ranksToHtml jset = do
---     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
---     email <- asks $ maybe "their email address" id . T.cEmail
---     pure . Html.htmlToCRank name email $ jset
 
 ---------------------------------------------------------------------
 -- As Text
