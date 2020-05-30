@@ -39,13 +39,39 @@ import qualified View.Core        as Vc
 import qualified View.Html        as Html
 import qualified View.Templates   as Temp
 import           Data.Text                ( Text                 )
-import           Data.List                ( sortBy               )
-import           Control.Monad.Reader     ( ask, asks, runReader )
+import           Data.List                ( sortBy, foldl'       )
+import           Control.Monad.Reader     ( Reader (..)
+                                          , ask, asks, runReader )
+import           Control.Monad.State      ( StateT (..), execStateT
+                                          , modify  )
+import           Control.Monad.Writer     ( WriterT (..), execWriterT, tell )
+import           Data.Monoid              ( Endo (..), appEndo        )
 import           Data.Ord                 ( comparing            )
 import           View.Templates           ( fill                 )
 
 -- =============================================================== --
 -- Viewer
+
+-- type ViewM = StateT ([Text] -> [Text]) (Reader T.Config)
+type ViewM = WriterT (Endo [Text]) (Reader T.Config)
+
+-- write :: Text -> ViewM ()
+-- write toAdd = modify (toAdd :)
+
+-- writeLn :: Text -> ViewM ()
+-- writeLn toAdd = write toAdd *> write "\n"
+
+-- runViewM :: ViewM a -> T.AppMonad Text
+-- runViewM view = ask >>= pure . make . run
+--     where run config = flip runReader config . execStateT view $ id
+--           make go    = Tx.concat . go $ []
+
+runViewM :: ViewM a -> T.AppMonad Text
+runViewM view = ask >>= pure . Tx.concat . flip appEndo [] . run
+    where run config = flip runReader config . execWriterT $ view
+
+write :: Text -> ViewM ()
+write x = tell $ Endo ( [x] <> )
 
 runView :: T.ViewMonad a -> T.AppMonad a
 runView go = ask >>= pure . runReader go
@@ -115,15 +141,14 @@ jsetToMkd jset = Tx.concat $ hdr : iss
 -- =============================================================== --
 -- Viewing issues
 
----------------------------------------------------------------------
--- As Text
-
 issueToTxt :: T.HasIssue a => a -> Text
 -- ^Format an issue as "abbr volume number (year-month-day)".
-issueToTxt iss = Tx.unwords . map ($iss) $ [ T.abbr  . T.journal
-                                           , Vc.volIss
-                                           , Vc.dateP
-                                           ]
+issueToTxt iss = issueNoDateToTxt iss <> " " <> Vc.dateP iss
+
+issueNoDateToTxt :: T.HasIssue a => a -> Text
+-- ^Format an issue as "abbr volume:number".
+issueNoDateToTxt iss = Tx.unwords . map ($iss) $ parts
+    where parts = [ T.abbr . T.journal, Vc.volIss ]
 
 issueToMkd :: T.HasIssue a => a -> Text
 issueToMkd iss = Tx.unwords [ T.name . T.journal $ iss
