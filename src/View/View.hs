@@ -200,7 +200,8 @@ tocsToMkd :: T.JSet T.IssueContent -> T.ViewMonad ()
 tocsToMkd (T.JSet setNo cs) = do
     Vc.write "# Journal Set "
     Vc.writeLn . C.tshow $ setNo
-    mapM_ tocToMkd cs
+    Vc.newLine
+    Vc.separate Vc.newLine . map tocToMkd $ cs
 
 tocToMkd :: T.IssueContent -> T.ViewMonad ()
 tocToMkd (T.IssueContent x cs) = do
