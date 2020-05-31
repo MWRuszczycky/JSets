@@ -39,8 +39,10 @@ module Model.Core.Types
 import Data.Time            ( Day, toGregorian  )
 import Data.Text            ( Text              )
 import Data.List            ( foldl', nub, sort )
+import Data.Monoid          ( Endo              )
 import Control.Monad.Except ( ExceptT           )
 import Control.Monad.Reader ( ReaderT, Reader   )
+import Control.Monad.Writer ( WriterT, tell     )
 
 -- =============================================================== --
 -- Classes
@@ -125,7 +127,7 @@ type ErrMonad  = ExceptT ErrString IO
 type AppMonad  = ReaderT Config ErrMonad
 
 -- |Non-IO monad for use with generating formatted output
-type ViewMonad = Reader Config
+type ViewMonad = WriterT (Endo [Text]) (Reader Config)
 
 ---------------------------------------------------------------------
 -- Program configuration

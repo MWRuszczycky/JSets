@@ -168,10 +168,11 @@ readCmd fps = do
     jsets <- J.combineJSets <$> mapM A.readJSets fps
     key   <- asks T.cJSetKey
     abbrs <- A.issueRefAbbrs
+    jset  <- A.getJSets jsets key
     A.getFormat >>= \case
-         T.CSV -> A.getJSets jsets key >>= display . V.jsetsToCsv abbrs
-         T.MKD -> A.getJSets jsets key >>= display . V.jsetsToMkd
-         _     -> A.getJSets jsets key >>= display . V.selectionsToTxt
+         T.CSV -> V.runView ( V.jsetsToCsv abbrs jset ) >>= display
+         T.MKD -> display . V.jsetsToMkd      $ jset
+         _     -> display . V.selectionsToTxt $ jset
 
 ---------------------------------------------------------------------
 -- View configured journals
@@ -249,7 +250,8 @@ yearCmd (x:_) = do
     jsets   <- A.references >>= pure . J.yearly26Sets theYear
     abbrs   <- A.issueRefAbbrs
     A.getFormat >>= \case
-         T.CSV -> display . V.jsetsToCsv abbrs $ jsets
+         -- T.CSV -> display . V.jsetsToCsv abbrs $ jsets
+         T.CSV -> V.runView ( V.jsetsToCsv abbrs jsets ) >>= display
          _     -> display . V.jsetsToTxt $ jsets
 
 ---------------------------------------------------------------------

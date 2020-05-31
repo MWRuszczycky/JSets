@@ -39,42 +39,34 @@ import qualified View.Core        as Vc
 import qualified View.Html        as Html
 import qualified View.Templates   as Temp
 import           Data.Text                ( Text                 )
-import           Data.List                ( sortBy, foldl'       )
-import           Control.Monad.Reader     ( Reader (..)
-                                          , ask, asks, runReader )
-import           Control.Monad.State      ( StateT (..), execStateT
-                                          , modify  )
-import           Control.Monad.Writer     ( WriterT (..), execWriterT, tell )
-import           Data.Monoid              ( Endo (..), appEndo        )
+import           Data.List                ( sortBy, intersperse  )
+import           Control.Monad.Reader     ( ask, asks, runReader )
+import           Control.Monad.Writer     ( execWriterT, tell    )
+import           Data.Monoid              ( Endo (..), appEndo   )
 import           Data.Ord                 ( comparing            )
 import           View.Templates           ( fill                 )
 
 -- =============================================================== --
 -- Viewer
 
--- type ViewM = StateT ([Text] -> [Text]) (Reader T.Config)
-type ViewM = WriterT (Endo [Text]) (Reader T.Config)
-
--- write :: Text -> ViewM ()
--- write toAdd = modify (toAdd :)
-
--- writeLn :: Text -> ViewM ()
--- writeLn toAdd = write toAdd *> write "\n"
-
--- runViewM :: ViewM a -> T.AppMonad Text
--- runViewM view = ask >>= pure . make . run
---     where run config = flip runReader config . execStateT view $ id
---           make go    = Tx.concat . go $ []
-
-runViewM :: ViewM a -> T.AppMonad Text
-runViewM view = ask >>= pure . Tx.concat . flip appEndo [] . run
+runView :: T.ViewMonad a -> T.AppMonad Text
+runView view = ask >>= pure . Tx.concat . flip appEndo [] . run
     where run config = flip runReader config . execWriterT $ view
 
-write :: Text -> ViewM ()
+write :: Text -> T.ViewMonad ()
 write x = tell $ Endo ( [x] <> )
 
-runView :: T.ViewMonad a -> T.AppMonad a
-runView go = ask >>= pure . runReader go
+newLine :: T.ViewMonad ()
+newLine = write "\n"
+
+writeLn :: Text -> T.ViewMonad ()
+writeLn x = write x *> newLine
+
+writeLns :: [Text] -> T.ViewMonad ()
+writeLns = mapM_ writeLn
+
+writeLns' :: [Text] -> T.ViewMonad ()
+writeLns' = mapM_ write . intersperse "\n"
 
 format :: T.ViewMonad T.Format
 format = asks ( fmap C.extension . T.cOutputPath )
@@ -91,29 +83,47 @@ format = asks ( fmap C.extension . T.cOutputPath )
 ---------------------------------------------------------------------
 -- As CSV
 
-jsetsToCsv :: T.HasIssue a => [Text] -> T.JSets a -> Text
+jsetsToCsv :: T.HasIssue a => [Text] -> T.JSets a -> T.ViewMonad ()
 -- ^Convert a collection of journal sets to CSV. Every element is
 -- enclosed in double quotes. The first line is the list of journals
 -- by journal abbreviation as specified by the first argument. Every
 -- subsequent line is a journal set with issues for a given journal
 -- separated by new line characters.
-jsetsToCsv abbrs col = hdr <> "\n" <> tbl
-        where tbl  = Tx.unlines . map (jsetToCsv abbrs) . J.unpack $ col
-              hdr  = Tx.intercalate "," $ "No. & Date" : abbrs
+jsetsToCsv []    _     = pure ()
+jsetsToCsv abbrs jsets = do
+    write "No. & Date,"
+    writeLn . Tx.intercalate "," $ abbrs
+    mapM_ ( jsetToCsv abbrs ) . J.unpack $ jsets
 
-jsetToCsv :: T.HasIssue a => [Text] -> T.JSet a -> Text
+jsetToCsv :: T.HasIssue a => [Text] -> T.JSet a -> T.ViewMonad ()
 -- ^Convert a journal set to a single line of CSV. The first argument
 -- is the list of journal abbreviations in the order they will be
 -- tabulated. The second argument is the journal set. The first cell
 -- will be the key associated with the journal set. Subsequent cells
 -- will list the issues for the corresponding journal separated by
 -- newline characters. All elements are enclosed in double quotes.
-jsetToCsv abbrs jset = (hdr <>) . Tx.intercalate "," . foldr go [] $ abbrs
-    where go k xs = (volIss . J.issuesByAbbr k . T.issues) jset : xs
-          volIss  = Vc.bracket '\"' '\"' . Tx.intercalate "\n" . map Vc.volIss
-          hdr     = Vc.bracket '\"' '\"' ( setNo <> "\n" <> date ) <> ","
-          date    = Vc.dateN          $ jset
-          setNo   = C.tshow . T.setNo $ jset
+jsetToCsv []    _    = pure ()
+jsetToCsv abbrs jset = do
+    write "\""
+    write . C.tshow . T.setNo $ jset
+    newLine
+    write . Vc.dateN $ jset
+    write "\","
+    sequence_ . intersperse (write ",") . map ( jsetIssuesToCsv jset ) $ abbrs
+    newLine
+
+jsetIssuesToCsv :: T.HasIssue a => T.JSet a -> Text -> T.ViewMonad ()
+jsetIssuesToCsv jset abbr = do
+    write "\""
+    writeLns' . map Vc.volIss . J.issuesByAbbr abbr . T.issues $ jset
+    write "\""
+
+-- (hdr <>) . Tx.intercalate "," . foldr go [] $ abbrs
+--     where go k xs = (volIss . J.issuesByAbbr k . T.issues) jset : xs
+--           volIss  = Vc.bracket '\"' '\"' . Tx.intercalate "\n" . map Vc.volIss
+--           hdr     = Vc.bracket '\"' '\"' ( setNo <> "\n" <> date ) <> ","
+--           date    = Vc.dateN          $ jset
+--           setNo   = C.tshow . T.setNo $ jset
 
 ---------------------------------------------------------------------
 -- As Text
@@ -184,52 +194,55 @@ citationToMkd sel x = fill dict Temp.citationMkd
 -- =============================================================== --
 -- Viewing Issue Contents (tables of contents and ranking lists)
 
-viewRanks :: T.JSet T.IssueContent -> T.ViewMonad Text
+viewRanks :: T.JSet T.IssueContent -> T.ViewMonad ()
 viewRanks jset@(T.JSet _ ics) = do
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
     format >>= \case
-        T.HTML -> pure . Html.htmlToCRank name email $ jset
-        T.MKD  -> Tx.intercalate "\n" <$> mapM tocToMkd ics
-        _      -> Tx.intercalate "\n" <$> mapM tocToTxt ics
+        T.HTML -> write . Html.htmlToCRank name email $ jset
+        T.MKD  -> mapM_ tocToMkd ics
+        _      -> mapM_ tocToTxt ics
 
 ---------------------------------------------------------------------
 -- As Text
 
-tocsToTxt :: T.JSet T.IssueContent -> T.ViewMonad Text
-tocsToTxt (T.JSet _ cs) = Tx.intercalate "\n" <$> mapM tocToTxt cs
+tocsToTxt :: T.JSet T.IssueContent -> T.ViewMonad ()
+tocsToTxt (T.JSet _ cs) = mapM_ tocToTxt cs
 
-tocToTxt :: T.IssueContent -> T.ViewMonad Text
-tocToTxt (T.IssueContent sel cs) = pure . Tx.intercalate "\n"
-                                        . (issueToTxt sel <> "\n" :)
-                                        . map ( citationToTxt sel ) $ cs
+tocToTxt :: T.IssueContent -> T.ViewMonad ()
+tocToTxt (T.IssueContent sel cs) = do
+    writeLn . issueToTxt $ sel
+    writeLns . map ( citationToTxt sel ) $ cs
 
 ---------------------------------------------------------------------
 -- As Markdown
 
-tocsToMkd :: T.JSet T.IssueContent -> T.ViewMonad Text
-tocsToMkd (T.JSet setNo cs) = Tx.unlines . (:) hdr <$> mapM tocToMkd cs
-    where hdr = "# Journal Set " <> C.tshow setNo
+tocsToMkd :: T.JSet T.IssueContent -> T.ViewMonad ()
+tocsToMkd (T.JSet setNo cs) = do
+    write "# Journal Set "
+    writeLn . C.tshow $ setNo
+    mapM_ tocToMkd cs
 
-tocToMkd :: T.IssueContent -> T.ViewMonad Text
-tocToMkd (T.IssueContent x cs)
-    | null cs   = pure $ "## " <> issueToMkd x <> msg
-    | otherwise = pure $ "## " <> xs
-    where xs  = Tx.unlines . (issueToMkd x :) . map (citationToMkd x) $ cs
-          msg = "\nNo citations listed at PubMed.\n"
+tocToMkd :: T.IssueContent -> T.ViewMonad ()
+tocToMkd (T.IssueContent x cs) = do
+    writeLn $ "## "<> issueToMkd x
+    newLine
+    if null cs
+       then writeLn "No citations listed at PubMed."
+       else writeLns . map (citationToMkd x) $ cs
 
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: T.JSet T.IssueContent -> T.ViewMonad Text
+tocsToHtml :: T.JSet T.IssueContent -> T.ViewMonad ()
 tocsToHtml jset = do
     style <- asks T.cToCStyle
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
     case style of
-         T.Select  -> pure . Html.htmlToCSelect  name email $ jset
-         T.Rank    -> pure . Html.htmlToCRank    name email $ jset
-         T.Propose -> pure . Html.htmlToCPropose name email $ jset
+         T.Select  -> write . Html.htmlToCSelect  name email $ jset
+         T.Rank    -> write . Html.htmlToCRank    name email $ jset
+         T.Propose -> write . Html.htmlToCPropose name email $ jset
 
 -- =============================================================== --
 -- Formatting selection sets
