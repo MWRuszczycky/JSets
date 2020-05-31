@@ -14,9 +14,6 @@ module View.View
     , showIssue
     , viewIssue
     , viewIssueMkd
-      -- Viewing citations
-    , citationToTxt
-    , citationToMkd
       -- Viewing issue contents (tables of contents)
     , viewRanks
     , tocsToTxt
@@ -178,16 +175,17 @@ viewIssueMkd iss = do
 -- =============================================================== --
 -- Viewing citations
 
-citationToTxt :: T.HasIssue a => a -> T.Citation -> Text
-citationToTxt iss c = Tx.unlines parts
-    where jrnl  = T.journal iss
-          parts = [ T.title c
-                  , Vc.authorLine c
-                  , Tx.unwords [ T.name jrnl
-                               , Vc.volIss iss <> ","
-                               , Vc.pageRange c
-                               ]
-                  ]
+viewCitation :: T.HasIssue a => a -> T.Citation -> T.ViewMonad ()
+viewCitation iss c = do
+    writeLn . T.title $ c
+    writeLn . Vc.authorLine $c
+    write . T.name . T.journal $ iss
+    space
+    write . Vc.volIss $ iss
+    write ","
+    space
+    write . Vc.pageRange $ c
+    newLine
 
 citationToMkd :: T.Selection -> T.Citation -> Text
 citationToMkd sel x = fill dict Temp.citationMkd
@@ -216,12 +214,13 @@ viewRanks jset@(T.JSet _ ics) = do
 -- As Text
 
 tocsToTxt :: T.JSet T.IssueContent -> T.ViewMonad ()
-tocsToTxt (T.JSet _ cs) = mapM_ tocToTxt cs
+tocsToTxt (T.JSet _ cs) = sequence_ . intersperse newLine . map tocToTxt $ cs
 
 tocToTxt :: T.IssueContent -> T.ViewMonad ()
 tocToTxt (T.IssueContent sel cs) = do
     viewIssue sel
-    writeLns . map ( citationToTxt sel ) $ cs
+    newLine
+    sequence_ . intersperse newLine . map (viewCitation sel) $ cs
 
 ---------------------------------------------------------------------
 -- As Markdown
