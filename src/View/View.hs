@@ -6,6 +6,7 @@ module View.View
       -- Formatting journals and reference issues
     , referenceToTxt
       -- Views of journal sets of Issues
+    , viewJSetsIssue
     , jsetsIssueCsv
     , jsetIssueCsv
     , jsetsIssueTxt
@@ -57,6 +58,15 @@ runView :: T.ViewMonad a -> T.AppMonad Text
 runView view = ask >>= pure . Tx.concat . flip appEndo [] . run
     where run config = flip runReader config . execWriterT $ view
 
+getFormat :: T.ViewMonad T.Format
+getFormat = asks ( fmap C.extension . T.cOutputPath )
+            >>= \case Just "txt"  -> pure T.TXT
+                      Just "csv"  -> pure T.CSV
+                      Just "html" -> pure T.HTML
+                      Just "mkd"  -> pure T.MKD
+                      Just "md"   -> pure T.MKD
+                      _           -> pure T.TXT
+
 -- =============================================================== --
 -- Formatting journals and reference issues
 
@@ -82,10 +92,15 @@ freqToTxt T.WeeklyFirst = "weekly-first (drop the first issue of the year)"
 freqToTxt T.Monthly     = "monthly (12 issues per year)"
 
 -- =============================================================== --
--- General viewing of journal sets
+-- Views of journal sets
 
--- viewJSetsIssue :: T.HasIssue a => [Text] -> T.JSets a -> T.ViewMonad ()
--- viewJSetsIssue = undefined
+viewJSetsIssue :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
+viewJSetsIssue jsets = do
+    abbrs <- asks T.cReferences >>= pure . map ( T.abbr . T.journal )
+    getFormat >>= \case
+        T.CSV -> jsetsIssueCsv abbrs jsets
+        T.MKD -> jsetsIssueMkd jsets
+        _     -> jsetsIssueTxt jsets
 
 ---------------------------------------------------------------------
 -- As CSV

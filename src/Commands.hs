@@ -248,11 +248,7 @@ yearCmd []    = throwError "A valid year must be specified!"
 yearCmd (x:_) = do
     theYear <- maybe (throwError "Invalid year.") pure . readMaybe $ x
     jsets   <- A.references >>= pure . J.yearly26Sets theYear
-    abbrs   <- A.issueRefAbbrs
-    A.getFormat >>= \case
-         T.CSV -> V.runView ( V.jsetsIssueCsv abbrs jsets ) >>= display
-         T.MKD -> V.runView ( V.jsetsIssueMkd jsets       ) >>= display
-         _     -> V.runView ( V.jsetsIssueTxt jsets       ) >>= display
+    V.runView ( V.viewJSetsIssue jsets ) >>= display
 
 ---------------------------------------------------------------------
 -- Output handling
