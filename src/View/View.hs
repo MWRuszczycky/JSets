@@ -69,6 +69,9 @@ writeLns = mapM_ writeLn
 writeLns' :: [Text] -> T.ViewMonad ()
 writeLns' = mapM_ write . intersperse "\n"
 
+separate :: T.ViewMonad a -> [T.ViewMonad a] -> T.ViewMonad ()
+separate sep = sequence_ . intersperse sep
+
 format :: T.ViewMonad T.Format
 format = asks ( fmap C.extension . T.cOutputPath )
          >>= \case Just "txt"  -> pure T.TXT
@@ -110,7 +113,7 @@ jsetToCsv abbrs jset = do
     newLine
     write . Vc.dateN $ jset
     write "\","
-    sequence_ . intersperse (write ",") . map ( jsetIssuesToCsv jset ) $ abbrs
+    separate (write ",") . map ( jsetIssuesToCsv jset ) $ abbrs
     newLine
 
 jsetIssuesToCsv :: T.HasIssue a => T.JSet a -> Text -> T.ViewMonad ()
@@ -214,13 +217,13 @@ viewRanks jset@(T.JSet _ ics) = do
 -- As Text
 
 tocsToTxt :: T.JSet T.IssueContent -> T.ViewMonad ()
-tocsToTxt (T.JSet _ cs) = sequence_ . intersperse newLine . map tocToTxt $ cs
+tocsToTxt (T.JSet _ cs) = separate newLine . map tocToTxt $ cs
 
 tocToTxt :: T.IssueContent -> T.ViewMonad ()
 tocToTxt (T.IssueContent sel cs) = do
     viewIssue sel
     newLine
-    sequence_ . intersperse newLine . map (viewCitation sel) $ cs
+    separate newLine . map (viewCitation sel) $ cs
 
 ---------------------------------------------------------------------
 -- As Markdown
