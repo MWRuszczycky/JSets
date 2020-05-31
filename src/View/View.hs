@@ -17,7 +17,7 @@ module View.View
     , jsetSelectionTxt
       -- Views of journal sets of Contents
     , viewRanks
---  , viewToCs
+    , viewToCs
     , jsetContentTxt
     , jsetContentMkd
     , jsetContentHtml
@@ -185,6 +185,13 @@ viewRanks fmt jset@(T.JSet _ ics) = do
          T.HTML -> Vc.write . Html.htmlToCRank name email $ jset
          T.MKD  -> mapM_ contentMkd ics
          _      -> mapM_ contentTxt ics
+
+viewToCs :: T.JSet T.Content -> T.ViewMonad ()
+viewToCs jset = do
+    getFormat >>= \case
+        T.HTML -> jsetContentHtml jset
+        T.MKD  -> jsetContentMkd  jset
+        _      -> jsetContentTxt  jset
 
 ---------------------------------------------------------------------
 -- As Text

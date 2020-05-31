@@ -223,10 +223,7 @@ tocCmd fps = do
     jsets       <- J.combineJSets <$> mapM A.readJSets fps
     T.JSet n ss <- asks T.cJSetKey >>= A.getJSet jsets
     jset        <- A.downloadContents ss >>= pure . T.JSet n
-    A.getFormat >>= \case
-        T.HTML -> V.runView ( V.jsetContentHtml jset ) >>= display
-        T.MKD  -> V.runView ( V.jsetContentMkd  jset ) >>= display
-        _      -> V.runView ( V.jsetContentTxt  jset ) >>= display
+    V.runView ( V.viewToCs jset ) >>= display
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
