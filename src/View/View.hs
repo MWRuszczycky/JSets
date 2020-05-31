@@ -139,7 +139,7 @@ jsetIssueCsv abbrs jset = do
 -- As Text
 
 jsetsIssueTxt :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
-jsetsIssueTxt (T.JSets jsets) = mapM_ jsetIssueTxt jsets
+jsetsIssueTxt = Vc.separate Vc.newLine . map jsetIssueTxt . J.unpack
 
 jsetIssueTxt :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
 jsetIssueTxt jset = do
@@ -152,7 +152,7 @@ jsetIssueTxt jset = do
 -- to Markdown
 
 jsetsIssueMkd :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
-jsetsIssueMkd = mapM_ jsetIssueMkd . J.unpack
+jsetsIssueMkd = Vc.separate Vc.newLine . map jsetIssueMkd . J.unpack
 
 jsetIssueMkd :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
 jsetIssueMkd jset = do
@@ -190,8 +190,8 @@ viewRanks jset@(T.JSet _ contents) = do
     email <- asks $ maybe "their email address" id . T.cEmail
     getFormat >>= \case
          T.HTML -> Vc.write . Html.rankList name email $ jset
-         T.MKD  -> mapM_ contentMkd contents
-         _      -> mapM_ contentTxt contents
+         T.MKD  -> Vc.separate Vc.newLine . map contentMkd $ contents
+         _      -> Vc.separate Vc.newLine . map contentTxt $ contents
 
 viewToCs :: T.JSet T.Content -> T.ViewMonad ()
 viewToCs jset = do
