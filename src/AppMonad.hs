@@ -7,24 +7,18 @@ module AppMonad
     , getJSet
     , getJSets
       -- Working with configured reference issues
-    , isAvailable
     , references
-    , refIssue
-    , issueRefAbbrs
     , getIssue
       -- Internet requests
     , downloadPMIDs
     , downloadCitations
     , downloadContent
     , downloadContents
-      -- General helper functions
-    , getFormat
     ) where
 
 import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
-import qualified Model.Core.Core           as C
 import qualified Model.Core.Dates          as D
 import qualified Model.Journals            as J
 import qualified Model.Parsers.PubMed      as P
@@ -33,7 +27,6 @@ import qualified View.View                 as V
 import qualified View.Core                 as Vc
 import           Network.Wreq.Session               ( newSession     )
 import           Data.Text                          ( Text           )
-import           Data.List                          ( find           )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , runExceptT
@@ -91,19 +84,8 @@ getJSets jsets (Just k) =
 -- =============================================================== --
 -- Working with configured reference issues
 
-isAvailable :: Text -> T.AppMonad Bool
--- ^Determine whether a given journal has a reference issue.
-isAvailable abbr = issueRefAbbrs >>= pure . elem abbr
-
 references :: T.AppMonad T.References
 references = asks T.cReferences
-
-refIssue :: Text -> T.AppMonad (Maybe T.Issue)
--- ^Find a reference issue by its journal abbreviation.
-refIssue abbr = references >>= pure . find ( (== abbr) . T.abbr . T.journal )
-
-issueRefAbbrs :: T.AppMonad [Text]
-issueRefAbbrs = references >>= pure . map ( T.abbr . T.journal )
 
 getIssue :: Text -> Int -> Int -> T.AppMonad T.Issue
 getIssue abbr v n = references >>= maybe err pure . go
@@ -153,15 +135,3 @@ downloadContents xs = do
     contents <- mapM (downloadContent wreq) xs
     C.putTxtLnMIO "Done"
     pure contents
-
--- =============================================================== --
--- General Helper Commands
-
-getFormat :: T.AppMonad T.Format
-getFormat = asks ( fmap C.extension . T.cOutputPath )
-            >>= \case Just "txt"  -> pure T.TXT
-                      Just "csv"  -> pure T.CSV
-                      Just "html" -> pure T.HTML
-                      Just "mkd"  -> pure T.MKD
-                      Just "md"   -> pure T.MKD
-                      _           -> pure T.TXT
