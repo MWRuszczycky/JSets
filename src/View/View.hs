@@ -11,8 +11,9 @@ module View.View
     , jsetsToMkd
     , jsetToMkd
       -- Viewing Issues
-    , issueToTxt
-    , issueToMkd
+    , showIssue
+    , viewIssue
+    , viewIssueMkd
       -- Viewing citations
     , citationToTxt
     , citationToMkd
@@ -137,16 +138,22 @@ jsetToTxt jset = do
 ---------------------------------------------------------------------
 -- to Markdown
 
-jsetsToMkd :: T.HasIssue a => T.JSets a -> Text
-jsetsToMkd = Tx.unlines . map jsetToMkd . J.unpack
+jsetsToMkd :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
+jsetsToMkd = mapM_ jsetToMkd . J.unpack
 
-jsetToMkd :: T.HasIssue a => T.JSet a -> Text
-jsetToMkd jset = Tx.concat $ hdr : iss
-    where hdr = "## " <> Vc.jsetHeader jset <> "\n\n"
-          iss = map ( Tx.append "* " . issueToMkd ) . T.issues $ jset
+jsetToMkd :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
+jsetToMkd jset = do
+    writeLn $ "## " <> Vc.jsetHeader jset
+    newLine
+    mapM_ ( \ iss -> write "* " *> viewIssueMkd iss ) . T.issues $ jset
+    newLine
 
 -- =============================================================== --
 -- Viewing issues
+
+showIssue :: T.HasIssue a => a -> Text
+showIssue iss = Tx.unwords . map ($iss) $ parts
+    where parts = [ T.abbr . T.journal, Vc.volIss, Vc.dateP ]
 
 viewIssue :: T.HasIssue a => a -> T.ViewMonad ()
 -- ^Format an issue as "abbr volume number (year-month-day)".
@@ -158,17 +165,15 @@ viewIssue iss = do
     write . Vc.dateP $ iss
     newLine
 
-issueToTxt :: T.HasIssue a => a -> Text
-issueToTxt iss = Tx.unwords . map ($iss) $ [ T.abbr . T.journal
-                                           , Vc.volIss
-                                           , Vc.dateP
-                                           ]
-
-issueToMkd :: T.HasIssue a => a -> Text
-issueToMkd iss = Tx.unwords [ T.name . T.journal $ iss
-                            , Vc.volIss iss <> ","
-                            , Vc.dateW  iss <> "\n"
-                            ]
+viewIssueMkd :: T.HasIssue a => a -> T.ViewMonad ()
+viewIssueMkd iss = do
+    write . T.name . T.journal $ iss
+    space
+    write . Vc.volIss $ iss
+    write ","
+    space
+    write . Vc.dateW $ iss
+    newLine
 
 -- =============================================================== --
 -- Viewing citations
@@ -229,7 +234,8 @@ tocsToMkd (T.JSet setNo cs) = do
 
 tocToMkd :: T.IssueContent -> T.ViewMonad ()
 tocToMkd (T.IssueContent x cs) = do
-    writeLn $ "## "<> issueToMkd x
+    write "## "
+    viewIssueMkd x
     newLine
     if null cs
        then writeLn "No citations listed at PubMed."
@@ -261,7 +267,7 @@ selectionsToTxt (T.JSets jsets) = Tx.intercalate "\n"
 
 selectionToTxt :: T.JSet T.Selection -> Text
 selectionToTxt jset@(T.JSet _ xs) =
-    let go x = issueToTxt x : map ( Tx.append "    " ) (T.selected x)
+    let go x = showIssue x : map ( Tx.append "    " ) (T.selected x)
     in  Tx.unlines $ Vc.jsetHeader jset : concatMap go xs
 
 -- =============================================================== --
@@ -275,7 +281,7 @@ referenceToTxt x = Tx.unlines hs
                , "  pubmed:    " <> T.pubmed j
                , "  frequency: " <> (freqToTxt . T.freq) j
                , "  resets:    " <> (resetsToTxt . T.resets) j
-               , "  reference: " <> issueToTxt x
+               , "  reference: " <> showIssue x
                ]
 
 resetsToTxt :: Bool -> Text

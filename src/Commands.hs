@@ -171,7 +171,7 @@ readCmd fps = do
     jset  <- A.getJSets jsets key
     A.getFormat >>= \case
          T.CSV -> V.runView ( V.jsetsToCsv abbrs jset ) >>= display
-         T.MKD -> display . V.jsetsToMkd      $ jset
+         T.MKD -> V.runView ( V.jsetsToMkd jset       ) >>= display
          _     -> display . V.selectionsToTxt $ jset
 
 ---------------------------------------------------------------------
@@ -251,6 +251,7 @@ yearCmd (x:_) = do
     abbrs   <- A.issueRefAbbrs
     A.getFormat >>= \case
          T.CSV -> V.runView ( V.jsetsToCsv abbrs jsets ) >>= display
+         T.MKD -> V.runView ( V.jsetsToMkd jsets       ) >>= display
          _     -> V.runView ( V.jsetsToTxt jsets       ) >>= display
 
 ---------------------------------------------------------------------

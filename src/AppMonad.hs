@@ -117,7 +117,7 @@ getIssue abbr v n = references >>= maybe err pure . go
 downloadPMIDs :: T.HasIssue a => C.WebRequest -> a -> T.AppMonad [Text]
 downloadPMIDs wreq iss = do
     let query = J.tocESearchQuery iss
-    C.putTxtMIO $ "Downloading " <> V.issueToTxt iss <> " PMIDs..."
+    C.putTxtMIO $ "Downloading " <> V.showIssue iss <> " PMIDs..."
     result <- liftIO . runExceptT . wreq query $ J.eSearchUrl
     case result >>= P.parsePMIDs of
          Left err  -> C.putStrMIO err                    *> pure []
