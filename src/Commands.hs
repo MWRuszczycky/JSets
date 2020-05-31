@@ -166,13 +166,9 @@ readHelp = (s, Tx.unlines hs)
 readCmd :: [FilePath] -> T.AppMonad ()
 readCmd []  = throwError "Path(s) to journal sets files are required!"
 readCmd fps = do
-    key   <- asks T.cJSetKey
-    abbrs <- A.issueRefAbbrs
-    jsets <- fmap J.combineJSets (mapM A.readJSets fps) >>= flip A.getJSets key
-    A.getFormat >>= \case
-         T.CSV -> V.runView ( V.jsetsIssueCsv abbrs jsets ) >>= display
-         T.MKD -> V.runView ( V.jsetsIssueMkd jsets       ) >>= display
-         _     -> V.runView ( V.jsetsSelectionTxt jsets   ) >>= display
+    combined <- J.combineJSets <$> mapM A.readJSets fps
+    jsets    <- A.getJSets combined =<< asks T.cJSetKey
+    V.runView ( V.viewSelections jsets ) >>= display
 
 ---------------------------------------------------------------------
 -- View configured journals

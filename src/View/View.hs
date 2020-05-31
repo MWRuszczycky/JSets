@@ -13,6 +13,7 @@ module View.View
     , jsetsIssueMkd
     , jsetIssueMkd
       -- Views of journal sets of Selections
+    , viewSelections
     , jsetsSelectionTxt
     , jsetSelectionTxt
       -- Views of journal sets of Contents
@@ -161,6 +162,12 @@ jsetIssueMkd jset = do
 
 -- =============================================================== --
 -- Formatting selection sets
+
+viewSelections :: T.JSets T.Selection -> T.ViewMonad ()
+viewSelections jsets = do
+    getFormat >>= \case
+        T.TXT -> jsetsSelectionTxt jsets
+        _     -> viewJSetsIssue jsets
 
 ---------------------------------------------------------------------
 -- As text
