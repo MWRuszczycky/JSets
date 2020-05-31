@@ -189,7 +189,7 @@ viewRanks jset@(T.JSet _ contents) = do
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
     getFormat >>= \case
-         T.HTML -> Vc.write . Html.htmlToCRank name email $ jset
+         T.HTML -> Vc.write . Html.rankList name email $ jset
          T.MKD  -> mapM_ contentMkd contents
          _      -> mapM_ contentTxt contents
 
@@ -225,8 +225,8 @@ jsetContentHtml jset = do
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
     case style of
-         T.Select  -> Vc.write . Html.htmlToCSelect  name email $ jset
-         T.Propose -> Vc.write . Html.htmlToCPropose name email $ jset
+         T.Select  -> Vc.write . Html.tocSelect  name email $ jset
+         T.Propose -> Vc.write . Html.tocPropose name email $ jset
 
 -- =============================================================== --
 -- Viewing issues

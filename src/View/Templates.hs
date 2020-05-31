@@ -16,7 +16,7 @@ module View.Templates
     , tocHtml
     , instrProposeHtml
     , instrSelectHtml
-    , rankingHtml
+    , rankListHtml
       -- markdown
     , citationMkd
     ) where
@@ -165,15 +165,15 @@ instrSelectHtml :: Template
 instrSelectHtml = parseTemplate' "res/html/instrSelect.html"
                   $(FE.embedStringFile "res/html/instrSelect.html")
 
-rankingHtml :: Template
+rankListHtml :: Template
 -- ^Full html template document for generating rankings for articles.
 -- selected for review.
 -- jsetTitle : Title of the journal set (e.g., Journal Set 6)
 -- name      : Nickname of person to send rankings to
 -- email     : email string for person to send rankings to
 -- citations : Individual citations for ranking.
-rankingHtml = parseTemplate' "res/html/ranking.html"
-              $(FE.embedStringFile "res/html/ranking.html")
+rankListHtml = parseTemplate' "res/html/rankList.html"
+               $(FE.embedStringFile "res/html/rankList.html")
 
 ---------------------------------------------------------------------
 -- Markdown templates
