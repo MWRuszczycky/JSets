@@ -184,14 +184,14 @@ jsetSelectionTxt jset = do
 -- =============================================================== --
 -- Viewing Issue Contents (tables of contents and ranking lists)
 
-viewRanks :: T.Format -> T.JSet T.Content -> T.ViewMonad ()
-viewRanks fmt jset@(T.JSet _ ics) = do
+viewRanks :: T.JSet T.Content -> T.ViewMonad ()
+viewRanks jset@(T.JSet _ contents) = do
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
-    case fmt of
+    getFormat >>= \case
          T.HTML -> Vc.write . Html.htmlToCRank name email $ jset
-         T.MKD  -> mapM_ contentMkd ics
-         _      -> mapM_ contentTxt ics
+         T.MKD  -> mapM_ contentMkd contents
+         _      -> mapM_ contentTxt contents
 
 viewToCs :: T.JSet T.Content -> T.ViewMonad ()
 viewToCs jset = do

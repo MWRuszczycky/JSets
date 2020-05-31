@@ -111,8 +111,7 @@ ranksCmd fps = do
         jset      = T.JSet n ics
     checkForUnrequestedCitations cs
     checkForMissingCitations ics
-    fmt <- A.getFormat
-    V.runView ( V.viewRanks fmt jset ) >>= display
+    V.runView ( V.viewRanks jset ) >>= display
 
 checkForUnrequestedCitations :: [T.Citation] -> T.AppMonad ()
 -- ^These are citations that were downloaded from PubMed but not were
