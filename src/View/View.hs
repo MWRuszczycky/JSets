@@ -67,7 +67,7 @@ writeLns :: [Text] -> T.ViewMonad ()
 writeLns = mapM_ writeLn
 
 writeLns' :: [Text] -> T.ViewMonad ()
-writeLns' = mapM_ write . intersperse "\n"
+writeLns' = separate newLine . map write
 
 separate :: T.ViewMonad a -> [T.ViewMonad a] -> T.ViewMonad ()
 separate sep = sequence_ . intersperse sep
@@ -190,8 +190,8 @@ viewCitation iss c = do
     write . Vc.pageRange $ c
     newLine
 
-citationToMkd :: T.Selection -> T.Citation -> Text
-citationToMkd sel x = fill dict Temp.citationMkd
+citationToMkd :: T.Selection -> T.Citation -> T.ViewMonad ()
+citationToMkd sel x = write . fill dict $ Temp.citationMkd
     where dict = Map.fromList [ ( "title",   Vc.mkdBrackets . T.title $ x )
                               , ( "doi",     T.doi x                      )
                               , ( "authors", Vc.authorLine x              )
@@ -241,7 +241,7 @@ tocToMkd (T.IssueContent x cs) = do
     newLine
     if null cs
        then writeLn "No citations listed at PubMed."
-       else writeLns . map (citationToMkd x) $ cs
+       else separate newLine . map (citationToMkd x) $ cs
 
 ---------------------------------------------------------------------
 -- As HTML
