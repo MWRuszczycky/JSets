@@ -64,11 +64,13 @@ test-suite model
   main-is:              ModelTests.hs
   other-modules:        CoreTests
                       , JournalsTests
+                      , Mock
                       , ParserTests
                       , TestReferences
   build-depends:        base >= 4.7 && < 5
                       , lab-schedule-internal
                       , hspec
+                      , mtl
                       , text
                       , time
 
