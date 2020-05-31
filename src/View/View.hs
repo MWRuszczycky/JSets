@@ -59,6 +59,9 @@ write x = tell $ Endo ( [x] <> )
 newLine :: T.ViewMonad ()
 newLine = write "\n"
 
+space :: T.ViewMonad ()
+space = write " "
+
 writeLn :: Text -> T.ViewMonad ()
 writeLn x = write x *> newLine
 
@@ -118,24 +121,18 @@ jsetIssuesToCsv jset abbr = do
     writeLns' . map Vc.volIss . J.issuesByAbbr abbr . T.issues $ jset
     write "\""
 
--- (hdr <>) . Tx.intercalate "," . foldr go [] $ abbrs
---     where go k xs = (volIss . J.issuesByAbbr k . T.issues) jset : xs
---           volIss  = Vc.bracket '\"' '\"' . Tx.intercalate "\n" . map Vc.volIss
---           hdr     = Vc.bracket '\"' '\"' ( setNo <> "\n" <> date ) <> ","
---           date    = Vc.dateN          $ jset
---           setNo   = C.tshow . T.setNo $ jset
-
 ---------------------------------------------------------------------
 -- As Text
 
-jsetsToTxt :: T.HasIssue a => T.JSets a -> Text
-jsetsToTxt = Tx.intercalate "\n" . map jsetToTxt . J.unpack
+jsetsToTxt :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
+jsetsToTxt (T.JSets jsets) = mapM_ jsetToTxt jsets
 
-jsetToTxt :: T.HasIssue a => T.JSet a -> Text
--- ^Convert a journal set to easily readable, formatted text.
-jsetToTxt jset = Vc.jsetHeader jset <> "\n" <> Tx.unlines xs
-    where xs    = map issueToTxt . sortBy (comparing jName) . T.issues $ jset
-          jName = T.name . T.journal
+jsetToTxt :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
+jsetToTxt jset = do
+    let issues = sortBy (comparing $ T.name . T.journal) . T.issues $ jset
+    writeLn $ Vc.jsetHeader jset
+    mapM_ viewIssue issues
+    newLine
 
 ---------------------------------------------------------------------
 -- to Markdown
@@ -151,14 +148,21 @@ jsetToMkd jset = Tx.concat $ hdr : iss
 -- =============================================================== --
 -- Viewing issues
 
-issueToTxt :: T.HasIssue a => a -> Text
+viewIssue :: T.HasIssue a => a -> T.ViewMonad ()
 -- ^Format an issue as "abbr volume number (year-month-day)".
-issueToTxt iss = issueNoDateToTxt iss <> " " <> Vc.dateP iss
+viewIssue iss = do
+    write . T.abbr . T.journal $ iss
+    space
+    write . Vc.volIss $ iss
+    space
+    write . Vc.dateP $ iss
+    newLine
 
-issueNoDateToTxt :: T.HasIssue a => a -> Text
--- ^Format an issue as "abbr volume:number".
-issueNoDateToTxt iss = Tx.unwords . map ($iss) $ parts
-    where parts = [ T.abbr . T.journal, Vc.volIss ]
+issueToTxt :: T.HasIssue a => a -> Text
+issueToTxt iss = Tx.unwords . map ($iss) $ [ T.abbr . T.journal
+                                           , Vc.volIss
+                                           , Vc.dateP
+                                           ]
 
 issueToMkd :: T.HasIssue a => a -> Text
 issueToMkd iss = Tx.unwords [ T.name . T.journal $ iss
@@ -211,7 +215,7 @@ tocsToTxt (T.JSet _ cs) = mapM_ tocToTxt cs
 
 tocToTxt :: T.IssueContent -> T.ViewMonad ()
 tocToTxt (T.IssueContent sel cs) = do
-    writeLn . issueToTxt $ sel
+    viewIssue sel
     writeLns . map ( citationToTxt sel ) $ cs
 
 ---------------------------------------------------------------------

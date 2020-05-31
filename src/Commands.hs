@@ -250,9 +250,8 @@ yearCmd (x:_) = do
     jsets   <- A.references >>= pure . J.yearly26Sets theYear
     abbrs   <- A.issueRefAbbrs
     A.getFormat >>= \case
-         -- T.CSV -> display . V.jsetsToCsv abbrs $ jsets
          T.CSV -> V.runView ( V.jsetsToCsv abbrs jsets ) >>= display
-         _     -> display . V.jsetsToTxt $ jsets
+         _     -> V.runView ( V.jsetsToTxt jsets       ) >>= display
 
 ---------------------------------------------------------------------
 -- Output handling
