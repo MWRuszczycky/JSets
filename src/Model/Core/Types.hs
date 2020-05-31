@@ -42,7 +42,7 @@ import Data.List            ( foldl', nub, sort )
 import Data.Monoid          ( Endo              )
 import Control.Monad.Except ( ExceptT           )
 import Control.Monad.Reader ( ReaderT, Reader   )
-import Control.Monad.Writer ( WriterT, tell     )
+import Control.Monad.Writer ( WriterT           )
 
 -- =============================================================== --
 -- Classes

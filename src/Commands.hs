@@ -111,7 +111,8 @@ ranksCmd fps = do
         jset      = T.JSet n ics
     checkForUnrequestedCitations cs
     checkForMissingCitations ics
-    V.runView ( V.viewRanks jset ) >>= display
+    fmt <- A.getFormat
+    V.runView ( V.viewRanks fmt jset ) >>= display
 
 checkForUnrequestedCitations :: [T.Citation] -> T.AppMonad ()
 -- ^These are citations that were downloaded from PubMed but not were
@@ -165,14 +166,13 @@ readHelp = (s, Tx.unlines hs)
 readCmd :: [FilePath] -> T.AppMonad ()
 readCmd []  = throwError "Path(s) to journal sets files are required!"
 readCmd fps = do
-    jsets <- J.combineJSets <$> mapM A.readJSets fps
     key   <- asks T.cJSetKey
     abbrs <- A.issueRefAbbrs
-    jset  <- A.getJSets jsets key
+    jsets <- fmap J.combineJSets (mapM A.readJSets fps) >>= flip A.getJSets key
     A.getFormat >>= \case
-         T.CSV -> V.runView ( V.jsetsToCsv abbrs jset ) >>= display
-         T.MKD -> V.runView ( V.jsetsToMkd jset       ) >>= display
-         _     -> display . V.selectionsToTxt $ jset
+         T.CSV -> V.runView ( V.jsetsToCsv abbrs jsets    ) >>= display
+         T.MKD -> V.runView ( V.jsetsToMkd jsets          ) >>= display
+         _     -> V.runView ( V.viewJSetsSelections jsets ) >>= display
 
 ---------------------------------------------------------------------
 -- View configured journals

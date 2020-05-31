@@ -20,6 +20,15 @@ module View.Core
     , mkdBd
     , mkdIt
     , mkdLink
+      -- ViewMonad actions
+    , write
+    , writeLn
+    , writeLns
+    , writeLns'
+    , newLine
+    , space
+    , separate
+    , prepend
     ) where
 
 import qualified Data.Text            as Tx
@@ -28,6 +37,9 @@ import qualified Model.Core.Core      as C
 import           Data.Time                  ( toGregorian )
 import           Data.Text                  ( Text        )
 import           Data.Char                  ( isSpace     )
+import           Control.Monad.Writer       ( tell        )
+import           Data.List                  ( intersperse )
+import           Data.Monoid                ( Endo (..)   )
 
 -- =============================================================== --
 -- General formatting functions
@@ -158,3 +170,31 @@ mkdLink :: Text -> Text -> Text
 mkdLink content url = contentMkd <> link
     where contentMkd = bracket '[' ']' content
           link       = bracket '(' ')' url
+
+-- =============================================================== --
+-- ViewMonad actions
+
+write :: Text -> T.ViewMonad ()
+write x = tell $ Endo ( [x] <> )
+
+writeLn :: Text -> T.ViewMonad ()
+writeLn x = write x *> newLine
+
+writeLns :: [Text] -> T.ViewMonad ()
+writeLns = mapM_ writeLn
+
+writeLns' :: [Text] -> T.ViewMonad ()
+writeLns' = separate newLine . map write
+
+newLine :: T.ViewMonad ()
+newLine = write "\n"
+
+space :: T.ViewMonad ()
+space = write " "
+
+separate :: T.ViewMonad a -> [T.ViewMonad a] -> T.ViewMonad ()
+separate sep = sequence_ . intersperse sep
+
+prepend :: T.ViewMonad a -> [T.ViewMonad a] -> T.ViewMonad ()
+prepend _   []     = pure ()
+prepend cap (x:xs) = cap *> x *> prepend cap xs
