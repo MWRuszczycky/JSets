@@ -43,17 +43,7 @@ configError config err = throwError msg
 initConfig :: T.ErrMonad T.Config
 initConfig = do
     hmPath <- liftIO getHomeDirectory
-    pure T.Config { T.cUser       = Nothing
-                  , T.cNick       = Nothing
-                  , T.cEmail      = Nothing
-                  , T.cOutputPath = Nothing
-                  , T.cJSetKey    = Nothing
-                  , T.cHelp       = False
-                  , T.cRefPath    = hmPath <> "/.config/jsets/config"
-                  , T.cReferences = []
-                  , T.cToCStyle   = T.Propose
-                  , T.cShowVer    = False
-                  }
+    pure $ T.defaultConfig { T.cRefPath = hmPath <> "/.config/jsets/config" }
 
 configFromCommandLine :: T.Config -> T.ErrMonad ([String], T.Config)
 configFromCommandLine config = do

@@ -15,6 +15,7 @@ module Model.Core.Types
     , Dict
     , ConfigFile        (..)
     , Config            (..)
+    , defaultConfig
     , Command           (..)
     , Format            (..)
     , ToCStyle          (..)
@@ -151,6 +152,20 @@ data Config = Config {
     , cToCStyle   :: ToCStyle       -- table of content style
     , cShowVer    :: Bool           -- show version number flag
     } deriving ( Show )
+
+defaultConfig :: Config
+defaultConfig = Config {
+      cUser       = Nothing
+    , cNick       = Nothing
+    , cEmail      = Nothing
+    , cOutputPath = Nothing
+    , cJSetKey    = Nothing
+    , cHelp       = False
+    , cRefPath    = ""
+    , cReferences = []
+    , cToCStyle   = Propose
+    , cShowVer    = False
+    }
 
 data Command = Command {
       cmdName   :: String
