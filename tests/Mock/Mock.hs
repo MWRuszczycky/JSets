@@ -1,4 +1,4 @@
-module Mock
+module Mock.Mock
     ( runView
     ) where
 

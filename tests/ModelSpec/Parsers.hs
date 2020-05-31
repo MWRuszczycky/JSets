@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module ParserTests
+module ModelSpec.Parsers
     ( spec
     ) where
 
@@ -8,8 +8,8 @@ import qualified Model.Core.Types          as T
 import qualified Model.Journals            as J
 import qualified Model.Parsers.JournalSets as P
 import qualified View.View                 as V
-import qualified Mock                      as Mock
-import qualified TestReferences            as TR
+import qualified Mock.Mock                 as Mock
+import qualified Mock.References           as TR
 import           Test.Hspec                       ( Spec (..)
                                                   , hspec
                                                   , it

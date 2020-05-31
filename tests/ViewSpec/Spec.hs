@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import qualified View.Core as Vc
-import Test.Hspec                ( Spec (..)
-                                       , hspec
-                                       , it
-                                       , describe
-                                       , shouldBe )
+import qualified View.Core  as Vc
+import           Test.Hspec       ( Spec (..)
+                                  , hspec
+                                  , it
+                                  , describe
+                                  , shouldBe )
 
 main :: IO ()
 main = hspec $ do

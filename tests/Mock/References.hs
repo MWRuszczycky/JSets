@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TestReferences
+module Mock.References
     ( refIssue
     , issueRefs
     ) where

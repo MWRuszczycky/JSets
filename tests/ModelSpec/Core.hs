@@ -1,9 +1,9 @@
-module CoreTests
+module ModelSpec.Core
     ( spec
     ) where
 
 import qualified Model.Core.Core as C
-import Test.Hspec                       ( Spec (..)
+import           Test.Hspec             ( Spec (..)
                                         , hspec
                                         , it
                                         , describe

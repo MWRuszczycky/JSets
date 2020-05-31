@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
-module JournalsTests
+module ModelSpec.Journals
     ( spec
     ) where
 
-import qualified Data.Time             as Tm
-import qualified Data.Text.IO          as Tx
-import qualified Model.Core.Types      as T
-import qualified TestReferences        as TR
-import qualified Model.Journals        as J
-import qualified Model.Parsers.PubMed  as P
+import qualified Data.Time            as Tm
+import qualified Data.Text.IO         as Tx
+import qualified Model.Core.Types     as T
+import qualified Mock.References      as TR
+import qualified Model.Journals       as J
+import qualified Model.Parsers.PubMed as P
 import           Data.Ord                    ( comparing    )
 import           Data.List                   ( sort, sortBy )
 import           Test.Hspec                  ( Spec (..)
