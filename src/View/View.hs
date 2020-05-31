@@ -3,29 +3,34 @@
 
 module View.View
     ( runView
-      -- Viewing journal sets
-    , jsetsToCsv
-    , jsetToCsv
-    , jsetsToTxt
-    , jsetToTxt
-    , jsetsToMkd
-    , jsetToMkd
-      -- Viewing Issues
-    , showIssue
-    , viewIssue
-    , viewIssueMkd
-      -- Viewing issue contents (tables of contents)
-    , viewRanks
-    , tocsToTxt
-    , tocToTxt
-    , tocsToMkd
-    , tocToMkd
-    , tocsToHtml
-      -- Viewing selections
-    , viewJSetsSelections
-    , viewJSetSelections
-      -- Viewing references
+      -- Formatting journals and reference issues
     , referenceToTxt
+      -- Views of journal sets of Issues
+    , jsetsIssueCsv
+    , jsetIssueCsv
+    , jsetsIssueTxt
+    , jsetsIssueMkd
+    , jsetIssueMkd
+      -- Views of journal sets of Selections
+    , jsetsSelectionTxt
+    , jsetSelectionTxt
+      -- Views of journal sets of Contents
+    , viewRanks
+--  , viewToCs
+    , jsetContentTxt
+    , jsetContentMkd
+    , jsetContentHtml
+      -- Views of Issues, Selections and Contents
+    , showIssue
+    , issueTxt
+    , issueMkd
+    , issuesCsv
+    , selectionTxt
+    , contentTxt
+    , contentMkd
+      -- Views of Citations
+    , citationTxt
+    , citationMkd
     ) where
 
 import qualified Data.Text        as Tx
@@ -53,200 +58,6 @@ runView view = ask >>= pure . Tx.concat . flip appEndo [] . run
     where run config = flip runReader config . execWriterT $ view
 
 -- =============================================================== --
--- Viewing journal sets
-
----------------------------------------------------------------------
--- As CSV
-
-jsetsToCsv :: T.HasIssue a => [Text] -> T.JSets a -> T.ViewMonad ()
--- ^Convert a collection of journal sets to CSV. Every element is
--- enclosed in double quotes. The first line is the list of journals
--- by journal abbreviation as specified by the first argument. Every
--- subsequent line is a journal set with issues for a given journal
--- separated by new line characters.
-jsetsToCsv []    _     = pure ()
-jsetsToCsv abbrs jsets = do
-    Vc.write "No. & Date,"
-    Vc.writeLn . Tx.intercalate "," $ abbrs
-    mapM_ ( jsetToCsv abbrs ) . J.unpack $ jsets
-
-jsetToCsv :: T.HasIssue a => [Text] -> T.JSet a -> T.ViewMonad ()
--- ^Convert a journal set to a single line of CSV. The first argument
--- is the list of journal abbreviations in the order they will be
--- tabulated. The second argument is the journal set. The first cell
--- will be the key associated with the journal set. Subsequent cells
--- will list the issues for the corresponding journal separated by
--- newline characters. All elements are enclosed in double quotes.
-jsetToCsv []    _    = pure ()
-jsetToCsv abbrs jset = do
-    Vc.write "\""
-    Vc.write . C.tshow . T.setNo $ jset
-    Vc.newLine
-    Vc.write . Vc.dateN $ jset
-    Vc.write "\","
-    Vc.separate (Vc.write ",") . map ( jsetIssuesToCsv jset ) $ abbrs
-    Vc.newLine
-
-jsetIssuesToCsv :: T.HasIssue a => T.JSet a -> Text -> T.ViewMonad ()
-jsetIssuesToCsv jset abbr = do
-    Vc.write "\""
-    Vc.writeLns' . map Vc.volIss . J.issuesByAbbr abbr . T.issues $ jset
-    Vc.write "\""
-
----------------------------------------------------------------------
--- As Text
-
-jsetsToTxt :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
-jsetsToTxt (T.JSets jsets) = mapM_ jsetToTxt jsets
-
-jsetToTxt :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
-jsetToTxt jset = do
-    let issues = sortBy (comparing $ T.name . T.journal) . T.issues $ jset
-    Vc.writeLn $ Vc.jsetHeader jset
-    Vc.separate Vc.newLine . map viewIssue $ issues
-    Vc.newLine
-
----------------------------------------------------------------------
--- to Markdown
-
-jsetsToMkd :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
-jsetsToMkd = mapM_ jsetToMkd . J.unpack
-
-jsetToMkd :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
-jsetToMkd jset = do
-    Vc.writeLn $ "## " <> Vc.jsetHeader jset
-    Vc.prepend (Vc.write "\n* ") . map viewIssueMkd . T.issues $ jset
-    Vc.newLine
-
--- =============================================================== --
--- Viewing issues
-
-showIssue :: T.HasIssue a => a -> Text
-showIssue iss = Tx.unwords . map ($iss) $ parts
-    where parts = [ T.abbr . T.journal, Vc.volIss, Vc.dateP ]
-
-viewIssue :: T.HasIssue a => a -> T.ViewMonad ()
--- ^Format an issue as "abbr volume number (year-month-day)".
-viewIssue iss = do
-    Vc.write . T.abbr . T.journal $ iss
-    Vc.space
-    Vc.write . Vc.volIss $ iss
-    Vc.space
-    Vc.write . Vc.dateP $ iss
-
-viewIssueMkd :: T.HasIssue a => a -> T.ViewMonad ()
-viewIssueMkd iss = do
-    Vc.write . T.name . T.journal $ iss
-    Vc.space
-    Vc.write . Vc.volIss $ iss
-    Vc.write ","
-    Vc.space
-    Vc.write . Vc.dateW $ iss
-
--- =============================================================== --
--- Viewing citations
-
-viewCitation :: T.HasIssue a => a -> T.Citation -> T.ViewMonad ()
-viewCitation iss c = do
-    Vc.writeLn . T.title $ c
-    Vc.writeLn . Vc.authorLine $c
-    Vc.write . T.name . T.journal $ iss
-    Vc.space
-    Vc.write . Vc.volIss $ iss
-    Vc.write ","
-    Vc.space
-    Vc.write . Vc.pageRange $ c
-    Vc.newLine
-
-citationToMkd :: T.Selection -> T.Citation -> T.ViewMonad ()
-citationToMkd sel x = Vc.write . fill dict $ Temp.citationMkd
-    where dict = Map.fromList [ ( "title",   Vc.mkdBrackets . T.title $ x )
-                              , ( "doi",     T.doi x                      )
-                              , ( "authors", Vc.authorLine x              )
-                              , ( "journal", T.name . T.journal $ sel     )
-                              , ( "volIss",  Vc.volIss sel                )
-                              , ( "pages",   Vc.pageRange x               )
-                              , ( "pmid",    T.pmid x                     )
-                              ]
-
--- =============================================================== --
--- Viewing Issue Contents (tables of contents and ranking lists)
-
-viewRanks :: T.Format -> T.JSet T.Content -> T.ViewMonad ()
-viewRanks fmt jset@(T.JSet _ ics) = do
-    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
-    email <- asks $ maybe "their email address" id . T.cEmail
-    case fmt of
-         T.HTML -> Vc.write . Html.htmlToCRank name email $ jset
-         T.MKD  -> mapM_ tocToMkd ics
-         _      -> mapM_ tocToTxt ics
-
----------------------------------------------------------------------
--- As Text
-
-tocsToTxt :: T.JSet T.Content -> T.ViewMonad ()
-tocsToTxt (T.JSet _ cs) = Vc.separate Vc.newLine . map tocToTxt $ cs
-
-tocToTxt :: T.Content -> T.ViewMonad ()
-tocToTxt (T.Content sel cs) = do
-    viewIssue sel
-    replicateM_ 2 Vc.newLine
-    Vc.separate Vc.newLine . map (viewCitation sel) $ cs
-
----------------------------------------------------------------------
--- As Markdown
-
-tocsToMkd :: T.JSet T.Content -> T.ViewMonad ()
-tocsToMkd (T.JSet setNo cs) = do
-    Vc.write "# Journal Set "
-    Vc.writeLn . C.tshow $ setNo
-    Vc.newLine
-    Vc.separate Vc.newLine . map tocToMkd $ cs
-
-tocToMkd :: T.Content -> T.ViewMonad ()
-tocToMkd (T.Content x cs) = do
-    Vc.write "## "
-    viewIssueMkd x
-    replicateM_ 2 Vc.newLine
-    if null cs
-       then Vc.writeLn "No citations listed at PubMed."
-       else Vc.separate Vc.newLine . map (citationToMkd x) $ cs
-
----------------------------------------------------------------------
--- As HTML
-
-tocsToHtml :: T.JSet T.Content -> T.ViewMonad ()
-tocsToHtml jset = do
-    style <- asks T.cToCStyle
-    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
-    email <- asks $ maybe "their email address" id . T.cEmail
-    case style of
-         T.Select  -> Vc.write . Html.htmlToCSelect  name email $ jset
-         T.Propose -> Vc.write . Html.htmlToCPropose name email $ jset
-
--- =============================================================== --
--- Formatting selection sets
-
----------------------------------------------------------------------
--- As text
-
-viewJSetsSelections :: T.JSets T.Selection -> T.ViewMonad ()
-viewJSetsSelections (T.JSets jsets) =
-    Vc.separate Vc.newLine . map viewJSetSelections $ jsets
-
-viewJSetSelections :: T.JSet T.Selection -> T.ViewMonad ()
-viewJSetSelections jset = do
-    Vc.writeLn . Vc.jsetHeader $ jset
-    mapM_ viewSelection . T.issues $ jset
-
-viewSelection :: T.Selection -> T.ViewMonad ()
-viewSelection (T.Selection iss pmids) = do
-    let indent = replicateM_ 4 Vc.space
-    viewIssue iss
-    Vc.newLine
-    Vc.prepend indent . map Vc.writeLn $ pmids
-
--- =============================================================== --
 -- Formatting journals and reference issues
 
 referenceToTxt :: T.Issue -> Text
@@ -269,3 +80,212 @@ freqToTxt T.Weekly      = "weekly (52 issues per year)"
 freqToTxt T.WeeklyLast  = "weekly-last (drop the last issue of the year)"
 freqToTxt T.WeeklyFirst = "weekly-first (drop the first issue of the year)"
 freqToTxt T.Monthly     = "monthly (12 issues per year)"
+
+-- =============================================================== --
+-- General viewing of journal sets
+
+-- viewJSetsIssue :: T.HasIssue a => [Text] -> T.JSets a -> T.ViewMonad ()
+-- viewJSetsIssue = undefined
+
+---------------------------------------------------------------------
+-- As CSV
+
+jsetsIssueCsv :: T.HasIssue a => [Text] -> T.JSets a -> T.ViewMonad ()
+-- ^Convert a collection of journal sets to CSV. Every element is
+-- enclosed in double quotes. The first line is the list of journals
+-- by journal abbreviation as specified by the first argument. Every
+-- subsequent line is a journal set with issues for a given journal
+-- separated by new line characters.
+jsetsIssueCsv []    _     = pure ()
+jsetsIssueCsv abbrs jsets = do
+    Vc.write "No. & Date,"
+    Vc.writeLn . Tx.intercalate "," $ abbrs
+    mapM_ ( jsetIssueCsv abbrs ) . J.unpack $ jsets
+
+jsetIssueCsv :: T.HasIssue a => [Text] -> T.JSet a -> T.ViewMonad ()
+-- ^Convert a journal set to a single line of CSV. The first argument
+-- is the list of journal abbreviations in the order they will be
+-- tabulated. The second argument is the journal set. The first cell
+-- will be the key associated with the journal set. Subsequent cells
+-- will list the issues for the corresponding journal separated by
+-- newline characters. All elements are enclosed in double quotes.
+jsetIssueCsv []    _    = pure ()
+jsetIssueCsv abbrs jset = do
+    Vc.write "\""
+    Vc.write . C.tshow . T.setNo $ jset
+    Vc.newLine
+    Vc.write . Vc.dateN $ jset
+    Vc.write "\","
+    Vc.separate (Vc.write ",") . map ( issuesCsv . T.issues $ jset ) $ abbrs
+    Vc.newLine
+
+---------------------------------------------------------------------
+-- As Text
+
+jsetsIssueTxt :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
+jsetsIssueTxt (T.JSets jsets) = mapM_ jsetIssueTxt jsets
+
+jsetIssueTxt :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
+jsetIssueTxt jset = do
+    let issues = sortBy (comparing $ T.name . T.journal) . T.issues $ jset
+    Vc.writeLn $ Vc.jsetHeader jset
+    Vc.separate Vc.newLine . map issueTxt $ issues
+    Vc.newLine
+
+---------------------------------------------------------------------
+-- to Markdown
+
+jsetsIssueMkd :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
+jsetsIssueMkd = mapM_ jsetIssueMkd . J.unpack
+
+jsetIssueMkd :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
+jsetIssueMkd jset = do
+    Vc.writeLn $ "## " <> Vc.jsetHeader jset
+    Vc.prepend (Vc.write "\n* ") . map issueMkd . T.issues $ jset
+    Vc.newLine
+
+-- =============================================================== --
+-- Formatting selection sets
+
+---------------------------------------------------------------------
+-- As text
+
+jsetsSelectionTxt :: T.JSets T.Selection -> T.ViewMonad ()
+jsetsSelectionTxt (T.JSets jsets) =
+    Vc.separate Vc.newLine . map jsetSelectionTxt $ jsets
+
+jsetSelectionTxt :: T.JSet T.Selection -> T.ViewMonad ()
+jsetSelectionTxt jset = do
+    Vc.writeLn . Vc.jsetHeader $ jset
+    mapM_ selectionTxt . T.issues $ jset
+
+-- =============================================================== --
+-- Viewing Issue Contents (tables of contents and ranking lists)
+
+viewRanks :: T.Format -> T.JSet T.Content -> T.ViewMonad ()
+viewRanks fmt jset@(T.JSet _ ics) = do
+    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
+    email <- asks $ maybe "their email address" id . T.cEmail
+    case fmt of
+         T.HTML -> Vc.write . Html.htmlToCRank name email $ jset
+         T.MKD  -> mapM_ contentMkd ics
+         _      -> mapM_ contentTxt ics
+
+---------------------------------------------------------------------
+-- As Text
+
+jsetContentTxt :: T.JSet T.Content -> T.ViewMonad ()
+jsetContentTxt (T.JSet _ cs) = Vc.separate Vc.newLine . map contentTxt $ cs
+
+---------------------------------------------------------------------
+-- As Markdown
+
+jsetContentMkd :: T.JSet T.Content -> T.ViewMonad ()
+jsetContentMkd (T.JSet setNo cs) = do
+    Vc.write "# Journal Set "
+    Vc.writeLn . C.tshow $ setNo
+    Vc.newLine
+    Vc.separate Vc.newLine . map contentMkd $ cs
+
+---------------------------------------------------------------------
+-- As HTML
+
+jsetContentHtml :: T.JSet T.Content -> T.ViewMonad ()
+jsetContentHtml jset = do
+    style <- asks T.cToCStyle
+    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
+    email <- asks $ maybe "their email address" id . T.cEmail
+    case style of
+         T.Select  -> Vc.write . Html.htmlToCSelect  name email $ jset
+         T.Propose -> Vc.write . Html.htmlToCPropose name email $ jset
+
+-- =============================================================== --
+-- Viewing issues
+
+---------------------------------------------------------------------
+-- Raw text
+
+showIssue :: T.HasIssue a => a -> Text
+showIssue iss = Tx.unwords . map ($iss) $ parts
+    where parts = [ T.abbr . T.journal, Vc.volIss, Vc.dateP ]
+
+---------------------------------------------------------------------
+-- Views of Issues
+
+issueTxt :: T.HasIssue a => a -> T.ViewMonad ()
+-- ^Format an issue as "abbr volume number (year-month-day)".
+issueTxt iss = do
+    Vc.write . T.abbr . T.journal $ iss
+    Vc.space
+    Vc.write . Vc.volIss $ iss
+    Vc.space
+    Vc.write . Vc.dateP $ iss
+
+issueMkd :: T.HasIssue a => a -> T.ViewMonad ()
+issueMkd iss = do
+    Vc.write . T.name . T.journal $ iss
+    Vc.space
+    Vc.write . Vc.volIss $ iss
+    Vc.write ","
+    Vc.space
+    Vc.write . Vc.dateW $ iss
+
+issuesCsv :: T.HasIssue a => [a] -> Text -> T.ViewMonad ()
+issuesCsv iss abbr = do
+    Vc.write "\""
+    Vc.writeLns' . map Vc.volIss . J.issuesByAbbr abbr $ iss
+    Vc.write "\""
+
+---------------------------------------------------------------------
+-- Views of Selections
+
+selectionTxt :: T.Selection -> T.ViewMonad ()
+selectionTxt (T.Selection iss pmids) = do
+    let indent = replicateM_ 4 Vc.space
+    issueTxt iss
+    Vc.newLine
+    Vc.prepend indent . map Vc.writeLn $ pmids
+
+---------------------------------------------------------------------
+-- Views of Contents
+
+contentTxt :: T.Content -> T.ViewMonad ()
+contentTxt (T.Content sel cs) = do
+    issueTxt sel
+    replicateM_ 2 Vc.newLine
+    Vc.separate Vc.newLine . map (citationTxt sel) $ cs
+
+contentMkd :: T.Content -> T.ViewMonad ()
+contentMkd (T.Content x cs) = do
+    Vc.write "## "
+    issueMkd x
+    replicateM_ 2 Vc.newLine
+    if null cs
+       then Vc.writeLn "No citations listed at PubMed."
+       else Vc.separate Vc.newLine . map (citationMkd x) $ cs
+
+-- =============================================================== --
+-- Viewing citations
+
+citationTxt :: T.HasIssue a => a -> T.Citation -> T.ViewMonad ()
+citationTxt iss c = do
+    Vc.writeLn . T.title $ c
+    Vc.writeLn . Vc.authorLine $c
+    Vc.write . T.name . T.journal $ iss
+    Vc.space
+    Vc.write . Vc.volIss $ iss
+    Vc.write ","
+    Vc.space
+    Vc.write . Vc.pageRange $ c
+    Vc.newLine
+
+citationMkd :: T.Selection -> T.Citation -> T.ViewMonad ()
+citationMkd sel x = Vc.write . fill dict $ Temp.citationMkd
+    where dict = Map.fromList [ ( "title",   Vc.mkdBrackets . T.title $ x )
+                              , ( "doi",     T.doi x                      )
+                              , ( "authors", Vc.authorLine x              )
+                              , ( "journal", T.name . T.journal $ sel     )
+                              , ( "volIss",  Vc.volIss sel                )
+                              , ( "pages",   Vc.pageRange x               )
+                              , ( "pmid",    T.pmid x                     )
+                              ]

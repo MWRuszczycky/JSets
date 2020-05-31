@@ -170,9 +170,9 @@ readCmd fps = do
     abbrs <- A.issueRefAbbrs
     jsets <- fmap J.combineJSets (mapM A.readJSets fps) >>= flip A.getJSets key
     A.getFormat >>= \case
-         T.CSV -> V.runView ( V.jsetsToCsv abbrs jsets    ) >>= display
-         T.MKD -> V.runView ( V.jsetsToMkd jsets          ) >>= display
-         _     -> V.runView ( V.viewJSetsSelections jsets ) >>= display
+         T.CSV -> V.runView ( V.jsetsIssueCsv abbrs jsets ) >>= display
+         T.MKD -> V.runView ( V.jsetsIssueMkd jsets       ) >>= display
+         _     -> V.runView ( V.jsetsSelectionTxt jsets   ) >>= display
 
 ---------------------------------------------------------------------
 -- View configured journals
@@ -224,9 +224,9 @@ tocCmd fps = do
     T.JSet n ss <- asks T.cJSetKey >>= A.getJSet jsets
     jset        <- A.downloadContents ss >>= pure . T.JSet n
     A.getFormat >>= \case
-        T.HTML -> V.runView ( V.tocsToHtml jset ) >>= display
-        T.MKD  -> V.runView ( V.tocsToMkd  jset ) >>= display
-        _      -> V.runView ( V.tocsToTxt  jset ) >>= display
+        T.HTML -> V.runView ( V.jsetContentHtml jset ) >>= display
+        T.MKD  -> V.runView ( V.jsetContentMkd  jset ) >>= display
+        _      -> V.runView ( V.jsetContentTxt  jset ) >>= display
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year
@@ -250,9 +250,9 @@ yearCmd (x:_) = do
     jsets   <- A.references >>= pure . J.yearly26Sets theYear
     abbrs   <- A.issueRefAbbrs
     A.getFormat >>= \case
-         T.CSV -> V.runView ( V.jsetsToCsv abbrs jsets ) >>= display
-         T.MKD -> V.runView ( V.jsetsToMkd jsets       ) >>= display
-         _     -> V.runView ( V.jsetsToTxt jsets       ) >>= display
+         T.CSV -> V.runView ( V.jsetsIssueCsv abbrs jsets ) >>= display
+         T.MKD -> V.runView ( V.jsetsIssueMkd jsets       ) >>= display
+         _     -> V.runView ( V.jsetsIssueTxt jsets       ) >>= display
 
 ---------------------------------------------------------------------
 -- Output handling

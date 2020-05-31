@@ -26,7 +26,7 @@ testGenParse2019 = do
     let refs       = TR.issueRefs
         yearly2019 = J.yearly26Sets 2019 refs
         abbrs      = map (T.abbr . T.journal) refs
-        viewCsv    = Mock.runView . V.jsetsToCsv abbrs $ yearly2019
+        viewCsv    = Mock.runView . V.jsetsIssueCsv abbrs $ yearly2019
     it "views yearly26Sets correctly as csv" $ do
         expectedCsv <- Tx.readFile "tests/res/JSet2019.csv"
         viewCsv `shouldBe` expectedCsv
@@ -34,5 +34,5 @@ testGenParse2019 = do
         etJSets <- P.parseJSets refs <$> Tx.readFile "tests/res/JSet2019.csv"
         case etJSets of
              Left err    -> error err
-             Right jsets -> Mock.runView (V.jsetsToCsv abbrs jsets)
+             Right jsets -> Mock.runView (V.jsetsIssueCsv abbrs jsets)
                             `shouldBe` viewCsv
