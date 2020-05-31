@@ -222,7 +222,6 @@ tocsToHtml jset = do
     email <- asks $ maybe "their email address" id . T.cEmail
     case style of
          T.Select  -> Vc.write . Html.htmlToCSelect  name email $ jset
-         T.Rank    -> Vc.write . Html.htmlToCRank    name email $ jset
          T.Propose -> Vc.write . Html.htmlToCPropose name email $ jset
 
 -- =============================================================== --

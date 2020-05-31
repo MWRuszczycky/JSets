@@ -90,10 +90,6 @@ options =
       ( Opt.ReqArg ( \ arg s -> pure $ s { T.cOutputPath = Just arg } ) "PATH" )
       "Set the output filepath to PATH."
 
-    , Opt.Option "r" [ "rank" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Rank } ) )
-      "Use the 'rank' style for html tables of contents."
-
     , Opt.Option "s" [ "select" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Select } ) )
       "Use the 'select' style for html tables of contents."

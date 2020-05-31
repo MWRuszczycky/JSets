@@ -168,7 +168,6 @@ data Format =
 data ToCStyle =
       Propose
     | Select
-    | Rank
       deriving ( Show, Eq )
 
 -- =============================================================== --
