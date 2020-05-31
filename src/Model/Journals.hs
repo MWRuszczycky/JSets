@@ -203,23 +203,23 @@ nextWeekly x1
 selectNone :: T.JSet T.Issue -> T.JSet T.Selection
 selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
 
-emptyContent :: T.JSet T.Selection -> T.JSet T.IssueContent
+emptyContent :: T.JSet T.Selection -> T.JSet T.Content
 emptyContent jset = T.JSet (T.setNo jset) . map go . T.issues $ jset
-    where go = flip T.IssueContent []
+    where go = flip T.Content []
 
-restrictContent :: T.IssueContent -> T.IssueContent
-restrictContent ic@(T.IssueContent iss cs) = ic { T.citations = cs' }
+restrictContent :: T.Content -> T.Content
+restrictContent ic@(T.Content iss cs) = ic { T.citations = cs' }
     where sel = T.selected iss
           cs' = filter ( flip elem sel . T.pmid ) cs
 
-missingPMIDs :: T.IssueContent -> [T.PMID]
+missingPMIDs :: T.Content -> [T.PMID]
 -- ^Given an issue content with citations, return the PMIDs of all
 -- citations that were selected but are not in the content citations.
 missingPMIDs content = sPMIDs \\ cPMIDs
     where cPMIDs = map T.pmid . T.citations $ content
           sPMIDs = T.selected . T.selection $ content
 
-addContent :: [T.Citation] -> [T.Selection] -> ([T.IssueContent], [T.Citation])
+addContent :: [T.Citation] -> [T.Selection] -> ([T.Content], [T.Citation])
 -- ^Take a list of selections and a list of citations and add each
 -- citation to the appropriate selection in former to generate a list
 -- of contents. Return any left-over citations that were not among
@@ -227,10 +227,10 @@ addContent :: [T.Citation] -> [T.Selection] -> ([T.IssueContent], [T.Citation])
 addContent cites = foldr go ([],cites)
     where go x (xs,cs) = bimap (:xs) id $ addCitations x cs
 
-addCitations :: T.Selection -> [T.Citation] -> (T.IssueContent, [T.Citation])
+addCitations :: T.Selection -> [T.Citation] -> (T.Content, [T.Citation])
 -- ^Add citations to a selection if they have been selected to
 -- generate an issue content and return any left over citations.
-addCitations sel = bimap (T.IssueContent sel) id . foldr go ([],[])
+addCitations sel = bimap (T.Content sel) id . foldr go ([],[])
     where pmids        = T.selected sel
           go c (xs,cs) | elem (T.pmid c) pmids = (c:xs,cs)
                        | otherwise             = (xs,c:cs)

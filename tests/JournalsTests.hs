@@ -229,8 +229,8 @@ testBV58N49 = do
                                    <> " Cannot parse: "
                                    <> " res/Biochemistry_V58N49_esummary.json"
 
-checkAddCitations :: (T.IssueContent, [T.Citation]) -> [T.PMID] -> IO ()
-checkAddCitations (T.IssueContent sel cs, rest) allpmids = do
+checkAddCitations :: (T.Content, [T.Citation]) -> [T.PMID] -> IO ()
+checkAddCitations (T.Content sel cs, rest) allpmids = do
     let selected = T.selected sel
         added    = map T.pmid cs
         notAdded = map T.pmid rest

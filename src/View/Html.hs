@@ -32,7 +32,7 @@ className iss = Tx.intercalate "-" xs
 -- =============================================================== --
 -- Exported html document compositors
 
-htmlToCPropose :: Text -> Text -> T.JSet T.IssueContent -> Text
+htmlToCPropose :: Text -> Text -> T.JSet T.Content -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
@@ -48,7 +48,7 @@ htmlToCPropose name email jset = fill (Map.fromList xys) Temp.tocsHtml
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
-htmlToCSelect :: Text -> Text -> T.JSet T.IssueContent -> Text
+htmlToCSelect :: Text -> Text -> T.JSet T.Content -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
 -- autogeneration of the selection text file.
@@ -64,7 +64,7 @@ htmlToCSelect name email jset = fill (Map.fromList xys) Temp.tocsHtml
                 , ( "tocs",       allCitationsHtml . T.issues $ jset       )
                 ]
 
-htmlToCRank :: Text -> Text -> T.JSet T.IssueContent -> Text
+htmlToCRank :: Text -> Text -> T.JSet T.Content -> Text
 htmlToCRank name email jset = fill (Map.fromList xys) Temp.rankingHtml
     where iss = map J.restrictContent . T.issues $ jset
           xys = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
@@ -94,12 +94,12 @@ issueElement iss = fill xys Temp.issueJS
 -- --------------------------------------------------------------- --
 -- html for the tables of contents with all citations
 
-allCitationsHtml :: [T.IssueContent] -> Text
+allCitationsHtml :: [T.Content] -> Text
 allCitationsHtml = Tx.unlines . map allCitations
 
-allCitations :: T.IssueContent -> Text
+allCitations :: T.Content -> Text
 -- ^Display all citations in the issue, and provide a note if none.
-allCitations (T.IssueContent sel cs) =
+allCitations (T.Content sel cs) =
     let msg = "<p>There are no article listed for this issue at PubMed</p>"
         bdy | null cs   = Tx.replicate 12 " " <> msg
             | otherwise = Tx.intercalate "\n" . map (citationHtml sel) $ cs
@@ -116,15 +116,15 @@ citationHtml sel@(T.Selection _ ps) c
 ---------------------------------------------------------------------
 -- html for tables of contents with only selected citations
 
-onlySelectedHtml :: [T.IssueContent] -> Text
+onlySelectedHtml :: [T.Content] -> Text
 -- ^Dispaly only selected citations, and nothing if none selected.
 onlySelectedHtml toc = Tx.unlines . zipWith go [1..] $ ds
     where ds     = concatMap selectedDict toc
           go k d = fill ( Map.insert "index" (C.tshow k) d )
                         Temp.citationHtml
 
-selectedDict :: T.IssueContent -> [Map.Map Text Text]
-selectedDict (T.IssueContent sel cs) = map go cs
+selectedDict :: T.Content -> [Map.Map Text Text]
+selectedDict (T.Content sel cs) = map go cs
     where go c = Map.union ( ud c ) . citationDict sel $ c
           ud c = Map.fromList [ ( "length", Vc.citationLength c )
                               , ( "type",   "text"              )

@@ -136,7 +136,7 @@ downloadCitations wreq pmids = do
          Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
                           in  C.putTxtMIO msg *> pure cs
 
-downloadContent :: C.WebRequest -> T.Selection -> T.AppMonad T.IssueContent
+downloadContent :: C.WebRequest -> T.Selection -> T.AppMonad T.Content
 downloadContent wreq sel = do
     start <- liftIO D.readClock
     cites <- downloadPMIDs wreq sel >>= downloadCitations wreq
@@ -145,9 +145,9 @@ downloadContent wreq sel = do
     -- PubMed allows at most 3 requests per second. We've alrady made
     -- two at this point, so we pause for another second.
     liftIO . D.wait $ 10^12
-    pure $ T.IssueContent sel cites
+    pure $ T.Content sel cites
 
-downloadContents :: [T.Selection] -> T.AppMonad [T.IssueContent]
+downloadContents :: [T.Selection] -> T.AppMonad [T.Content]
 downloadContents xs = do
     wreq     <- C.webRequestIn <$> liftIO newSession
     contents <- mapM (downloadContent wreq) xs

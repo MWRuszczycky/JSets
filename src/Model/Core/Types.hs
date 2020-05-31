@@ -30,7 +30,7 @@ module Model.Core.Types
       -- Journal issues
     , Issue             (..)
     , Selection         (..)
-    , IssueContent      (..)
+    , Content           (..)
       -- Table of contents and citations
     , Citation          (..)
     , PageNumber        (..)
@@ -190,7 +190,7 @@ data ToCStyle =
 
 -- |A Journal Set (JSet) is a list of all journal issues to be
 -- reviewed in a single along with an identifying INT key.
-data JSet  a = JSet {
+data JSet a = JSet {
       setNo  :: Int
     , issues :: [a]
     } deriving Show
@@ -237,7 +237,22 @@ data Frequency =
 -- =============================================================== --
 -- Journal Issues
 
--- |Information about a given issue of a journal
+-- Journal issues are defined in terms of a progression of types:
+-- You start with an *Issue*, make a *Selection* based on the PMIDs
+-- of the desired citations in the issue and then add the citations
+-- to create a *Content*. Populating the citations may (or may not)
+-- be modulated by the PMIDs in the *Selection*.
+
+-- This may not be the best way to structure the data and pipeline.
+-- For example, we could just have a single type that has separate
+-- fields for the selection and content. This 'progression' approach
+-- has caused some headaches, but it works for the most part, and it
+-- makes at least some logical sense. For example, a base Issue
+-- shouldn't have selected PMIDs at all.
+
+---------------------------------------------------------------------
+
+-- |Basice information about a given issue of a journal.
 data Issue = Issue {
       theDate    :: Day
     , theVolNo   :: Int
@@ -253,6 +268,9 @@ instance HasIssue Issue where
 
 ---------------------------------------------------------------------
 
+-- |An Issue to which certain citations have been selected for review
+-- etc. They are indexed by thier PMIDs. Once the selected citations
+-- have been acquired, the Selection becomes a Content.
 data Selection = Selection {
       theIssue :: Issue
     , selected :: [PMID]
@@ -271,15 +289,17 @@ instance MayMix Selection where
 
 ---------------------------------------------------------------------
 
-data IssueContent = IssueContent {
+-- |A Selection to which the citations associated with the Issue have
+-- been added possibly restricted by the selection.
+data Content = Content {
       selection :: Selection
     , citations :: [Citation]
     } deriving ( Show, Eq )
 
-instance HasIssue IssueContent where
+instance HasIssue Content where
     issue = theIssue . selection
 
-instance HasDate IssueContent where
+instance HasDate Content where
     date = theDate . theIssue . selection
 
 -- =============================================================== --

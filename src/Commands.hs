@@ -126,7 +126,7 @@ checkForUnrequestedCitations cs = do
     C.putTxtLnMIO . Tx.unwords . map T.pmid $ cs
     C.putTxtMIO "  These have not been included in the ranks list output."
 
-checkForMissingCitations :: [T.IssueContent] -> T.AppMonad ()
+checkForMissingCitations :: [T.Content] -> T.AppMonad ()
 -- ^Check to make sure each pmid in the selection for each issue has
 -- a corresponding citation. Otherwise, the citation is missing. Note
 -- that there will never be citations without corresponding pmids.

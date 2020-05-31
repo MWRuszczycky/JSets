@@ -172,7 +172,7 @@ citationToMkd sel x = Vc.write . fill dict $ Temp.citationMkd
 -- =============================================================== --
 -- Viewing Issue Contents (tables of contents and ranking lists)
 
-viewRanks :: T.Format -> T.JSet T.IssueContent -> T.ViewMonad ()
+viewRanks :: T.Format -> T.JSet T.Content -> T.ViewMonad ()
 viewRanks fmt jset@(T.JSet _ ics) = do
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
@@ -184,11 +184,11 @@ viewRanks fmt jset@(T.JSet _ ics) = do
 ---------------------------------------------------------------------
 -- As Text
 
-tocsToTxt :: T.JSet T.IssueContent -> T.ViewMonad ()
+tocsToTxt :: T.JSet T.Content -> T.ViewMonad ()
 tocsToTxt (T.JSet _ cs) = Vc.separate Vc.newLine . map tocToTxt $ cs
 
-tocToTxt :: T.IssueContent -> T.ViewMonad ()
-tocToTxt (T.IssueContent sel cs) = do
+tocToTxt :: T.Content -> T.ViewMonad ()
+tocToTxt (T.Content sel cs) = do
     viewIssue sel
     replicateM_ 2 Vc.newLine
     Vc.separate Vc.newLine . map (viewCitation sel) $ cs
@@ -196,15 +196,15 @@ tocToTxt (T.IssueContent sel cs) = do
 ---------------------------------------------------------------------
 -- As Markdown
 
-tocsToMkd :: T.JSet T.IssueContent -> T.ViewMonad ()
+tocsToMkd :: T.JSet T.Content -> T.ViewMonad ()
 tocsToMkd (T.JSet setNo cs) = do
     Vc.write "# Journal Set "
     Vc.writeLn . C.tshow $ setNo
     Vc.newLine
     Vc.separate Vc.newLine . map tocToMkd $ cs
 
-tocToMkd :: T.IssueContent -> T.ViewMonad ()
-tocToMkd (T.IssueContent x cs) = do
+tocToMkd :: T.Content -> T.ViewMonad ()
+tocToMkd (T.Content x cs) = do
     Vc.write "## "
     viewIssueMkd x
     replicateM_ 2 Vc.newLine
@@ -215,7 +215,7 @@ tocToMkd (T.IssueContent x cs) = do
 ---------------------------------------------------------------------
 -- As HTML
 
-tocsToHtml :: T.JSet T.IssueContent -> T.ViewMonad ()
+tocsToHtml :: T.JSet T.Content -> T.ViewMonad ()
 tocsToHtml jset = do
     style <- asks T.cToCStyle
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
