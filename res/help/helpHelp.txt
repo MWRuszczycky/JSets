@@ -1,0 +1,10 @@
+Usage: jsets help <command-name>
+
+Displays detailed information for command <command-name>. For example,
+
+    jsets help read
+
+will display detailed help information for <read>. To see a help
+information summary and complete list of available commands, try
+
+    jsets --help

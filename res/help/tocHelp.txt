@@ -1,0 +1,43 @@
+Usage: jsets toc FILE [FILE] [--key=SETNO]
+
+Downloads content information for each issue in a specified journal
+set in file FILE and generates output with all the corresponding
+citations. If more than one FILE is provided as an argument, then
+the journal sets between each of the files are collated together by
+journal set number. If there is only one journal set in the resulting
+collection, the no set number is necessary, and the single journal
+set will be used to query PubMed for content information. If there
+are multiple journal sets, then a journal set number must be pronided
+using the --key/-k option.
+
+The result table of contents information for the journal set can be
+output in a variety of formats, with txt. being the default. Other
+supported formats are Markdown (md or mkd) and html. The output
+format is specified by specifying an output file using the
+--output/-o option and the appropriate file extension. For example,
+to generate table of contents information for journal set 6 in file
+<jsets2019.txt> and display in in Markdown, use the following
+
+    jsets toc jsets2019.txt --key=6 --output=toc6.md
+
+When the output format is html, each citation has a checkbox that
+can be used to select it for inclusion in a selection that can be
+saved to your downloads folder. The selection file can be read by
+JSets to create another table of contens with highlighted citations
+or rank lists (see <ranks> command). There are three styles of
+instructions depending on who the toc html output is intended for:
+
+      basic      No special instructions. This is the default.
+    --propose/-p This is for the students to propose articles for
+                 inclusion in the selection. It includes email
+                 information for the JSets administrator.
+    --select/-s  This includes instructions for the boss. They are
+                 basically the same as for the students, but points
+                 out that selected citations are highlighte in a
+                 different color.
+
+For example, if you want to generate an html table of contents for
+journal set 6 in <jsets2019.csv> using the --propose/-p format so it
+can be sent to the students for making their selections, use
+
+    jsets toc jsets2019.csv --key=6 -p --output=toc6.html

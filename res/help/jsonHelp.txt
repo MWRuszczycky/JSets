@@ -1,0 +1,13 @@
+Usage: jsets json <Journal-abbreviation> <volume> <issue>
+
+Downloads and saves the raw PubMed json data for the specified issue.
+This is mostly used for debugging purposes. The command generates two
+files in the current working directry:
+    esearch.json  : the PubMed ESarch E-Utility response
+    esummary.json : the PubMed ESummary E-Utility response
+For example,
+
+    jsets json Biochemistry 58 3
+
+will download the raw ESearch and ESummary citation data in json form
+for issue 3 of Biochemistry volume 58.

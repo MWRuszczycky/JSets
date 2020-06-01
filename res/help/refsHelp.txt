@@ -1,0 +1,44 @@
+Usage: jsets refs
+
+When computing the volume numbers, issue numbers and publication
+dates for journal issues, JSets uses reference issues and known
+publication frequencies. Therefore, reference issues need to be
+provided in a configuration file. This file is found on the path,
+
+    ~/.config/jsets/config
+
+The <refs> command will display all the currently configured journals
+and associated reference issues in the configuration file. Each
+reference issue is displayed with the following information. This
+is specified by the corresponding fields in the configuration file:
+
+    abbr:      A unique abbreviation identifying the journal
+    pubmed:    The journal abbreviation used by PubMed
+    frequency: The publication frequency of the journal. JSets
+               currently recognizes four publication frequencies:
+                   monthly      : 12 issues each year (one per month)
+                   weekly       : 52 issues each year (one per week)
+                   weekly-first : 51/52 issues each year (one per
+                                  weekdrop but drop first issue of
+                                  the year)
+                   weekly-last  : 51/52 issues each year (one per
+                                  weekdrop but drop the last issue of
+                                  the year)
+    resets:    Does the issue number reset to 1 at the start of each
+               year or does it continuously increase.
+    volume:    The volume number of the reference issue of the
+               journal. *Note that for journals that have coninuously
+               increasing issue numbers (i.e., resets = false), the
+               volume number is just the year.*
+    year:      Publication year of the reference issue. For journals
+               with continuously increasing issue numbers, this
+               should match the volume number.
+    month:     Publication month (e.g., january or 1) of the
+               reference issue of the journal.
+    day:       Publication day (e.g., 4. 23, etc.) of the reference
+               issue of the journal.
+
+Most journals publish relatively regularly; however, it is possible
+that variations may lead to the publication dates estimated by JSets
+getting out of sync with the true publication dates. In these cases,
+the reference issue to should be updated.
