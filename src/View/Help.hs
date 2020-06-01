@@ -20,7 +20,7 @@ import qualified System.Console.GetOpt as Opt
 import qualified Data.FileEmbed        as FE
 import qualified Model.Core.Types      as T
 import qualified Data.Version          as Ver
-import qualified Paths_lab_schedule    as Paths
+import qualified Paths_jsets           as Paths
 import           Data.Text                      ( Text        )
 
 -- =============================================================== --

@@ -1,6 +1,6 @@
-name:                   lab-schedule
+name:                   jsets
 version:                2.1.0
-homepage:               https://github.com/MWRuszczycky/lab-schedule#readme
+homepage:               https://github.com/MWRuszczycky/JSets#readme
 license:                BSD3
 license-file:           LICENSE
 author:                 Mark W. Ruszczycky
@@ -17,11 +17,11 @@ executable jsets
   default-language:     Haskell2010
   ghc-options:          -O2 -threaded -W
   build-depends:        base >= 4.7 && < 5
-                      , lab-schedule-internal
+                      , jsets-internal
                       , mtl
                       , text
 
-library lab-schedule-internal
+library jsets-internal
   exposed-modules:      Commands
                       , Controller
                       , AppMonad
@@ -41,7 +41,7 @@ library lab-schedule-internal
                       , View.Html
                       , View.Templates
                       , View.View
-                      , Paths_lab_schedule
+                      , Paths_jsets
   hs-source-dirs:       src
   default-language:     Haskell2010
   ghc-options:          -O2 -W
@@ -68,7 +68,7 @@ test-suite model
                       , Mock.Mock
                       , Mock.References
   build-depends:        base >= 4.7 && < 5
-                      , lab-schedule-internal
+                      , jsets-internal
                       , hspec
                       , mtl
                       , text
@@ -80,5 +80,5 @@ test-suite view
   hs-source-dirs:       tests
   main-is:              ViewSpec/Spec.hs
   build-depends:        base >= 4.7 && < 5
-                      , lab-schedule-internal
+                      , jsets-internal
                       , hspec
