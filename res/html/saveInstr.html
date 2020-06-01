@@ -1,0 +1,20 @@
+        <h2>Create your selection, save it and send it to @{name}!</h2>
+
+        <ol id="inst" style="display:none">
+            <li>Your selection has been created.</li>
+            <li>There are <b><span id="count"></span></b> articles in the selection.</li>
+            <li>If you want to change your selection, refresh the webpage.</li>
+            <li>If you want to save your selection <a id="saveLink"><b>click here</b></a>.</li>
+            <li>Your selection should be saved in your <b>Downloads</b> folder.</li>
+            <li>The file name of your selection is <b><span id="fileNameWgt"></span></b>.</li>
+            <li>Email your selection file to @{name}@{email}.</li>
+            <li>Afterwards, you can delete this html file and the selection file.</li>
+        </ol>
+
+        <div id="createWgt">
+            <label for="initials">Enter your initials here:</label>
+            <input type="text" id="initials">
+            <button type="button" id="createBtn" onclick="createSelection()">
+                Create Selection!
+            </button>
+        </div>

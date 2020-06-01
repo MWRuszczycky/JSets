@@ -163,7 +163,7 @@ defaultConfig = Config {
     , cHelp       = False
     , cRefPath    = ""
     , cReferences = []
-    , cToCStyle   = Propose
+    , cToCStyle   = Basic
     , cShowVer    = False
     }
 
@@ -181,7 +181,8 @@ data Format =
       deriving ( Show, Eq )
 
 data ToCStyle =
-      Propose
+      Basic
+    | Propose
     | Select
       deriving ( Show, Eq )
 

@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module View.Html
-    ( tocPropose
+    ( tocBasic
+    , tocPropose
     , tocSelect
     , rankList
     ) where
@@ -32,6 +33,21 @@ className iss = Tx.intercalate "-" xs
 -- =============================================================== --
 -- Exported html document compositors
 
+tocBasic :: T.JSet T.Content -> Text
+-- ^Generate the complete html web document for a table of contents.
+-- This is the most simple output that contains no instructions or
+-- JavaScript. It is basically equivalent to the Markdown output;
+-- however, selected citations are highlighted.
+tocBasic jset@(T.JSet n contents) =
+    let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n            )
+               , ( "jsetHeader", Vc.jsetHeader jset                     )
+               , ( "savePrefix", savePrefix jset                        )
+               , ( "saveinstr",  fillNone Temp.saveInstrBasicHtml       )
+               , ( "issues",     issuesArray . T.issues $ jset          )
+               , ( "tocs",       Tx.unlines . map tocEntries $ contents )
+               ]
+    in fill (Map.fromList dict) Temp.tocsHtml
+
 tocPropose :: Text -> Text -> T.JSet T.Content -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
@@ -41,9 +57,8 @@ tocPropose name email jset@(T.JSet n contents) =
     let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n            )
                , ( "jsetHeader", Vc.jsetHeader jset                     )
                , ( "savePrefix", savePrefix jset                        )
-               , ( "name",       name                                   )
-               , ( "email",      " at " <> email                        )
                , ( "instr",      fillNone Temp.instrProposeHtml         )
+               , ( "saveinstr",  saveInstructions name email            )
                , ( "issues",     issuesArray . T.issues $ jset          )
                , ( "tocs",       Tx.unlines . map tocEntries $ contents )
                ]
@@ -58,9 +73,8 @@ tocSelect name email jset@(T.JSet n contents) =
     let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n            )
                , ( "jsetHeader", Vc.jsetHeader jset                     )
                , ( "savePrefix", savePrefix jset                        )
-               , ( "name",       name                                   )
-               , ( "email",      " at " <> email                        )
                , ( "instr",      fillNone Temp.instrSelectHtml          )
+               , ( "saveinstr",  saveInstructions name email            )
                , ( "issues",     issuesArray . T.issues $ jset          )
                , ( "tocs",       Tx.unlines . map tocEntries $ contents )
                ]
@@ -109,8 +123,19 @@ issueHeader iss = Tx.concat xs
                , C.tshow . T.issNo $ iss
                ]
 
+---------------------------------------------------------------------
+-- Other html components
+
+saveInstructions :: Text -> Text -> Text
+-- ^Construct html for the save instructions for select and propose
+-- style html tables of contents.
+saveInstructions name email = fill (Map.fromList dict) Temp.saveInstrHtml
+    where dict = [ ( "name",  name            )
+                 , ( "email", " at " <> email )
+                 ]
+
 -- --------------------------------------------------------------- --
--- html of the citations in the Tables of Contens or Rank lists
+-- html of the citations in the Tables of Contents or Rank lists
 
 tocEntries :: T.Content -> Text
 -- ^Construct html for all citations in a Table of Contents.

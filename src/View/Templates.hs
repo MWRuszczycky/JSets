@@ -14,6 +14,8 @@ module View.Templates
     , issueJS
     , tocsHtml
     , tocHtml
+    , saveInstrHtml
+    , saveInstrBasicHtml
     , instrProposeHtml
     , instrSelectHtml
     , rankListHtml
@@ -107,10 +109,9 @@ tocsHtml :: Template
 -- jsetTitle  : title of html document
 -- jsetHeader : header for te journal set (number and date)
 -- savePrefix : file name prefix for saving
--- name       : nickname of person to send selections to
--- email      : email string for person to send selections to
--- newIssues  : new issue elements for the 'journals' array
+-- issues     : new issue elements for the 'journals' array
 -- tocs       : table of contents html for all issues
+-- saveinstr  : save instructions
 tocsHtml = parseTemplate' "res/html/tocs.html"
            $(FE.embedStringFile "res/html/tocs.html")
 
@@ -152,6 +153,18 @@ citationHtml :: Template
 -- pmid     : pubmed uid
 citationHtml = parseTemplate' "res/html/citation.html"
                $(FE.embedStringFile "res/html/citation.html")
+
+saveInstrHtml :: Template
+-- ^Save instructions for propose and select style Table of Contents.
+-- name  : nickname of person to send selections to
+-- email : email string for person to send selections to
+saveInstrHtml = parseTemplate' "res/html/saveInstr.html"
+                $(FE.embedStringFile "res/html/saveInstr.html")
+
+saveInstrBasicHtml :: Template
+-- ^Save instructions for basic style Table of Contents.
+saveInstrBasicHtml = parseTemplate' "res/html/saveInstrBasic.html"
+                     $(FE.embedStringFile "res/html/saveInstrBasic.html")
 
 instrProposeHtml :: Template
 -- ^Instructions for including articles for consideration.

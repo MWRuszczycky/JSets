@@ -84,6 +84,10 @@ options =
       ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Select } ) )
       "Use the 'select' style for html tables of contents."
 
+    , Opt.Option "p" [ "propose" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Propose } ) )
+      "Use the 'propose' style for html tables of contents."
+
     , Opt.Option "v" [ "version" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )
       "Just show the version number and quit."

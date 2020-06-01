@@ -225,6 +225,7 @@ jsetContentHtml jset = do
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
     case style of
+         T.Basic   -> Vc.write . Html.tocBasic              $ jset
          T.Select  -> Vc.write . Html.tocSelect  name email $ jset
          T.Propose -> Vc.write . Html.tocPropose name email $ jset
 
