@@ -87,7 +87,19 @@ jsonValue = jsonString
             <|> jsonNull
 
 jsonString :: At.Parser JSON
-jsonString = P.quoted >>= pure . JStr
+-- ^PubMed replaces html elements such as '<' and '>' with their
+-- corresponding html entities. I don't know why, but this may be
+-- done because the default data format is XML rather than JSON, in
+-- which case the use of entities would be required. In any case, we
+-- need to parse these entities out as the correct characters for
+-- them to render properly. Note, however, that this parser relies
+-- on PubMed ensuring that the all of their html tags are correctly
+-- formatted (e.g., every '<' has a closing '>'). The following
+-- parser does not do any of this checking. Furthemore, I have not
+-- encountered any title that has a legitimate '<' or '>' symbol.
+-- However, I assume it would be encoded as "&amp;lt;". In this case,
+-- it will parse as "&lt;", which is what we want.
+jsonString = P.quotedPubMed >>= pure . JStr
 
 jsonArray :: At.Parser JSON
 jsonArray = do
