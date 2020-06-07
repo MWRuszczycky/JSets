@@ -24,6 +24,8 @@ module Model.Parsers.Core
     , comma
     , colon
     , colon'
+    , gtSign
+    , equalSign
     , pipe
     , pipe'
       -- HTML entities
@@ -128,6 +130,12 @@ colon = At.skipSpace *> At.char ':' *> At.skipSpace
 
 colon' :: At.Parser ()
 colon' = horizontalSpaces *> At.char ':' *> horizontalSpaces
+
+gtSign :: At.Parser ()
+gtSign = At.skipSpace *> At.char '>' *> At.skipSpace
+
+equalSign :: At.Parser ()
+equalSign = At.skipSpace *> At.char '=' *> At.skipSpace
 
 comma :: At.Parser ()
 comma = At.skipSpace *> At.char ',' *> At.skipSpace

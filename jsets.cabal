@@ -37,6 +37,7 @@ library jsets-internal
                       , Model.Parsers.JSON
                       , Model.Parsers.JournalSets
                       , Model.Parsers.PubMed
+                      , Model.Parsers.Rankings
                       , View.Core
                       , View.Help
                       , View.Html
