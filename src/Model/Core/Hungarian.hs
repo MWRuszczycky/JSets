@@ -1,25 +1,30 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Model.Core.Hungarian
-    (
+    ( solveMax
+    , solveMin
     ) where
 
 import qualified Data.Map.Strict            as Map
 import           Data.Map.Strict                    ( (!)          )
 import           Data.List                          ( (\\)
                                                     , nub
+                                                    , sort
                                                     , foldl'
+                                                    , intersect
                                                     , partition
                                                     , delete       )
-import           Control.Monad.State.Strict         ( State (..)
+import           Control.Monad.State.Strict         ( State
                                                     , gets
                                                     , modify
-                                                    , execState
-                                                    , runState     )
+                                                    , execState    )
 
 -- =============================================================== --
 -- Rudimentary implementation of the Hungarian algorithm
+-- Probably not the most beautiful implementation, but seems to work.
+
 -- =============================================================== --
+-- Local types
 
 type Weights   = Map.Map (Int, Int) Int
 type Labels    = Map.Map Int Int
@@ -38,17 +43,39 @@ data Working = Working {
     } deriving ( Show )
 
 -- =============================================================== --
+-- Interface
 
-solve :: Weights -> Working
-solve w = execState reset g
-    where g = initWorking w
+solveMax :: [((Int,Int),Int)] -> Either String (Int, [(Int,Int)])
+solveMax edgeWeights = do
+    start <- validate edgeWeights >>= pure . initWorking
+    let result = execState reset start
+        ws     = weights result
+        ms     = sort . matches $ result
+    pure ( sum . map (ws !) $ ms, ms )
 
----------------------------------------------------------------------
--- Initialization
+solveMin :: [((Int,Int),Int)] -> Either String (Int, [(Int,Int)])
+solveMin edgeWeights = do
+    let negEdgeWeights = [ (k, negate v) | (k,v) <- edgeWeights ]
+    (s, ms) <- solveMax negEdgeWeights
+    pure (negate s, ms)
+
+-- =============================================================== --
+-- Initialization and validity checking
+
+validate :: [((Int,Int),Int)] -> Either String Weights
+validate edgeWeights
+    | not isBipartite = Left "Graph is not bipartite."
+    | not isBalanced  = Left "Disjoint subsets are not equal size."
+    | not isComplete  = Left "Bipartite graph is not complete."
+    | otherwise       = pure . Map.fromList $ edgeWeights
+    where xys         = fst . unzip $ edgeWeights
+          (xs,ys)     = let (xs', ys') = unzip xys in ( nub xs', nub ys' )
+          isBipartite = null . intersect xs $ ys
+          isBalanced  = length xs == length ys
+          isComplete  = all (flip elem xys) . allPairs xs $ ys
 
 initWorking :: Weights -> Working
-initWorking ws = let (xs,ys)    = initXYGraphs ws
-                     swap (x,y) = (y,x)
+initWorking ws = let (xs,ys) = initXYGraphs ws
                  in  Working { weights = Map.union ws . Map.mapKeys swap $ ws
                              , labels  = initLabels ws xs ys
                              , matches = []
@@ -73,7 +100,7 @@ initLabels ws xs ys = Map.fromList $ yLabels <> xLabels
           xLabels = [ (v, go v us)  | (v,us) <- xs ]
           go v us = maximum [ ws ! (v,u) | u <- us ]
 
----------------------------------------------------------------------
+-- =============================================================== --
 -- Core algorithm
 
 reset :: Hungarian ()
@@ -207,9 +234,8 @@ augment :: [(Int,Int)] -> [(Int,Int)] -> [(Int,Int)]
 --     [ 1 (y1,x1), 2 (x1,y2), 3 (y2,x3), .., n (yn,xn) ],
 -- and the current matches, augment the path by removing the evenly
 -- numbered edges and adding the odd-numbered edges.
-augment path = (<> toAdd') . filter ( not . flip elem toRem )
+augment path = (<> map swap toAdd) . filter ( not . flip elem toRem )
     where (toAdd, toRem) = splitOddEven path
-          toAdd'         = [ (x,y) | (y,x) <- toAdd ]
 
 equalitySubGraph :: Weights -> Labels -> Graph -> Graph
 -- ^Restrict incident vertices to the equality subgraph.
@@ -218,7 +244,7 @@ equalitySubGraph ws ls vs = map ( \ (v,us) -> (v, filter (go v) us) ) vs
           names  = map fst vs
 
 ---------------------------------------------------------------------
--- Basic graph operations
+-- Basic graph operations and helper functions
 
 lookup' :: Int -> [(Int,Int)] -> Maybe Int
 -- ^Reverse lookup function (i.e., match on the second element).
@@ -226,6 +252,9 @@ lookup' _ []          = Nothing
 lookup' k ((x,y):xys)
     | y == k    = Just x
     | otherwise = lookup' k xys
+
+swap :: (a,b) -> (b,a)
+swap (x,y) = (y,x)
 
 graphFromEdges :: [(Int,Int)] -> Graph
 -- ^Generate a graph from edges based on the first edge only.
@@ -243,6 +272,7 @@ findPath g stop@(x,_) (y,xs)
                   in  case dropWhile null . map (findPath g' stop) $ nxt of
                            []             -> []
                            ((p,q):rest):_ -> (y,p):(p,q):rest
+                           _              -> [] -- should be impossible
 
 splitOddEven :: [a] -> ([a],[a])
 -- ^Split a list into even and odd number elements starting from 1.
@@ -252,65 +282,10 @@ splitOddEven xs = (snd . unzip $ os, snd . unzip $ es )
 allPairs :: [Int] -> [Int] -> [(Int,Int)]
 -- ^Generate all pairs of each element of the first list with all
 -- elements of the second list.
-allPairs []     _    = []
-allPairs _      []   = []
-allPairs (x:xs) (ys) = allPairs xs ys <> [ (x,y) | y <- ys ]
+allPairs []     _  = []
+allPairs _      [] = []
+allPairs (x:xs) ys = allPairs xs ys <> [ (x,y) | y <- ys ]
 
 score :: Weights -> Labels -> (Int, Int) -> Int
 -- ^Standard scoring function for the Hungarian algorithm.
 score ws ls (x,y) = ls ! x + ls ! y - ws ! (x,y)
-
--- =============================================================== --
--- Testing
-
-type TestSet = ( String, Int, [((Int,Int),Int)] )
-
-runTests :: IO ()
-runTests = mapM_ runTest [test1, test2, test3, test4]
-
-runTest :: TestSet -> IO ()
-runTest (name, expected, weights) = do
-    let ws = Map.fromList weights
-        ms = matches . solve $ ws
-        s  = sum . map ( \ m -> ws ! m ) $ ms
-    if s == expected
-       then putStrLn $ "Test " <> name <> " passed!"
-       else do putStrLn $ "Test " <> name <> " failed!"
-               putStrLn $ "   expected: " <> show expected <> ", got: " <> show s
-
-test1 :: TestSet
--- solution is: 271
--- (1,7) (2,5) (3,6) (4,8)
-test1 = ("1", 271, m)
-    where m = [ ( (1,5), 42 ), ( (1,6), 53 ), ( (1,7), 53 ), ( (1,8),  7 )
-              , ( (2,5), 94 ), ( (2,6), 70 ), ( (2,7), 52 ), ( (2,8), 21 )
-              , ( (3,5), 78 ), ( (3,6), 82 ), ( (3,7), 47 ), ( (3,8), 72 )
-              , ( (4,5), 31 ), ( (4,6),  2 ), ( (4,7), 43 ), ( (4,8), 42 )
-              ]
-
-test2 :: TestSet
-test2 = ("2", 5, m)
-    where m = [ ((1,3), 1), ((1,4), 2)
-              , ((2,3), 3), ((2,4), 4)
-              ]
-
-test3 :: TestSet
--- solution is:
--- (1,5) (2,6) (3,4)
-test3 = ("3", 16, m)
-    where m = [ ((1,4), 1), ((1,5), 6), ((1,6), 0)
-              , ((2,4), 0), ((2,5), 8), ((2,6), 6)
-              , ((3,4), 4), ((3,5), 0), ((3,6), 1)
-              ]
-
-test4 :: TestSet
--- solution is: 271
--- (1,7) (2,5) (3,6) (4,8)
-test4 = ("4", 437, m)
-    where m = [ ( (1,7), 30 ), ( (1,8), 44 ), ( (1,9), 14 ), ( (1,10), 67 ), ( (1,11), 67 ), ( (1,12), 92 )
-              , ( (2,7), 10 ), ( (2,8), 50 ), ( (2,9), 22 ), ( (2,10), 31 ), ( (2,11), 52 ), ( (2,12), 53 )
-              , ( (3,7), 55 ), ( (3,8), 19 ), ( (3,9), 54 ), ( (3,10), 36 ), ( (3,11), 13 ), ( (3,12), 86 )
-              , ( (4,7), 39 ), ( (4,8), 52 ), ( (4,9),  4 ), ( (4,10), 63 ), ( (4,11), 10 ), ( (4,12), 81 )
-              , ( (5,7), 86 ), ( (5,8), 28 ), ( (5,9), 82 ), ( (5,10), 72 ), ( (5,11), 85 ), ( (5,12), 82 )
-              , ( (6,7), 60 ), ( (6,8), 58 ), ( (6,9), 43 ), ( (6,10), 99 ), ( (6,11), 43 ), ( (6,12), 26 )
-              ]

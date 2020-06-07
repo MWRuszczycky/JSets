@@ -2,12 +2,13 @@ module ModelSpec.Core
     ( spec
     ) where
 
-import qualified Model.Core.Core as C
-import           Test.Hspec             ( Spec (..)
-                                        , hspec
-                                        , it
-                                        , describe
-                                        , shouldBe )
+import qualified Model.Core.Core      as C
+import qualified Model.Core.Hungarian as H
+import           Test.Hspec                ( Spec (..)
+                                           , hspec
+                                           , it
+                                           , describe
+                                           , shouldBe )
 
 spec :: IO ()
 spec = hspec $ do
@@ -25,6 +26,8 @@ spec = hspec $ do
         shuffleInAtSpec
     describe "zipLists" $ do
         zipListsSpec
+    describe "hungarian" $ do
+        hungarianSpec
 
 extensionSpec :: Spec
 extensionSpec = do
@@ -172,3 +175,66 @@ zipListsSpec = do
     it "handles exact lists correctly" $ do
         C.zipLists xs zs `shouldBe` ["doghorse", "catturtle", "fishmongoose"]
 
+---------------------------------------------------------------------
+-- Hungarian algorithm tests
+
+type TestSet = ( Int, [((Int,Int), Int)] )
+type Solver  = [((Int,Int),Int)] -> Either String (Int, [(Int,Int)])
+
+hungarianSpec :: Spec
+hungarianSpec = do
+    it "Maximizes matchings for valid inputs" $ do
+        runHTest test1max H.solveMax
+        runHTest test2max H.solveMax
+        runHTest test3max H.solveMax
+        runHTest test4max H.solveMax
+    it "Minimizes matchings for valid inputs" $ do
+        runHTest test1min H.solveMin
+        runHTest test2min H.solveMin
+        runHTest test3min H.solveMin
+        runHTest test4min H.solveMin
+
+runHTest :: TestSet -> Solver -> IO ()
+runHTest (expected, ws) solver = do
+    case solver ws of
+         Left err    -> error err
+         Right (x,_) -> x `shouldBe` expected
+
+test1max, test2max, test3max, test4max :: TestSet
+test1max = (271, test1)
+test2max = (5, test2)
+test3max = (16, test3)
+test4max = (437, test4)
+
+test1min, test2min, test3min, test4min :: TestSet
+test1min = (112, test1)
+test2min = (5, test2)
+test3min = (0, test3)
+test4min = (124, test4)
+
+test1 :: [((Int,Int), Int)]
+test1 = [ ( (1,5), 42 ), ( (1,6), 53 ), ( (1,7), 53 ), ( (1,8),  7 )
+        , ( (2,5), 94 ), ( (2,6), 70 ), ( (2,7), 52 ), ( (2,8), 21 )
+        , ( (3,5), 78 ), ( (3,6), 82 ), ( (3,7), 47 ), ( (3,8), 72 )
+        , ( (4,5), 31 ), ( (4,6),  2 ), ( (4,7), 43 ), ( (4,8), 42 )
+        ]
+
+test2 :: [((Int,Int),Int)]
+test2 = [ ((1,3), 1), ((1,4), 2)
+        , ((2,3), 3), ((2,4), 4)
+        ]
+
+test3 :: [((Int,Int),Int)]
+test3 = [ ((1,4), 1), ((1,5), 6), ((1,6), 0)
+        , ((2,4), 0), ((2,5), 8), ((2,6), 6)
+        , ((3,4), 4), ((3,5), 0), ((3,6), 1)
+        ]
+
+test4 :: [((Int,Int), Int)]
+test4 = [ ( (1,7), 30 ), ( (1,8), 44 ), ( (1,9), 14 ), ( (1,10), 67 ), ( (1,11), 67 ), ( (1,12), 92 )
+        , ( (2,7), 10 ), ( (2,8), 50 ), ( (2,9), 22 ), ( (2,10), 31 ), ( (2,11), 52 ), ( (2,12), 53 )
+        , ( (3,7), 55 ), ( (3,8), 19 ), ( (3,9), 54 ), ( (3,10), 36 ), ( (3,11), 13 ), ( (3,12), 86 )
+        , ( (4,7), 39 ), ( (4,8), 52 ), ( (4,9),  4 ), ( (4,10), 63 ), ( (4,11), 10 ), ( (4,12), 81 )
+        , ( (5,7), 86 ), ( (5,8), 28 ), ( (5,9), 82 ), ( (5,10), 72 ), ( (5,11), 85 ), ( (5,12), 82 )
+        , ( (6,7), 60 ), ( (6,8), 58 ), ( (6,9), 43 ), ( (6,10), 99 ), ( (6,11), 43 ), ( (6,12), 26 )
+        ]
