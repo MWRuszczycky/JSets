@@ -27,6 +27,7 @@ library jsets-internal
                       , AppMonad
                       , Model.Core.Core
                       , Model.Core.CoreIO
+                      , Model.Core.Hungarian
                       , Model.Core.Types
                       , Model.Core.Dates
                       , Model.Journals
