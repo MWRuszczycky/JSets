@@ -225,8 +225,9 @@ augmentingPath = do
     ls <- gets labels
     xs <- gets subXs
     ys <- gets subYs
+    ms <- gets matches
     let eg = equalitySubGraph ws ls $ ys <> xs
-    pure $ findPath eg (last eg) (head eg)
+    pure $ findAugPath ms eg (last eg) (head eg)
 
 augment :: [(Int,Int)] -> [(Int,Int)] -> [(Int,Int)]
 -- ^Given a path of an odd number of edges that ends on the first
@@ -234,8 +235,8 @@ augment :: [(Int,Int)] -> [(Int,Int)] -> [(Int,Int)]
 --     [ 1 (y1,x1), 2 (x1,y2), 3 (y2,x3), .., n (yn,xn) ],
 -- and the current matches, augment the path by removing the evenly
 -- numbered edges and adding the odd-numbered edges.
-augment path = (<> map swap toAdd) . filter ( not . flip elem toRem )
-    where (toAdd, toRem) = splitOddEven path
+augment path = (<> map swap toAdd) . filter ( not . flip elem toRemove )
+    where (toAdd, toRemove) = splitOddEven path
 
 equalitySubGraph :: Weights -> Labels -> Graph -> Graph
 -- ^Restrict incident vertices to the equality subgraph.
@@ -262,17 +263,27 @@ graphFromEdges []         = []
 graphFromEdges ((x,y):es) = (x, snd . unzip $ xs) : graphFromEdges ys
     where (xs,ys) = partition ( (==x) . fst ) $ (x,y):es
 
-findPath :: [Vertex] -> Vertex -> Vertex -> [(Int,Int)]
--- ^Find a path through a graph g from (y,xs) to stop.
-findPath g stop@(x,_) (y,xs)
-    | y == x    = []
-    | elem x xs = [(y,x)]
-    | otherwise = let g'  = map ( \ (v,us) -> (v, delete y us) ) g
-                      nxt = filter ( flip elem xs . fst ) g'
-                  in  case dropWhile null . map (findPath g' stop) $ nxt of
-                           []             -> []
-                           ((p,q):rest):_ -> (y,p):(p,q):rest
-                           _              -> [] -- should be impossible
+findAugPath :: [(Int,Int)] -> [Vertex] -> Vertex -> Vertex -> [(Int,Int)]
+-- ^Find an augmenting path to stop in the equality graph in X' U Y'.
+-- The stop x-vertex is the only unmatched verted in X' U Y', every
+-- other x-in this subset is matched to a y in this subset. Every y
+-- is therefore matched to an x, or it is the starting y-vertex. The
+-- the path is returned as (y0,x0), (x0,y1), (y1,x2) .. (yn,x-stop).
+-- The lookups in this function should *never* fail, unless there is
+-- an fundamental flaw in the implementation of the algorithm.
+findAugPath ms g stop@(x,_) (v,us)
+    -- If at end stop. This is the only unmatched x.
+    | v == x    = []
+    -- If v is still an x, then it's matched. Find its matched y and keep going.
+    | elem v xs = maybe (error msg) go . lookup v $ ms
+    -- If v is a y, then we just take the next available x, and keep going.
+    | otherwise = go . head $ us
+    where msg  = "Model.Core.Hungarian.findAugPath, failed lookup"
+          xs   = fst . unzip $ ms
+          g'   = [ (w, delete v vs) | (w,vs) <- g, w /= v ]
+          go t = case lookup t g' of
+                      Nothing -> error msg
+                      Just qs -> (v,t) : findAugPath ms g' stop (t,qs)
 
 splitOddEven :: [a] -> ([a],[a])
 -- ^Split a list into even and odd number elements starting from 1.

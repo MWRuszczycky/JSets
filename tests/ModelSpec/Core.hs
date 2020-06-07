@@ -184,33 +184,25 @@ type Solver  = [((Int,Int),Int)] -> Either String (Int, [(Int,Int)])
 hungarianSpec :: Spec
 hungarianSpec = do
     it "Maximizes matchings for valid inputs" $ do
-        runHTest test1max H.solveMax
-        runHTest test2max H.solveMax
-        runHTest test3max H.solveMax
-        runHTest test4max H.solveMax
+        mapM_ (runHTest H.solveMax) [ ( 271, test1 )
+                                    , ( 5,   test2 )
+                                    , ( 16,  test3 )
+                                    , ( 437, test4 )
+                                    , ( 24,  test5 )
+                                    ]
     it "Minimizes matchings for valid inputs" $ do
-        runHTest test1min H.solveMin
-        runHTest test2min H.solveMin
-        runHTest test3min H.solveMin
-        runHTest test4min H.solveMin
+        mapM_ (runHTest H.solveMin) [ ( 112, test1 )
+                                    , ( 5,   test2 )
+                                    , ( 0,   test3 )
+                                    , ( 124, test4 )
+                                    , ( 8,   test5 )
+                                    ]
 
-runHTest :: TestSet -> Solver -> IO ()
-runHTest (expected, ws) solver = do
+runHTest :: Solver -> TestSet -> IO ()
+runHTest solver (expected, ws) = do
     case solver ws of
          Left err    -> error err
          Right (x,_) -> x `shouldBe` expected
-
-test1max, test2max, test3max, test4max :: TestSet
-test1max = (271, test1)
-test2max = (5, test2)
-test3max = (16, test3)
-test4max = (437, test4)
-
-test1min, test2min, test3min, test4min :: TestSet
-test1min = (112, test1)
-test2min = (5, test2)
-test3min = (0, test3)
-test4min = (124, test4)
 
 test1 :: [((Int,Int), Int)]
 test1 = [ ( (1,5), 42 ), ( (1,6), 53 ), ( (1,7), 53 ), ( (1,8),  7 )
@@ -231,10 +223,19 @@ test3 = [ ((1,4), 1), ((1,5), 6), ((1,6), 0)
         ]
 
 test4 :: [((Int,Int), Int)]
-test4 = [ ( (1,7), 30 ), ( (1,8), 44 ), ( (1,9), 14 ), ( (1,10), 67 ), ( (1,11), 67 ), ( (1,12), 92 )
-        , ( (2,7), 10 ), ( (2,8), 50 ), ( (2,9), 22 ), ( (2,10), 31 ), ( (2,11), 52 ), ( (2,12), 53 )
-        , ( (3,7), 55 ), ( (3,8), 19 ), ( (3,9), 54 ), ( (3,10), 36 ), ( (3,11), 13 ), ( (3,12), 86 )
-        , ( (4,7), 39 ), ( (4,8), 52 ), ( (4,9),  4 ), ( (4,10), 63 ), ( (4,11), 10 ), ( (4,12), 81 )
-        , ( (5,7), 86 ), ( (5,8), 28 ), ( (5,9), 82 ), ( (5,10), 72 ), ( (5,11), 85 ), ( (5,12), 82 )
-        , ( (6,7), 60 ), ( (6,8), 58 ), ( (6,9), 43 ), ( (6,10), 99 ), ( (6,11), 43 ), ( (6,12), 26 )
+test4 = [ ((1,7),30), ((1,8),44), ((1,9),14), ((1,10),67), ((1,11),67), ((1,12),92)
+        , ((2,7),10), ((2,8),50), ((2,9),22), ((2,10),31), ((2,11),52), ((2,12),53)
+        , ((3,7),55), ((3,8),19), ((3,9),54), ((3,10),36), ((3,11),13), ((3,12),86)
+        , ((4,7),39), ((4,8),52), ((4,9), 4), ((4,10),63), ((4,11),10), ((4,12),81)
+        , ((5,7),86), ((5,8),28), ((5,9),82), ((5,10),72), ((5,11),85), ((5,12),82)
+        , ((6,7),60), ((6,8),58), ((6,9),43), ((6,10),99), ((6,11),43), ((6,12),26)
+        ]
+
+test5 :: [((Int,Int), Int)]
+test5 = [ ((2,12),6), ((4,12),5), ((8,12),1), ((9,12),6), ((10,12),2), ((11,12),5)
+        , ((2,13),6), ((4,13),5), ((8,13),1), ((9,13),6), ((10,13),2), ((11,13),5)
+        , ((2,14),1), ((4,14),2), ((8,14),1), ((9,14),5), ((10,14),6), ((11,14),2)
+        , ((2,15),1), ((4,15),2), ((8,15),1), ((9,15),5), ((10,15),6), ((11,15),2)
+        , ((2,16),1), ((4,16),1), ((8,16),1), ((9,16),1), ((10,16),1), ((11,16),1)
+        , ((2,17),1), ((4,17),1), ((8,17),1), ((9,17),1), ((10,17),1), ((11,17),1)
         ]
