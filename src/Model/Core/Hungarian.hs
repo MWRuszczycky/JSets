@@ -191,17 +191,15 @@ nextY = do
 
 augmentingPath :: Hungarian [(Int,Int)]
 -- ^Find the augmenting path from the last y-vertex added to Y' and
--- the first x-vertex added to X'.
+-- the first x-vertex added to X'. So the order of contenating the
+-- X' and Y' subsets prior to restriction is critical.
 augmentingPath = do
     ws <- gets weights
     ls <- gets labels
     xs <- gets subXs
     ys <- gets subYs
-    let names   = map fst $ xs <> ys
-        eqX     = restrict ws ls names xs
-        eqY     = restrict ws ls names ys
-        eqGraph = eqY <> eqX
-    pure $ findPath eqGraph (last eqGraph) (head eqGraph)
+    let eg = equalitySubGraph ws ls $ ys <> xs
+    pure $ findPath eg (last eg) (head eg)
 
 augment :: [(Int,Int)] -> [(Int,Int)] -> [(Int,Int)]
 -- ^Given a path of an odd number of edges that ends on the first
@@ -213,47 +211,53 @@ augment path = (<> toAdd') . filter ( not . flip elem toRem )
     where (toAdd, toRem) = splitOddEven path
           toAdd'         = [ (x,y) | (y,x) <- toAdd ]
 
-restrict :: Weights -> Labels -> [Int] -> Graph -> Graph
--- ^Restrict incident vertices to to the graph and equality graph.
-restrict ws ls ns = map ( \ (v,us) -> (v, filter (go v) us) )
-    where go v u = elem u ns && score ws ls (v,u) == 0
+equalitySubGraph :: Weights -> Labels -> Graph -> Graph
+-- ^Restrict incident vertices to the equality subgraph.
+equalitySubGraph ws ls vs = map ( \ (v,us) -> (v, filter (go v) us) ) vs
+    where go v u = elem u names && score ws ls (v,u) == 0
+          names  = map fst vs
 
 ---------------------------------------------------------------------
 -- Basic graph operations
 
 lookup' :: Int -> [(Int,Int)] -> Maybe Int
+-- ^Reverse lookup function (i.e., match on the second element).
 lookup' _ []          = Nothing
 lookup' k ((x,y):xys)
     | y == k    = Just x
     | otherwise = lookup' k xys
 
 graphFromEdges :: [(Int,Int)] -> Graph
--- ^Generate a graph from edges based on the first edge.
+-- ^Generate a graph from edges based on the first edge only.
 graphFromEdges []         = []
 graphFromEdges ((x,y):es) = (x, snd . unzip $ xs) : graphFromEdges ys
-    where (xs,ys) = partition ( (==x) . fst) $ (x,y):es
+    where (xs,ys) = partition ( (==x) . fst ) $ (x,y):es
 
 findPath :: [Vertex] -> Vertex -> Vertex -> [(Int,Int)]
--- ^Find a path via graph vs starting from (y,xs) and ending on xf.
-findPath vs xf@(x,_) (y,xs)
+-- ^Find a path through a graph g from (y,xs) to stop.
+findPath g stop@(x,_) (y,xs)
     | y == x    = []
     | elem x xs = [(y,x)]
-    | otherwise = let vs' = map ( \ (v,us) -> (v, delete y us) ) vs
-                      nxt = filter ( flip elem xs . fst ) vs'
-                  in  case dropWhile null . map (findPath vs' xf) $ nxt of
+    | otherwise = let g'  = map ( \ (v,us) -> (v, delete y us) ) g
+                      nxt = filter ( flip elem xs . fst ) g'
+                  in  case dropWhile null . map (findPath g' stop) $ nxt of
                            []             -> []
                            ((p,q):rest):_ -> (y,p):(p,q):rest
 
 splitOddEven :: [a] -> ([a],[a])
+-- ^Split a list into even and odd number elements starting from 1.
 splitOddEven xs = (snd . unzip $ os, snd . unzip $ es )
     where (os,es) = partition (odd . fst) . zip [1..] $ xs
 
 allPairs :: [Int] -> [Int] -> [(Int,Int)]
+-- ^Generate all pairs of each element of the first list with all
+-- elements of the second list.
 allPairs []     _    = []
 allPairs _      []   = []
 allPairs (x:xs) (ys) = allPairs xs ys <> [ (x,y) | y <- ys ]
 
 score :: Weights -> Labels -> (Int, Int) -> Int
+-- ^Standard scoring function for the Hungarian algorithm.
 score ws ls (x,y) = ls ! x + ls ! y - ws ! (x,y)
 
 -- =============================================================== --
