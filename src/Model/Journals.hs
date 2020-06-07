@@ -27,6 +27,9 @@ module Model.Journals
     , missingPMIDs
     , addContent
     , addCitations
+      -- Working with rank matching
+    , score
+    , matchCards
       -- Working with downloaded table of contents
     , eUtilsUrl
     , eSearchUrl
@@ -38,7 +41,6 @@ module Model.Journals
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Dates     as D
 import qualified Model.Core.Core      as C
-import qualified Model.Core.Hungarian as Hn
 import qualified Data.Text            as Tx
 import qualified Data.Time            as Tm
 import qualified Network.Wreq         as Wreq
@@ -46,8 +48,7 @@ import           Data.Bifunctor               ( bimap           )
 import           Data.Time                    ( Day             )
 import           Data.Text                    ( Text            )
 import           Lens.Micro                   ( (.~), (&)       )
-import           Data.List                    ( (\\), find, nub
-                                              , sort
+import           Data.List                    ( (\\), find
                                               , intersect       )
 
 -- =============================================================== --
@@ -241,42 +242,12 @@ addCitations sel = bimap (T.Content sel) id . foldr go ([],[])
 -- =============================================================== --
 -- Working with rank-matchings for assigning selections
 
-dog, cat, frog :: (Text, [[Int]])
-dog  = ("dog",  [ [1], [5,9,2], [3,11,4], [6], [7,10], [13], [8] ] )
-cat  = ("cat",  [ [3], [1], [10], [9], [8, 2, 5] ] )
-frog = ("frog", [] )
-
-toPick :: [Int]
-toPick = [2,4,8,9,10,11]
--- toPick = [2,4,8]
-
-runSpec :: IO ()
-runSpec = do
-    let people  = [dog, cat, frog]
-        go m    = do print m
-                     mapM_ print . ranks $ m
-        (ms,cs) = matchCards toPick people
-    mapM_ go cs
-    putStrLn $ "All papers:" <> show toPick
-    putStrLn $ "Missing papers:" <> show ms
-    putStrLn "The match is:"
-    case runMatch toPick people of
-         Left err -> putStrLn $ "Match failed: " <> err
-         Right xs -> mapM_ print xs
-
-data MatchCard = MatchCard {
-      who   :: Text              -- Who the card belongs to
-    , whoId :: [Int]             -- Numerical ids for this card
-    , ranks :: [((Int,Int),Int)] -- Ranking associetd with the card
-    } deriving ( Show )          -- First pair is
-                                 -- (citation index, a whoId index)
-                                 -- Second value is rank weight
-
-runMatch :: [Int] -> [(Text, [[Int]])] -> Either T.ErrString [(Int,Int)]
-runMatch indices raw = fmap snd . Hn.solveMax . concatMap ranks $ cards
-    where (ms, cards) = matchCards indices raw
-
-matchCards :: [Int] -> [(Text, [[Int]])] -> ([Int], [MatchCard])
+matchCards :: [Int] -> [(Text, [[Int]])] -> ([Int], [T.MatchCard])
+-- ^Given a list of indices corresponding to citations to be matched,
+-- a list of rankings with each element being
+-- (person's identifier, list of grouped ranks)
+-- Compute match cards for each person and the list of indices
+-- corresponding to no-papers.
 matchCards indices ranks = ( ms, matchCardsEven ks rs )
     where (ks, ms, rs)= addMissing indices ranks
 
@@ -291,13 +262,12 @@ addMissing :: [Int] -> [(Text,[[Int]])] -> ( [Int], [Int], [(Text,[[Int]])] )
 addMissing []      ranks = ([]     , [], ranks)
 addMissing indices []    = (indices, [], []   )
 addMissing indices ranks = ( indices <> missing, missing, ranks' )
-    where m        = maximum indices
-          r        = rem (length indices) (length ranks)
-          n        = if r == 0 then 0 else length ranks - r
-          missing  = map negate [ 1 .. n ]
-          ranks'   = [ (t, missing : rs) | (t, rs) <- ranks ]
+    where r       = rem (length indices) (length ranks)
+          n       = if r == 0 then 0 else length ranks - r
+          missing = map negate [ 1 .. n ]
+          ranks'  = [ (t, missing : rs) | (t, rs) <- ranks ]
 
-matchCardsEven :: [Int] -> [(Text, [[Int]])] -> [MatchCard]
+matchCardsEven :: [Int] -> [(Text, [[Int]])] -> [T.MatchCard]
 -- ^Number of indices must be a multiple of the number of ranks
 matchCardsEven []      _     = []
 matchCardsEven _       []    = []
@@ -305,7 +275,7 @@ matchCardsEven indices ranks = zipWith go ranks [0 .. ]
     where q           = quot (length indices) (length ranks)
           m           = maximum indices
           go (n,rs) k = let ws = [ 1 + m + k * q .. m + q * (k + 1) ]
-                        in  MatchCard n ws . buildRanks indices ws $ rs
+                        in  T.MatchCard n ws . buildRanks indices ws $ rs
 
 buildRanks :: [Int] -> [Int] -> [[Int]] -> [((Int,Int),Int)]
 buildRanks indices ws rs = concat . zipWith go ss . C.chunksOf n . cycle $ ws
@@ -339,39 +309,6 @@ score indices vs  = concat $ scorex <> reverse scorey
           go zs k = zip zs (repeat k)
           scorex  = zipWith go xs [n, n-1 .. ]
           scorey  = zipWith go (reverse ys <> [missing]) $ [1 .. ]
-
----------------------------------------------------------------------
--- tests
-
-scoreSpec :: String -> [Int] -> [[Int]] -> [(Int,Int)] -> IO ()
-scoreSpec name toCount vs expected = do
-    let result = score toCount vs
-    if result == expected
-       then putStrLn $ "Passed test " <> name <> "."
-       else do putStrLn $ "Failed test " <> name <> "!"
-               putStrLn $ "  Expected: " <> show expected
-               putStrLn $ "  but got:  " <> show result
-
-scoreSpecs :: IO ()
-scoreSpecs = do
-    let t1 = [ [1], [5,9,2], [3,11,4], [6], [7,13], [8] ]
-        t2 = [ [1], [5], [9], [2], [3], [11], [4], [6], [7], [13], [8] ]
-        e1 = [ (1,4), (2,3), (3,1), (4,1) ]
-        e2 = [ (1,1), (2,1), (3,1), (4,1) ]
-        e3 = [ (5,7), (9,7), (2,7), (3,6), (11,6), (6,2), (8,1) ]
-        e4 = [ (5,9), (9,9), (2,9), (3,8), (11,8), (10,3), (12,3), (6,2), (8,1) ]
-        e5 = [ (3,4), (1,1), (2,1), (4,1) ]
-        e6 = [ (5,4), (9,3), (2,2), (4,1) ]
-        e7 = [ (3,4), (4,4), (1,4), (2,1) ]
-    scoreSpec "t1" [1,2,3,4] t1 e1
-    scoreSpec "t3" [2,5,9,3,11,6,8] t1 e3
-    scoreSpec "t4" [2,5,9,3,11,6,8,10,12] t1 e4
-    scoreSpec "empty selection" [1,2,3,4] [] e2
-    scoreSpec "empty count" [] t1 []
-    scoreSpec "single selection none picked" [1,2,3,4] [[6]] e2
-    scoreSpec "single selection one picked" [1,2,3,4] [[3]] e5
-    scoreSpec "single selection one group picked" [1,2,3,4] [[3,4,1]] e7
-    scoreSpec "single selections" [2,4,5,9] t2 e6
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues

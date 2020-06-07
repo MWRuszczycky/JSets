@@ -35,6 +35,8 @@ module Model.Core.Types
     , Citation          (..)
     , PageNumber        (..)
     , PMID
+      -- Rank matchings
+    , MatchCard         (..)
     ) where
 
 import Data.Time            ( Day, toGregorian  )
@@ -334,3 +336,19 @@ instance Ord PageNumber where
         | null p2            = GT
         | p1 == p2           = compare d1 d2
         | otherwise          = compare p1 p2
+
+-- =============================================================== --
+-- Rank matching
+
+-- |Basic data type for managing data when performing rank matchings.
+-- Each person in the match gets a card that describes their
+-- numerical ids, which are required when running the Hungarian
+-- algorithm and the their rankings. More than one id is required,
+-- because they may be assigned more than one citation.
+data MatchCard = MatchCard {
+      who   :: Text              -- Who the card belongs to
+    , whoId :: [Int]             -- Numerical ids for this card
+    , ranks :: [((Int,Int),Int)] -- Ranking associated with the card
+    } deriving ( Show )          -- First pair is
+                                 -- (citation index, a whoId index)
+                                 -- Second value is rank weight

@@ -21,6 +21,7 @@ import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Dates          as D
 import qualified Model.Journals            as J
+import qualified Model.Core.Hungarian      as Hn
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
 import qualified View.View                 as V
@@ -135,3 +136,10 @@ downloadContents xs = do
     contents <- mapM (downloadContent wreq) xs
     C.putTxtLnMIO "Done"
     pure contents
+
+-- =============================================================== --
+-- Rank matching
+
+runMatch :: [Int] -> [(Text, [[Int]])] -> Either T.ErrString [(Int,Int)]
+runMatch indices raw = fmap snd . Hn.solveMax . concatMap T.ranks $ cards
+    where (ms, cards) = J.matchCards indices raw

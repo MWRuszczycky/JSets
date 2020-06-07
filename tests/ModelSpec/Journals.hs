@@ -29,6 +29,8 @@ spec = hspec $ do
             addCitationsNoMissingSpec
         it "addCitations & missingPMIDs work with missing PMIDs" $
             addCitationsMissingSpec
+    describe "rank match scoring (score)" $ do
+        scoreSpec
 
 ---------------------------------------------------------------------
 -- Testing Model.Journals.issueAtDate
@@ -270,3 +272,31 @@ addCitationsMissingSpec = do
         `shouldBe` [ "00000000", "11111111" ]
     (J.missingPMIDs . fst $ J.addCitations (toSel seln) cites)
         `shouldBe` [ "00000000", "11111111" ]
+
+---------------------------------------------------------------------
+-- Rank matching
+
+scoreSpec :: Spec
+scoreSpec = do
+    let r1 = [ [1], [5,9,2], [3,11,4], [6], [7,13], [8] ]
+        r2 = [ [1], [5], [9], [2], [3], [11], [4], [6], [7], [13], [8] ]
+        e1 = [ (1,4), (2,3), (3,1), (4,1) ]
+        e2 = [ (1,1), (2,1), (3,1), (4,1) ]
+        e3 = [ (5,7), (9,7), (2,7), (3,6), (11,6), (6,2), (8,1) ]
+        e4 = [ (5,9), (9,9), (2,9), (3,8), (11,8), (10,3), (12,3), (6,2), (8,1) ]
+    it "Works with empty rankings" $ do
+        J.score [1,2,3,4] [] `shouldBe` e2
+    it "Works with empty indices" $
+        J.score [] r1 `shouldBe` []
+    it "Works with single ranking, but not an index" $ do
+        J.score [1,2,3,4] [[6]] `shouldBe` e2
+    it "Works with single ranking, and is an index" $ do
+        J.score [1,2,3,4] [[3]] `shouldBe` [ (3,4), (1,1), (2,1), (4,1) ]
+    it "Works with single ranking, and is an index group" $ do
+        J.score [1,2,3,4] [[3,4,1]] `shouldBe` [ (3,4), (4,4), (1,4), (2,1) ]
+    it "Works with multiple selections ranked singly" $ do
+        J.score [2,4,5,9] r2 `shouldBe` [ (5,4), (9,3), (2,2), (4,1) ]
+    it "Works with several different sets of test indices" $ do
+        J.score [1,2,3,4]              r1 `shouldBe` e1
+        J.score [2,5,9,3,11,6,8]       r1 `shouldBe` e3
+        J.score [2,5,9,3,11,6,8,10,12] r1 `shouldBe` e4
