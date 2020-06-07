@@ -14,6 +14,7 @@ import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
 import qualified Model.Parsers.PubMed      as P
+import qualified Model.Parsers.Rankings    as P
 import qualified View.View                 as V
 import qualified View.Help                 as H
 import           Data.Text                          ( Text           )
@@ -31,6 +32,7 @@ commands :: [ T.Command ]
 -- ^Commands should not be more than five characters long.
 commands = [ T.Command "help"  helpCmd  helpHelp
            , T.Command "json"  jsonCmd  jsonHelp
+           , T.Command "match" matchCmd matchHelp
            , T.Command "ranks" ranksCmd ranksHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "refs"  refsCmd  refsHelp
@@ -78,6 +80,20 @@ jsonCmd xs
         pmids <- liftEither . P.parsePMIDs $ esearch
         esummary <- lift . C.webRequest (J.tocESumQuery pmids) $ J.eSummaryUrl
         lift . C.writeFileErr "esummary.json" $ esummary
+
+---------------------------------------------------------------------
+-- Match ranking for distributing papers
+
+matchHelp :: (Text, Text)
+matchHelp = (s, "Coming soon!")
+    where s = "match citations to individuals"
+
+matchCmd :: [String] -> T.AppMonad ()
+matchCmd []     = throwError "A path to a match file must be provided!"
+matchCmd (fp:_) = do
+    (ks, rs) <- (lift . C.readFileErr) fp >>= liftEither . P.parseRankings
+    results  <-  mapM (A.runMatch rs) ks
+    mapM_ ( display . V.viewMatches ) results
 
 ---------------------------------------------------------------------
 -- Generating output for ranking articles

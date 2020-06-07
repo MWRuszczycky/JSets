@@ -33,6 +33,8 @@ module View.View
       -- Views of Citations
     , citationTxt
     , citationMkd
+      -- Views of match results
+    , viewMatches
     ) where
 
 import qualified Data.Text        as Tx
@@ -319,3 +321,13 @@ citationMkd sel x = Vc.write . fill dict $ Temp.citationMkd
                               , ( "pages",   Vc.pageRange x               )
                               , ( "pmid",    T.pmid x                     )
                               ]
+
+-- =============================================================== --
+-- Viewing match results
+
+viewMatches :: T.MatchResult -> Text
+viewMatches result = Tx.unlines $ hdr : matches
+    where score     = C.tshow . T.matchScore $ result
+          go (n,ms) = n <> ": " <> Tx.unwords ms
+          hdr       = T.matchTitle result <> " score: " <> score
+          matches   = map go . T.matchings $ result

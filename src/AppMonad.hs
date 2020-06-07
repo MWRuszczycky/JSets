@@ -14,11 +14,14 @@ module AppMonad
     , downloadCitations
     , downloadContent
     , downloadContents
+      -- Running rank matchings
+    , runMatch
     ) where
 
 import qualified Data.Text                 as Tx
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
+import qualified Model.Core.Core           as C
 import qualified Model.Core.Dates          as D
 import qualified Model.Journals            as J
 import qualified Model.Core.Hungarian      as Hn
@@ -31,6 +34,7 @@ import           Data.Text                          ( Text           )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , runExceptT
+                                                    , liftEither
                                                     , lift
                                                     , throwError     )
 
@@ -140,6 +144,19 @@ downloadContents xs = do
 -- =============================================================== --
 -- Rank matching
 
-runMatch :: [Int] -> [(Text, [[Int]])] -> Either T.ErrString [(Int,Int)]
-runMatch indices raw = fmap snd . Hn.solveMax . concatMap T.ranks $ cards
-    where (ms, cards) = J.matchCards indices raw
+runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
+runMatch namedRankLists (title, indices) = do
+    let (missing, cards) = J.matchCards indices namedRankLists
+    (s, ms) <- liftEither . Hn.solveMax . concatMap T.ranks $ cards
+    pure $ T.MatchResult { T.matchTitle = title
+                         , T.matchings  = map (assignMatch ms missing) cards
+                         , T.matchScore = s
+                         }
+
+assignMatch :: [(Int,Int)] -> [Int] -> T.MatchCard -> (Text, [Text])
+assignMatch ms missing card = ( name, foldr go [] ms )
+    where name = T.who card
+          wIDs = T.whoId card
+          go (x,w) xs | elem w wIDs && elem x missing = "none"    : xs
+                      | elem w wIDs                   = C.tshow x : xs
+                      | otherwise                     = xs

@@ -37,6 +37,7 @@ module Model.Core.Types
     , PMID
       -- Rank matchings
     , MatchCard         (..)
+    , MatchResult       (..)
     ) where
 
 import Data.Time            ( Day, toGregorian  )
@@ -352,3 +353,9 @@ data MatchCard = MatchCard {
     } deriving ( Show )          -- First pair is
                                  -- (citation index, a whoId index)
                                  -- Second value is rank weight
+
+data MatchResult = MatchResult {
+      matchTitle :: Text
+    , matchings  :: [(Text, [Text])]
+    , matchScore :: Int
+    } deriving ( Show )
