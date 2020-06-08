@@ -21,7 +21,8 @@ import           Control.Monad.State.Strict         ( State
 
 -- =============================================================== --
 -- Rudimentary implementation of the Hungarian algorithm
--- Probably not the most beautiful implementation, but seems to work.
+-- Probably not the most beautiful implementation, but seems to work,
+-- ... I think.
 
 -- =============================================================== --
 -- Local types
@@ -266,23 +267,26 @@ graphFromEdges ((x,y):es) = (x, snd . unzip $ xs) : graphFromEdges ys
 findAugPath :: [(Int,Int)] -> [Vertex] -> Vertex -> Vertex -> [(Int,Int)]
 -- ^Find an augmenting path to stop in the equality graph in X' U Y'.
 -- The stop x-vertex is the only unmatched verted in X' U Y', every
--- other x-in this subset is matched to a y in this subset. Every y
--- is therefore matched to an x, or it is the starting y-vertex. The
+-- other x in this subset is matched to a y in this subset. Every y
+-- is therefore matched to an x or it is the starting y-vertex. The
 -- the path is returned as (y0,x0), (x0,y1), (y1,x2) .. (yn,x-stop).
--- The lookups in this function should *never* fail, unless there is
--- an fundamental flaw in the implementation of the algorithm.
+-- Note, when arriving at an x that is not the terminal point, there
+-- is only one way to go; however, whene arriving at a y, there may
+-- be multiple ways to go, some of which will fail in a deadend. The
+-- fail state is represented by an empty list.
 findAugPath ms g stop@(x,_) (v,us)
-    -- If at end stop. This is the only unmatched x.
-    | v == x    = []
-    -- If v is still an x, then it's matched. Find its matched y and keep going.
-    | elem v xs = maybe (error msg) go . lookup v $ ms
-    -- If v is a y, then we just take the next available x, and keep going.
-    | otherwise = go . head $ us
-    where msg  = "Model.Core.Hungarian.findAugPath, failed lookup"
-          xs   = fst . unzip $ ms
+    -- Deadend.
+    | null us   = []
+    -- Found, this is the only matched x.
+    | elem x us = [(v,x)]
+    -- If not found and its an x, then it has one matched y that we must follow.
+    | elem v xs = maybe [] go . lookup v $ ms
+    -- Otherwise it's a y. Need to try all paths until we find one that works.
+    | otherwise = head . dropWhile null . map go $ us
+    where xs   = fst . unzip $ ms
           g'   = [ (w, delete v vs) | (w,vs) <- g, w /= v ]
           go t = case lookup t g' of
-                      Nothing -> error msg
+                      Nothing -> []
                       Just qs -> (v,t) : findAugPath ms g' stop (t,qs)
 
 splitOddEven :: [a] -> ([a],[a])
