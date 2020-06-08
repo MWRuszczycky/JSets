@@ -328,6 +328,6 @@ citationMkd sel x = Vc.write . fill dict $ Temp.citationMkd
 viewMatches :: T.MatchResult -> Text
 viewMatches result = Tx.unlines $ hdr : matches
     where score     = C.tshow . T.matchScore $ result
-          go (n,ms) = n <> ": " <> Tx.unwords ms
-          hdr       = T.matchTitle result <> " score: " <> score
+          go (n,ms) = "    " <> n <> ": " <> Tx.unwords ms
+          hdr       = T.matchTitle result <> ", score: " <> score
           matches   = map go . T.matchings $ result

@@ -8,6 +8,7 @@ import qualified Model.Core.Types     as T
 import qualified Data.Text            as Tx
 import qualified Model.Parsers.Core   as P
 import qualified Data.Attoparsec.Text as At
+import           Data.List                    ( nub   )
 import           Data.Bifunctor               ( bimap )
 import           Data.Text                    ( Text  )
 import           Control.Applicative          ( some  )
@@ -22,8 +23,27 @@ type RankList  = (Text, [[Int]])
 -- Interface
 
 parseRankings :: Text -> Either T.ErrString ([IndexList], [RankList])
-parseRankings = bimap err id . At.parseOnly componentParser
-    where err = (<>) "Cannot parse rankings: "
+parseRankings = bimap err id . go
+    where err  = (<>) "Invalid or unparsable rankings input: "
+          go t = do (is, rs) <- At.parseOnly componentParser t
+                    validateIndices is
+                    validateRankLists rs
+                    pure (is, rs)
+
+validateIndices :: [IndexList] -> Either T.ErrString ()
+validateIndices xs
+    | repeatedInd   = Left "There are repeated indices."
+    | repeatedNames = Left "There are repeated index names."
+    | otherwise     = pure ()
+    where (ns,ks)       = unzip xs
+          repeatedInd   = any ( \ k -> nub k /= k ) ks
+          repeatedNames = nub ns /= ns
+
+validateRankLists :: [RankList] -> Either T.ErrString ()
+validateRankLists = mapM_ go
+    where bad rs     = concat rs /= (nub . concat) rs
+          go (n, rs) | bad rs    = Left $ Tx.unpack n <> " has repeated ranks."
+                     | otherwise = pure ()
 
 -- =============================================================== --
 -- Implementation
@@ -55,7 +75,7 @@ rankList = do
     pure (name, rs)
 
 ranks :: At.Parser [[Int]]
-ranks = At.sepBy1 equalRanks P.gtSign
+ranks = At.sepBy equalRanks P.gtSign
 
 equalRanks :: At.Parser [Int]
 equalRanks = At.sepBy1 P.unsigned' P.equalSign
