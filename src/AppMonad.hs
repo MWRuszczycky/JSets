@@ -146,17 +146,17 @@ downloadContents xs = do
 
 runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
 runMatch namedRankLists (title, indices) = do
-    let (missing, cards) = J.matchCards indices namedRankLists
-    (s, ms) <- liftEither . Hn.solveMax . concatMap T.ranks $ cards
+    let (phantoms, cards) = J.matchCards indices namedRankLists
+    (s, ms) <- liftEither . Hn.solveMax . concatMap T.edgeWeights $ cards
     pure $ T.MatchResult { T.matchTitle = title
-                         , T.matchings  = map (assignMatch ms missing) cards
+                         , T.matchings  = map (assignMatch ms phantoms) cards
                          , T.matchScore = s
                          }
 
 assignMatch :: [(Int,Int)] -> [Int] -> T.MatchCard -> (Text, [Text])
 assignMatch ms missing card = ( name, foldr go [] ms )
-    where name = T.who card
-          wIDs = T.whoId card
-          go (x,w) xs | elem w wIDs && elem x missing = "none"    : xs
-                      | elem w wIDs                   = C.tshow x : xs
+    where name = T.cardName card
+          cIDs = T.cardIDs card
+          go (x,w) xs | elem w cIDs && elem x missing = "none"    : xs
+                      | elem w cIDs                   = C.tshow x : xs
                       | otherwise                     = xs

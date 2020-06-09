@@ -243,45 +243,43 @@ addCitations sel = bimap (T.Content sel) id . foldr go ([],[])
 -- Working with rank-matchings for assigning selections
 
 matchCards :: [Int] -> [(Text, [[Int]])] -> ([Int], [T.MatchCard])
--- ^Given a list of indices corresponding to citations to be matched,
--- a list of rankings with each element being
--- (person's identifier, list of grouped ranks)
--- Compute match cards for each person and the list of indices
--- corresponding to no-papers.
-matchCards indices ranks = ( ms, matchCardsEven ks rs )
-    where (ks, ms, rs)= addMissing indices ranks
+-- ^Generate match cards for each rank list (i.e., person in the
+-- match) based on the named ranklist and the papre indices to be
+-- matched. The returned value is the list of match cards for each
+-- rank list and the list of phantom paper indices used to ensure
+-- that the total number of papers is an even multiple of the number
+-- of rank lists.
+matchCards indices ranklists = ( ps, ms )
+    where nr = length ranklists
+          ps = getPhantoms (length indices) (length ranklists)
+          ms = zipWith ( matchCard indices ps nr ) [0..] ranklists
 
-addMissing :: [Int] -> [(Text,[[Int]])] -> ( [Int], [Int], [(Text,[[Int]])] )
--- ^Add addition indices so that the number of indices is a multiple
--- of the number of rankings. The missing indices correspond to
--- the assignment of no paper in the selection. These indices are
--- negative so that they do not get confused with unpicked indices.
--- It is always assumed that no papers will always be ranked highest.
--- The return tuple is given by
---     (adjust indices, indices of missing papers, adjusted ranks)
-addMissing []      ranks = ([]     , [], ranks)
-addMissing indices []    = (indices, [], []   )
-addMissing indices ranks = ( indices <> missing, missing, ranks' )
-    where r       = rem (length indices) (length ranks)
-          n       = if r == 0 then 0 else length ranks - r
-          missing = map negate [ 1 .. n ]
-          ranks'  = [ (t, missing : rs) | (t, rs) <- ranks ]
+matchCard :: [Int] -> [Int] -> Int -> Int -> (Text, [[Int]]) -> T.MatchCard
+-- ^Given the paper indices, the phantom indices, the number of rank
+-- lists (i.e., persons) and the index of the current rank list, and
+-- the rank list itself, generate the corresponding match card.
+matchCard indices phantoms nRL iRL (name,rs) =
+    let scores' = score indices rs
+        scores  = (scores' <>) . zip phantoms . repeat $ length indices + 1
+        idCount = quot (length scores) nRL
+        m       = maximum indices
+        cIDs    = [ 1 + m + idCount * iRL .. m + idCount * (iRL + 1) ]
+        ws      = concatMap ( \ w -> [ ( (i, w), s ) | (i,s) <- scores ] ) cIDs
+    in  T.MatchCard { T.cardName    = name
+                    , T.cardIDs     = cIDs
+                    , T.edgeWeights = ws
+                    }
 
-matchCardsEven :: [Int] -> [(Text, [[Int]])] -> [T.MatchCard]
--- ^Number of indices must be a multiple of the number of ranks
-matchCardsEven []      _     = []
-matchCardsEven _       []    = []
-matchCardsEven indices ranks = zipWith go ranks [0 .. ]
-    where q           = quot (length indices) (length ranks)
-          m           = maximum indices
-          go (n,rs) k = let ws = [ 1 + m + k * q .. m + q * (k + 1) ]
-                        in  T.MatchCard n ws . buildRanks indices ws $ rs
-
-buildRanks :: [Int] -> [Int] -> [[Int]] -> [((Int,Int),Int)]
-buildRanks indices ws rs = concat . zipWith go ss . C.chunksOf n . cycle $ ws
-    where ss          = score indices rs
-          n           = length ws
-          go (i,s) ks = [ ((i,k), s) | k <- ks ]
+getPhantoms :: Int -> Int -> [Int]
+-- ^Given the number of indices (i.e., papers) and rank lists (i.e.,
+-- people), determine how many phantom papers are needed to ensure
+-- that the total number of papers is a multiple of the number of
+-- ranklists. Then create indices for each phantom. These indices are
+-- negative to ensure that they cannot overlap with real papers that
+-- are not indexed for the current match.
+getPhantoms nIndices nRankLists = map negate [1 .. n]
+    where r = rem nIndices nRankLists
+          n = if r == 0 then 0 else nRankLists - r
 
 score :: [Int] -> [[Int]] -> [(Int, Int)]
 -- ^Given a list of indices to include (with no repeats), and a list
