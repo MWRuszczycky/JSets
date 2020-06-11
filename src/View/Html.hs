@@ -184,19 +184,18 @@ rankListElementDict index sel c = Map.union m . citationDict sel $ c
 citationDict :: T.Selection -> T.Citation -> Map.Map Text Text
 -- ^Basic html template for a citation.
 citationDict (T.Selection iss _) c = Map.fromList xys
-    where (p0,pn) = T.pages c
-          xys     = [ ("id",       T.pmid c                        )
-                    , ("class",    className iss                   )
-                    , ("type",     "checkbox"                      )
-                    , ("href",     T.doi c                         )
-                    , ("title",    T.title       $ c               )
-                    , ("authors",  Vc.authorLine $ c               )
-                    , ("journal",  T.name  . T.journal $ iss       )
-                    , ("volume",   C.tshow . T.volNo   $ iss       )
-                    , ("number",   C.tshow . T.issNo   $ iss       )
-                    , ("pages",    C.tshow p0 <> "-" <> C.tshow pn )
-                    , ("pmid",     T.pmid c                        )
-                    ]
+    where xys = [ ("id",       T.pmid c                        )
+                , ("class",    className iss                   )
+                , ("type",     "checkbox"                      )
+                , ("href",     T.doi c                         )
+                , ("title",    T.title       $ c               )
+                , ("authors",  Vc.authorLine $ c               )
+                , ("journal",  T.name  . T.journal $ iss       )
+                , ("volume",   C.tshow . T.volNo   $ iss       )
+                , ("number",   C.tshow . T.issNo   $ iss       )
+                , ("pages",    C.tshow . T.pages   $ c         )
+                , ("pmid",     T.pmid c                        )
+                ]
 
 -- --------------------------------------------------------------- --
 -- Javascript elements for building the selection text file

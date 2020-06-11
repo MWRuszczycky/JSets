@@ -13,7 +13,6 @@ module View.Core
     , jsetVHeader
     , volIss
     , authorLine
-    , pageRange
     , citationLength
       -- Markdown
     , mkdBrackets
@@ -132,19 +131,15 @@ authorLine c
     | otherwise = Tx.intercalate ", " $ xs
     where xs = T.authors c
 
-pageRange :: T.Citation -> Text
-pageRange x = C.tshow p1 <> "-" <> C.tshow p2
-    where (p1,p2) = T.pages x
-
 citationLength :: T.Citation -> Text
--- ^Calculation a citation length as short or long and the number of
--- pages. Online articles parse with page ranges from 1 to 0.
+-- ^View citation length as short or long and the number of pages.
 citationLength c
-    | diff < 1  = " (online)"
+    | diff < 0  = " (online)"
     | diff < 6  = " (short: " <> C.tshow diff <> "p)"
     | otherwise = " (long: "  <> C.tshow diff <> "p)"
-    where (T.PageNumber _ d0, T.PageNumber _ dn) = T.pages c
-          diff = dn - d0 + 1
+    where diff = case T.pages c of
+                      T.InPrint (T.PageNo _ d0) (T.PageNo _ d1) -> d1 - d0 + 1
+                      T.Online                                  -> -1
 
 -- =============================================================== --
 -- Helper functions

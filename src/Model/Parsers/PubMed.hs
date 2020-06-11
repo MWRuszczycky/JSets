@@ -8,11 +8,12 @@ import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
 import qualified Data.Text            as Tx
 import qualified Model.Parsers.JSON   as JS
+import qualified Model.Parsers.Core   as P
 import qualified Data.Attoparsec.Text as At
 import           Data.Text                    ( Text       )
 import           Data.List                    ( sortBy     )
 import           Data.Ord                     ( comparing  )
-import           Control.Applicative          ( some, many )
+import           Control.Applicative          ( many       )
 
 -- =============================================================== --
 -- Parsing PubMed Entrez ESearch results
@@ -64,19 +65,19 @@ getDoi json = JS.lookupWith [ "elocationid" ] JS.str json >>= go
                         "doi:" -> pure . (prefix <>) . Tx.drop 5 $ x
                         _      -> go . Tx.tail $ x
 
-getPages :: JS.JSON -> Maybe (T.PageNumber, T.PageNumber)
+getPages :: JS.JSON -> Maybe T.PageRange
 getPages json = do
     txt <- JS.lookupWith [ "pages" ] JS.str json
     case At.parseOnly parsePageNumbers txt of
          Right ps -> pure ps
-         Left  _  -> pure ( T.PageNumber "online" 1 , T.PageNumber "online" 0 )
+         Left  _  -> pure T.Online
 
-parsePageNumbers :: At.Parser (T.PageNumber, T.PageNumber)
+parsePageNumbers :: At.Parser T.PageRange
 parsePageNumbers = do
     prefix0 <- many At.letter
-    suffix0 <- read <$> some At.digit
+    suffix0 <- P.unsigned'
     At.char '-'
     prefix1 <- many At.letter
-    suffix1 <- read <$> some At.digit
-    pure ( T.PageNumber prefix0 suffix0, T.PageNumber prefix1 suffix1)
+    suffix1 <- P.unsigned'
+    pure $ T.InPrint (T.PageNo prefix0 suffix0) (T.PageNo prefix1 suffix1)
 

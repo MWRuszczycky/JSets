@@ -33,7 +33,8 @@ module Model.Core.Types
     , Content           (..)
       -- Table of contents and citations
     , Citation          (..)
-    , PageNumber        (..)
+    , PageNo            (..)
+    , PageRange         (..)
     , PMID
       -- Rank matchings
     , MatchCard         (..)
@@ -313,7 +314,7 @@ instance HasDate Content where
 data Citation = Citation {
       title   :: Text
     , authors :: [Text]
-    , pages   :: (PageNumber, PageNumber)
+    , pages   :: PageRange
     , doi     :: Text
     , pmid    :: PMID
     } deriving ( Show, Eq )
@@ -325,18 +326,33 @@ type PMID = Text
 
 -- |Page numbers for articles. Page numbers can be prefixed with a
 -- character string if necessary.
-data PageNumber = PageNumber String Int deriving ( Eq )
+data PageNo = PageNo String Int deriving ( Eq )
 
-instance Show PageNumber where
-    show (PageNumber p d) = p <> show d
+instance Show PageNo where
+    show (PageNo p d) = p <> show d
 
-instance Ord PageNumber where
-    compare (PageNumber p1 d1) (PageNumber p2 d2)
+instance Ord PageNo where
+    compare (PageNo p1 d1) (PageNo p2 d2)
         | null p1 && null p2 = compare d1 d2
         | null p1            = LT
         | null p2            = GT
         | p1 == p2           = compare d1 d2
         | otherwise          = compare p1 p2
+
+data PageRange =
+     InPrint PageNo PageNo
+   | Online
+     deriving ( Eq )
+
+instance Show PageRange where
+    show (InPrint p1 p2) = show p1 <> "-" <> show p2
+    show Online          = "online"
+
+instance Ord PageRange where
+    compare Online         Online         = EQ
+    compare Online         _              = GT
+    compare _              Online         = LT
+    compare (InPrint p1 _) (InPrint p2 _) = compare p1 p2
 
 -- =============================================================== --
 -- Rank matching

@@ -308,7 +308,7 @@ citationTxt iss c = do
     Vc.write . Vc.volIss $ iss
     Vc.write ","
     Vc.space
-    Vc.write . Vc.pageRange $ c
+    Vc.write . C.tshow . T.pages $ c
     Vc.newLine
 
 citationMkd :: T.Selection -> T.Citation -> T.ViewMonad ()
@@ -318,7 +318,7 @@ citationMkd sel x = Vc.write . fill dict $ Temp.citationMkd
                               , ( "authors", Vc.authorLine x              )
                               , ( "journal", T.name . T.journal $ sel     )
                               , ( "volIss",  Vc.volIss sel                )
-                              , ( "pages",   Vc.pageRange x               )
+                              , ( "pages",   C.tshow . T.pages $ x        )
                               , ( "pmid",    T.pmid x                     )
                               ]
 
