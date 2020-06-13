@@ -243,43 +243,53 @@ addCitations sel = bimap (T.Content sel) id . foldr go ([],[])
 -- Working with rank-matchings for assigning selections
 
 matchCards :: [Int] -> [(Text, [[Int]])] -> ([Int], [T.MatchCard])
--- ^Generate match cards for each rank list (i.e., person in the
--- match) based on the named ranklist and the papre indices to be
--- matched. The returned value is the list of match cards for each
--- rank list and the list of phantom paper indices used to ensure
--- that the total number of papers is an even multiple of the number
--- of rank lists.
-matchCards indices ranklists = ( ps, ms )
-    where nr = length ranklists
-          ps = getPhantoms (length indices) (length ranklists)
-          ms = zipWith ( matchCard indices ps nr ) [0..] ranklists
-
-matchCard :: [Int] -> [Int] -> Int -> Int -> (Text, [[Int]]) -> T.MatchCard
--- ^Given the paper indices, the phantom indices, the number of rank
--- lists (i.e., persons) and the index of the current rank list, and
--- the rank list itself, generate the corresponding match card.
-matchCard indices phantoms nRL iRL (name,rs) =
-    let scores' = score indices rs
-        scores  = (scores' <>) . zip phantoms . repeat $ length indices + 1
-        idCount = quot (length scores) nRL
-        m       = maximum indices
-        cIDs    = [ 1 + m + idCount * iRL .. m + idCount * (iRL + 1) ]
-        ws      = concatMap ( \ w -> [ ( (i, w), s ) | (i,s) <- scores ] ) cIDs
-    in  T.MatchCard { T.cardName    = name
-                    , T.cardIDs     = cIDs
-                    , T.edgeWeights = ws
-                    }
+-- -- ^Generate match cards for each rank list (i.e., person in the
+-- -- match) based on the named ranklist and the papers to be matched.
+-- -- The indices of the papers must all be positive, because the
+-- -- phantom papers (standing in for no paper) will have negative
+-- -- indices. The returned value is the list of match cards for each
+-- -- rank list and the list of phantoms used to ensure that the total
+-- -- number of papers is an even multiple of the number of rank lists.
+matchCards []     _         = ([],[])
+matchCards papers ranklists = ( phantoms, zipWith3 T.MatchCard ks cIDs scores )
+    where nr       = length ranklists
+          np       = length papers
+          phantoms = getPhantoms np nr
+          -- Number of assignments per person/rank list
+          nIDs     = quot (np + length phantoms) nr
+          -- Unzip the names from the ranks themselves
+          (ks,rs)  = unzip ranklists
+          -- Assign nID unique numbers to each rank list
+          cIDs     = assignIDs (maximum papers + 1) . take nr . repeat $ nIDs
+          scores   = zipWith (flip assignScores) cIDs
+                     . map (scoreWithPhantoms phantoms papers)
+                     $ rs
 
 getPhantoms :: Int -> Int -> [Int]
--- ^Given the number of indices (i.e., papers) and rank lists (i.e.,
--- people), determine how many phantom papers are needed to ensure
--- that the total number of papers is a multiple of the number of
--- ranklists. Then create indices for each phantom. These indices are
--- negative to ensure that they cannot overlap with real papers that
--- are not indexed for the current match.
-getPhantoms nIndices nRankLists = map negate [1 .. n]
-    where r = rem nIndices nRankLists
+-- ^Given the number of papers and rank lists, determine how many
+-- phantom papers are needed to ensure that the total number of
+-- papers is a multiple of the number of ranklists. Then create
+-- indices for each phantom. These indices are negative to ensure
+-- that they cannot overlap with real papers that are not indexed for
+-- the current match.
+getPhantoms nPapers nRankLists = map negate [1 .. n]
+    where r = rem nPapers nRankLists
           n = if r == 0 then 0 else nRankLists - r
+
+---------------------------------------------------------------------
+-- Assignments
+
+assignIDs :: Int -> [Int] -> [[Int]]
+assignIDs _     []     = []
+assignIDs start (n:ns) = ids : assignIDs (start + n) ns
+    where ids = [ start .. start + n - 1 ]
+
+assignScores :: [(Int,Int)] -> [Int] -> [((Int,Int), Int)]
+assignScores scores = concatMap go
+    where go cardID = [ ( (index, cardID), s ) | (index, s) <- scores ]
+
+---------------------------------------------------------------------
+-- Converting rank lists into preference scores
 
 score :: [Int] -> [[Int]] -> [(Int, Int)]
 -- ^Given a list of indices to include (with no repeats), and a list
@@ -307,6 +317,12 @@ score indices vs  = concat $ scorex <> reverse scorey
           go zs k = zip zs (repeat k)
           scorex  = zipWith go xs [n, n-1 .. ]
           scorey  = zipWith go (reverse ys <> [missing]) $ [1 .. ]
+
+scoreWithPhantoms :: [Int] -> [Int] -> [[Int]] -> [(Int,Int)]
+-- ^Same as score, but give phantoms the maximum score equal to the
+-- number of indices plus one.
+scoreWithPhantoms phantoms indices vs = ps <> score indices vs
+    where ps = zip phantoms . repeat $ length indices + 1
 
 -- =============================================================== --
 -- Working with downloaded table of contents for journal issues

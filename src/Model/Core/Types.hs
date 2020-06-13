@@ -356,13 +356,13 @@ instance Ord PageRange where
 -- algorithm and the their rankings. More than one id is required,
 -- because they may be assigned more than one citation.
 data MatchCard = MatchCard {
-      cardName    :: Text              -- Who the card belongs to
-    , cardIDs     :: [Int]             -- Numerical IDs for this card
-    , edgeWeights :: [((Int,Int),Int)] -- Weights associated with the card
+      cardName   :: Text              -- Who the card belongs to
+    , cardIDs    :: [Int]             -- Numerical IDs for this card
+    , cardScores :: [((Int,Int),Int)] -- Scores associated with the card
     } deriving ( Show )          -- First pair is
                                  -- ( citation index, a cardID )
-                                 -- Second value is the weight of
-                                 -- this weight match-pair
+                                 -- Second value is the score or
+                                 -- 'edge-weight' of this match-pair
 
 data MatchResult = MatchResult {
       matchTitle :: Text

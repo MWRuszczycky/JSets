@@ -147,7 +147,7 @@ downloadContents xs = do
 runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
 runMatch namedRankLists (title, indices) = do
     let (phantoms, cards) = J.matchCards indices namedRankLists
-    (s, ms) <- liftEither . Hn.solveMax . concatMap T.edgeWeights $ cards
+    (s, ms) <- liftEither . Hn.solveMax . concatMap T.cardScores $ cards
     pure $ T.MatchResult { T.matchTitle = title
                          , T.matchings  = map (assignMatch ms phantoms) cards
                          , T.matchScore = s
