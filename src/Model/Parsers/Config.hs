@@ -134,12 +134,11 @@ readRefs :: [Dict] -> Either T.ErrString [T.Issue]
 readRefs ds = mapM readRef ds >>= checkForDuplicates
 
 readHeader :: T.Config -> (Text,Text) -> Either T.ErrString T.Config
-readHeader c ("user", u ) = pure . maybe c' (const c) $ T.cUser c
-     where c' = c { T.cUser = Just u }
-readHeader c ("email", e)    = pure . maybe c' (const c) $ T.cEmail c
-     where c' = c { T.cEmail = Just e }
-readHeader c ("nickname", n) = pure . maybe c' (const c) $ T.cNick c
-     where c' = c { T.cNick = Just n }
+-- ^Assign configuration data from header information. Note that
+-- configuration data can be overridden by command line options.
+readHeader c ("user", u )    = pure $ c { T.cUser  = T.cUser  c <|> pure u }
+readHeader c ("email", e)    = pure $ c { T.cEmail = T.cEmail c <|> pure e }
+readHeader c ("nickname", n) = pure $ c { T.cNick  = T.cNick  c <|> pure n }
 readHeader c _               = pure c
 
 ---------------------------------------------------------------------

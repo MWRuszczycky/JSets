@@ -14,6 +14,7 @@ import qualified View.Help             as H
 import           System.Directory             ( getHomeDirectory       )
 import           System.Environment           ( getArgs                )
 import           Text.Read                    ( readMaybe              )
+import           Data.Text                    ( pack                   )
 import           Data.List                    ( intercalate            )
 import           Control.Monad                ( foldM                  )
 import           Control.Monad.Except         ( throwError             )
@@ -64,25 +65,37 @@ configFromFile (cmds, config) = do
 
 options :: [ Opt.OptDescr (T.Config -> T.ErrMonad T.Config) ]
 options =
-    [ Opt.Option "" [ "refs" ]
-      ( Opt.ReqArg ( \ arg s -> pure s { T.cRefPath = arg } ) "PATH" )
+    [ Opt.Option "" [ "email" ]
+      ( Opt.ReqArg ( \ x s -> pure s { T.cEmail = Just . pack $ x } ) "EMAIL" )
+      "Override the configured email with EMAIL."
+
+    , Opt.Option "" [ "nickname" ]
+      ( Opt.ReqArg ( \ x s -> pure s { T.cNick = Just . pack $ x } ) "NICK" )
+      "Override the configured nickname with NICK."
+
+    , Opt.Option "" [ "refs" ]
+      ( Opt.ReqArg ( \ x s -> pure s { T.cRefPath = x } ) "PATH" )
       "Reset the references configuration path to PATH."
+
+    , Opt.Option "" [ "user" ]
+      ( Opt.ReqArg ( \ x s -> pure s { T.cUser = Just . pack $ x } ) "USER" )
+      "Override the configured user name with USER."
 
     , Opt.Option "h" [ "help" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cHelp = True } ) )
       "Display help information."
+
+    , Opt.Option "i" [ "instruct" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cInstrToc = True } ) )
+      "Show instructions in html ToC output."
 
     , Opt.Option "k" [ "key" ]
       ( Opt.ReqArg configKey "KEY" )
       "Set the journal set key to KEY (positive integer)"
 
     , Opt.Option "o" [ "output" ]
-      ( Opt.ReqArg ( \ arg s -> pure $ s { T.cOutputPath = Just arg } ) "PATH" )
+      ( Opt.ReqArg ( \ x s -> pure $ s { T.cOutputPath = Just x } ) "PATH" )
       "Set the output filepath to PATH."
-
-    , Opt.Option "i" [ "instruct" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cInstrToc = True } ) )
-      "Show instructions in html ToC output."
 
     , Opt.Option "v" [ "version" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )
