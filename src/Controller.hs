@@ -80,13 +80,9 @@ options =
       ( Opt.ReqArg ( \ arg s -> pure $ s { T.cOutputPath = Just arg } ) "PATH" )
       "Set the output filepath to PATH."
 
-    , Opt.Option "s" [ "select" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Select } ) )
-      "Use the 'select' style for html tables of contents."
-
-    , Opt.Option "p" [ "propose" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cToCStyle = T.Propose } ) )
-      "Use the 'propose' style for html tables of contents."
+    , Opt.Option "i" [ "instruct" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cInstrToc = True } ) )
+      "Show instructions in html ToC output."
 
     , Opt.Option "v" [ "version" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )

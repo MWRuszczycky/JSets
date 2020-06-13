@@ -223,13 +223,12 @@ jsetContentMkd (T.JSet setNo cs) = do
 
 jsetContentHtml :: T.JSet T.Content -> T.ViewMonad ()
 jsetContentHtml jset = do
-    style <- asks T.cToCStyle
     name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
     email <- asks $ maybe "their email address" id . T.cEmail
-    case style of
-         T.Basic   -> Vc.write . Html.tocBasic              $ jset
-         T.Select  -> Vc.write . Html.tocSelect  name email $ jset
-         T.Propose -> Vc.write . Html.tocPropose name email $ jset
+    showInstr <- asks T.cInstrToc
+    if showInstr
+       then Vc.write . Html.tocInstr name email $ jset
+       else Vc.write . Html.tocBasic            $ jset
 
 -- =============================================================== --
 -- Viewing issues

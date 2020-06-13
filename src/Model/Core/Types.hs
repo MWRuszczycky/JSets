@@ -18,7 +18,6 @@ module Model.Core.Types
     , defaultConfig
     , Command           (..)
     , Format            (..)
-    , ToCStyle          (..)
       -- Dates
       -- Journal sets
     , JSet              (..)
@@ -153,7 +152,7 @@ data Config = Config {
     , cHelp       :: Bool           -- user requested help
     , cRefPath    :: FilePath       -- path to the references file
     , cReferences :: [Issue]        -- reference issues
-    , cToCStyle   :: ToCStyle       -- table of content style
+    , cInstrToc   :: Bool           -- show instructions it htms ToC
     , cShowVer    :: Bool           -- show version number flag
     } deriving ( Show )
 
@@ -167,7 +166,7 @@ defaultConfig = Config {
     , cHelp       = False
     , cRefPath    = ""
     , cReferences = []
-    , cToCStyle   = Basic
+    , cInstrToc   = False
     , cShowVer    = False
     }
 
@@ -182,12 +181,6 @@ data Format =
     | HTML
     | MKD
     | CSV
-      deriving ( Show, Eq )
-
-data ToCStyle =
-      Basic
-    | Propose
-    | Select
       deriving ( Show, Eq )
 
 -- =============================================================== --

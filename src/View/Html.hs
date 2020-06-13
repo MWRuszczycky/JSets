@@ -2,8 +2,7 @@
 
 module View.Html
     ( tocBasic
-    , tocPropose
-    , tocSelect
+    , tocInstr
     , rankList
     ) where
 
@@ -48,32 +47,16 @@ tocBasic jset@(T.JSet n contents) =
                ]
     in fill (Map.fromList dict) Temp.tocsHtml
 
-tocPropose :: Text -> Text -> T.JSet T.Content -> Text
+tocInstr :: Text -> Text -> T.JSet T.Content -> Text
 -- ^Generate the complete html web document for a table of contents.
 -- This webpage allows check-box selection of article citations and
--- autogeneration of the selection text file.
--- The 'propose' style is used to select citations for consideration.
-tocPropose name email jset@(T.JSet n contents) =
+-- autogeneration of the selection text file. Include instructions at
+-- the top for how to use the checkboxes.
+tocInstr name email jset@(T.JSet n contents) =
     let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n            )
                , ( "jsetHeader", Vc.jsetHeader jset                     )
                , ( "savePrefix", savePrefix jset                        )
-               , ( "instr",      fillNone Temp.instrProposeHtml         )
-               , ( "saveinstr",  saveInstructions name email            )
-               , ( "issues",     issuesArray . T.issues $ jset          )
-               , ( "tocs",       Tx.unlines . map tocEntries $ contents )
-               ]
-    in fill (Map.fromList dict) Temp.tocsHtml
-
-tocSelect :: Text -> Text -> T.JSet T.Content -> Text
--- ^Generate the complete html web document for a table of contents.
--- This webpage allows check-box selection of article citations and
--- autogeneration of the selection text file.
--- The 'select' style is used for selecting citations for review.
-tocSelect name email jset@(T.JSet n contents) =
-    let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n            )
-               , ( "jsetHeader", Vc.jsetHeader jset                     )
-               , ( "savePrefix", savePrefix jset                        )
-               , ( "instr",      fillNone Temp.instrSelectHtml          )
+               , ( "instr",      fillNone Temp.tocInstrHtml             )
                , ( "saveinstr",  saveInstructions name email            )
                , ( "issues",     issuesArray . T.issues $ jset          )
                , ( "tocs",       Tx.unlines . map tocEntries $ contents )

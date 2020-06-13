@@ -16,8 +16,7 @@ module View.Templates
     , tocHtml
     , saveInstrHtml
     , saveInstrBasicHtml
-    , instrProposeHtml
-    , instrSelectHtml
+    , tocInstrHtml
     , rankListHtml
       -- markdown
     , citationMkd
@@ -155,7 +154,7 @@ citationHtml = parseTemplate' "res/html/citation.html"
                $(FE.embedStringFile "res/html/citation.html")
 
 saveInstrHtml :: Template
--- ^Save instructions for propose and select style Table of Contents.
+-- ^Save instructions for Table of Contents with instructions.
 -- name  : nickname of person to send selections to
 -- email : email string for person to send selections to
 saveInstrHtml = parseTemplate' "res/html/saveInstr.html"
@@ -166,17 +165,11 @@ saveInstrBasicHtml :: Template
 saveInstrBasicHtml = parseTemplate' "res/html/saveInstrBasic.html"
                      $(FE.embedStringFile "res/html/saveInstrBasic.html")
 
-instrProposeHtml :: Template
--- ^Instructions for including articles for consideration.
--- There are no no variables.
-instrProposeHtml = parseTemplate' "res/html/instrPropose.html"
-                   $(FE.embedStringFile "res/html/instrPropose.html")
-
-instrSelectHtml :: Template
--- ^Instructions for including articles for review.
--- There are no variables.
-instrSelectHtml = parseTemplate' "res/html/instrSelect.html"
-                  $(FE.embedStringFile "res/html/instrSelect.html")
+tocInstrHtml :: Template
+-- ^General instructions for table of contents to be included at the
+-- top of the webpage when the --instruct option is used.
+tocInstrHtml = parseTemplate' "res/html/tocInstr.html"
+               $(FE.embedStringFile "res/html/tocInstr.html")
 
 rankListHtml :: Template
 -- ^Full html template document for generating rankings for articles.
