@@ -88,7 +88,11 @@ rawJset = do
     pure (n, xs)
 
 setNoParser :: At.Parser Int
-setNoParser = P.unsigned' <* P.pipe' <* P.dateN
+setNoParser = do
+    setNo <- P.unsigned'
+    P.pipe'
+    ( P.dateN *> pure () ) <|> P.spacesToEoL
+    pure setNo
 
 rawSelection :: At.Parser RawSelection
 rawSelection = do
@@ -104,8 +108,8 @@ rawIssue = do
     volNo <- P.unsigned'
     P.colon'
     issNo <- P.unsigned'
-    At.skipSpace
-    P.dateP
+    P.horizontalSpaces
+    ( P.dateP *> pure () ) <|> pure ()
     pure (journal, volNo, issNo)
 
 indentedPMIDs :: At.Parser [T.PMID]

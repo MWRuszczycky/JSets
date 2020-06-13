@@ -3,7 +3,6 @@
 ## To Do
 
 * Write a better README
-* Parse journal sets without dates
 * Add display configuration file command
 * List journal set numbers and dates without issue information
 * Space journal sets out with specified lead time
