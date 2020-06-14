@@ -34,7 +34,7 @@ module View.View
     , citationTxt
     , citationMkd
       -- Views of match results
-    , viewMatches
+    , viewMatchResult
     ) where
 
 import qualified Data.Text        as Tx
@@ -324,11 +324,23 @@ citationMkd sel x = Vc.write . fill dict $ Temp.citationMkd
 -- =============================================================== --
 -- Viewing match results
 
-viewMatches :: T.MatchResult -> Text
-viewMatches (T.MatchResult t _  _   _ (Left err)) =
-    t <> ", match failed: " <> Tx.pack err
-viewMatches (T.MatchResult t _ ids _ (Right (s, xs))) =
-    let hdr       = t <> ", score: " <> C.tshow s
-        go (n,us) = "    " <> n <> ": "
-                    <> Tx.unwords [C.tshow p | (p,i) <- xs, elem i us, p > 0]
-    in  hdr <> "\n" <> Tx.unlines (map go ids)
+viewMatchResult :: T.MatchResult -> T.ViewMonad ()
+viewMatchResult (T.MatchResult t _  _   _ (Left err)) = do
+    Vc.write t
+    Vc.write ", match failed: "
+    Vc.write . Tx.pack $ err
+    Vc.newLine
+viewMatchResult (T.MatchResult t _  ids _ (Right (s,xs))) = do
+    Vc.write t
+    Vc.writeLn $ ", score: " <> C.tshow s
+    mapM_ (viewMatches xs) ids
+
+viewMatches :: [(Int,Int)] -> (Text,[Int]) -> T.ViewMonad ()
+viewMatches ms (name, ids) = do
+    let matches = [ p | (p,i) <- ms, elem i ids, p > 0 ]
+    replicateM_ 4 Vc.space
+    Vc.write name *> Vc.write ": "
+    if null matches
+       then Vc.write "none"
+       else Vc.write . Tx.unwords . map C.tshow $ matches
+    Vc.newLine

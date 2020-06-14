@@ -93,7 +93,7 @@ matchCmd []     = throwError "A path to a match file must be provided!"
 matchCmd (fp:_) = do
     (ks, rs) <- (lift . C.readFileErr) fp >>= liftEither . P.parseRankings
     results  <-  mapM (A.runMatch rs) ks
-    mapM_ ( display . V.viewMatches ) results
+    mapM_ ( \ r -> V.runView (V.viewMatchResult r) >>= display ) results
 
 ---------------------------------------------------------------------
 -- Generating output for ranking articles
