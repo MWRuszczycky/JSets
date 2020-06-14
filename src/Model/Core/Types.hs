@@ -36,7 +36,6 @@ module Model.Core.Types
     , PageRange         (..)
     , PMID
       -- Rank matchings
-    , MatchCard         (..)
     , MatchResult       (..)
     ) where
 
@@ -350,22 +349,15 @@ instance Ord PageRange where
 -- =============================================================== --
 -- Rank matching
 
--- |Basic data type for managing data when performing rank matchings.
--- Each person in the match gets a card that describes their
--- numerical ids, which are required when running the Hungarian
--- algorithm and the their rankings. More than one id is required,
--- because they may be assigned more than one citation.
-data MatchCard = MatchCard {
-      cardName   :: Text              -- Who the card belongs to
-    , cardIDs    :: [Int]             -- Numerical IDs for this card
-    , cardScores :: [((Int,Int),Int)] -- Scores associated with the card
-    } deriving ( Show )          -- First pair is
-                                 -- ( citation index, a cardID )
-                                 -- Second value is the score or
-                                 -- 'edge-weight' of this match-pair
-
 data MatchResult = MatchResult {
-      matchTitle :: Text
-    , matchings  :: [(Text, [Text])]
-    , matchScore :: Int
+      -- Identifier title for the match.
+      matchTitle  :: Text
+      -- Paper indices being matched. Negative values are phantoms.
+    , matchPapers :: [Int]
+      -- ID map (Person, List of indices for this person)
+    , matchIDs    :: [(Text, [Int])]
+      -- Scores used for assignemnt ( (paper index, match ID), score )
+    , matchScores :: [((Int,Int),Int)]
+      -- Result of the matching ( total score, [(paper index, match ID)] )
+    , matchResult :: Either ErrString ( Int, [(Int,Int)] )
     } deriving ( Show )

@@ -29,7 +29,7 @@ module Model.Journals
     , addCitations
       -- Working with rank matching
     , score
-    , matchCards
+    , match
       -- Working with downloaded table of contents
     , eUtilsUrl
     , eSearchUrl
@@ -41,6 +41,7 @@ module Model.Journals
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Dates     as D
 import qualified Model.Core.Core      as C
+import qualified Model.Core.Hungarian as Hn
 import qualified Data.Text            as Tx
 import qualified Data.Time            as Tm
 import qualified Network.Wreq         as Wreq
@@ -242,28 +243,32 @@ addCitations sel = bimap (T.Content sel) id . foldr go ([],[])
 -- =============================================================== --
 -- Working with rank-matchings for assigning selections
 
-matchCards :: [Int] -> [(Text, [[Int]])] -> ([Int], [T.MatchCard])
--- -- ^Generate match cards for each rank list (i.e., person in the
--- -- match) based on the named ranklist and the papers to be matched.
--- -- The indices of the papers must all be positive, because the
--- -- phantom papers (standing in for no paper) will have negative
--- -- indices. The returned value is the list of match cards for each
--- -- rank list and the list of phantoms used to ensure that the total
--- -- number of papers is an even multiple of the number of rank lists.
-matchCards []     _         = ([],[])
-matchCards papers ranklists = ( phantoms, zipWith3 T.MatchCard ks cIDs scores )
-    where nr       = length ranklists
-          np       = length papers
-          phantoms = getPhantoms np nr
-          -- Number of assignments per person/rank list
-          nIDs     = quot (np + length phantoms) nr
-          -- Unzip the names from the ranks themselves
-          (ks,rs)  = unzip ranklists
-          -- Assign nID unique numbers to each rank list
-          cIDs     = assignIDs (maximum papers + 1) . take nr . repeat $ nIDs
-          scores   = zipWith (flip assignScores) cIDs
-                     . map (scoreWithPhantoms phantoms papers)
-                     $ rs
+match :: Text -> [Int] -> [(Text ,[[Int]])] -> T.MatchResult
+-- ^Given a title, a set of paper indices (all positive) and a set of
+-- rank lists (i.e., persons receiving papers), assign the papers to
+-- person/rank list using the Hungarian algorithm. The number of
+-- papers must be a multiple of the number of persons in the match.
+-- This is accomplished by adding additonal 'phantom' papers with
+-- negative indices. The match scores the phantoms most highly for
+-- each person/rank list and includes them in the matching process.
+-- Note, this matching can give one person more than one phantom.
+match title []     _         =
+    T.MatchResult title [] [] [] $ Left "Nothing to match."
+match title papers ranklists =
+    let (ks,rs)   = unzip ranklists
+        nr        = length ranklists
+        np        = length papers
+        phantoms  = getPhantoms np nr
+        nIDs      = quot (np + length phantoms) nr
+        cIDs      = assignIDs (maximum papers + 1) . take nr . repeat $ nIDs
+        scoreSets = map (scoreWithPhantoms phantoms papers) rs
+        scores    = concat . zipWith assignScores scoreSets $ cIDs
+    in  T.MatchResult { T.matchTitle  = title
+                      , T.matchPapers = phantoms <> papers
+                      , T.matchIDs    = zip ks cIDs
+                      , T.matchScores = scores
+                      , T.matchResult = Hn.solveMax scores
+                      }
 
 getPhantoms :: Int -> Int -> [Int]
 -- ^Given the number of papers and rank lists, determine how many
