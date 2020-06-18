@@ -60,7 +60,7 @@ componentParser = do
 
 indexList :: At.Parser IndexList
 indexList = do
-    At.string "indices"
+    At.string "title"
     P.colon
     name    <- validName
     At.skipSpace
