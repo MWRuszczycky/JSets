@@ -97,6 +97,10 @@ options =
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cOutputPath = Just x } ) "PATH" )
       "Set the output filepath to PATH."
 
+    , Opt.Option "" [ "verbose" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cVerbose = True } ) )
+      "Provide verbose output."
+
     , Opt.Option "v" [ "version" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )
       "Just show the version number and quit."

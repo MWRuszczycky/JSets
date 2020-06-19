@@ -153,6 +153,7 @@ data Config = Config {
     , cReferences :: [Issue]        -- reference issues
     , cInstrToc   :: Bool           -- show instructions it htms ToC
     , cShowVer    :: Bool           -- show version number flag
+    , cVerbose    :: Bool           -- use verbose output
     } deriving ( Show )
 
 defaultConfig :: Config
@@ -167,6 +168,7 @@ defaultConfig = Config {
     , cReferences = []
     , cInstrToc   = False
     , cShowVer    = False
+    , cVerbose    = False
     }
 
 data Command = Command {

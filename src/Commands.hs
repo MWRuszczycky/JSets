@@ -85,8 +85,8 @@ jsonCmd xs
 -- Match ranking for distributing papers
 
 matchHelp :: (Text, Text)
-matchHelp = (s, "Coming soon!")
-    where s = "match citations to individuals"
+matchHelp = (s, H.matchHelp)
+    where s = "match citations to individuals based on rank lists"
 
 matchCmd :: [String] -> T.AppMonad ()
 matchCmd []     = throwError "A path to a match file must be provided!"

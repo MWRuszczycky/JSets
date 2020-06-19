@@ -46,8 +46,8 @@ import qualified View.Core        as Vc
 import qualified View.Html        as Html
 import qualified View.Templates   as Temp
 import           Data.Text                ( Text                 )
-import           Data.List                ( sortBy               )
-import           Control.Monad            ( replicateM_          )
+import           Data.List                ( sortBy, nub          )
+import           Control.Monad            ( replicateM_, when    )
 import           Control.Monad.Reader     ( ask, asks, runReader )
 import           Control.Monad.Writer     ( execWriterT          )
 import           Data.Monoid              ( Endo (..), appEndo   )
@@ -330,10 +330,33 @@ viewMatchResult (T.MatchResult t _  _   _ (Left err)) = do
     Vc.write ", match failed: "
     Vc.write . Tx.pack $ err
     Vc.newLine
-viewMatchResult (T.MatchResult t _  ids _ (Right (s,xs))) = do
+viewMatchResult (T.MatchResult t ps ids ss (Right (s,xs))) = do
+    let indent = replicateM_ 2 Vc.space
     Vc.write t
     Vc.writeLn $ ", score: " <> C.tshow s
+    useVerbose <- asks T.cVerbose
+    when useVerbose $ do
+        indent *> Vc.write "papers: "
+        Vc.separate Vc.space . map ( Vc.write . C.tshow ) . filter (>0) $ ps
+        Vc.newLine
+        indent *> Vc.writeLn "scores:"
+        Vc.separate Vc.newLine . map (viewScores ss) $ ids
+        Vc.newLine
+    indent *> Vc.writeLn "matches:"
     mapM_ (viewMatches xs) ids
+
+viewScores :: [((Int,Int),Int)] -> (Text, [Int]) -> T.ViewMonad ()
+viewScores _ (name, []) = do
+    replicateM_ 4 Vc.space
+    Vc.write name *> Vc.write ": " *> Vc.write"unmatched"
+viewScores ss (name, x:_) = do
+    let f p | p < 1 = "none" | otherwise = C.tshow p
+        g (p,s) = p <> ":" <> C.tshow s
+    replicateM_ 4 Vc.space *> Vc.write name *> Vc.write ": "
+    Vc.separate Vc.space . map ( Vc.write . g )
+                         . reverse
+                         . sortBy (comparing snd)
+                         $ nub [ ( f p, s ) | ( (p,i), s ) <- ss, i == x ]
 
 viewMatches :: [(Int,Int)] -> (Text,[Int]) -> T.ViewMonad ()
 viewMatches ms (name, ids) = do

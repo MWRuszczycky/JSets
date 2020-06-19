@@ -1,0 +1,57 @@
+Usage: jsets match FILE
+
+Papers can be matched to individuals according to preference using
+the <match> command and a rank-lists file. The rank-lists FILE has
+two parts. The first describes which papers to include in each
+matching. The second part describes the preferences of the people in
+the match. For example, a file of the form (comments begin with #),
+
+    # Ranklists file for Journal Set 11, 2020:
+
+    title: long-papers
+        1 2 5 7 8 9 10 12 13
+    title: short-papers
+        3 4 6 11
+
+    green  : 12 > 1 > 3 > 5 > 11 > 8
+    blue   : 1 > 2 > 3 > 7 = 8 > 13 > 11 = 12 > 9 > 4 = 6 > 5 > 10
+    red    : 8
+    yellow :
+
+This file indicates that two matches are to be performed, the first
+named 'long-papers' and the second named 'short-papers'. Here
+'title:' is the keyword introducing a match to be performed. Papers
+are indicated by positive integers. Four individuals are included in
+the match named 'green' 'blue', 'red' and 'yellow'. The rankings are
+listed using a greater sign to indicate preference. So, blue prefers
+paper 1 the most, 10 the least and is indifferent with respect to
+papers 7 and 8, but prefers them both more than 13 and less than 3.
+Note that green has no preference with respect to papers 2, 7, 9,
+etc., and red prefers paper 8 but does not care about any of the
+others. Yellow has no preferences whatsoever.
+
+The match is performed by first converting the papers to integer
+scores as follows.
+
+    1. The lowest score is 1.
+    2. If there are no preferences, then all papers are scored a 1.
+    3. The papers in the rank-list are divided into a 'favored' half
+       and a 'disfavored' half. If there is an odd number of papers
+       ranked, then there will be an odd number of 'favored' papers.
+    4. The most preferred, favored papers are scored beginning with
+       the number of papers in the match down. Equally ranked papers
+       get the same score.
+    5. The least preferred, disfavored papers are scored beginning
+       with 1 up. Equally ranked papers get the same score.
+    6. Unranked papers all get the same score equal to the maximum
+       score of the disfavored papers plus one.
+    7. Phantom papers are introduced so that everyone in the match
+       is matched with an equal number of papers.
+    8. Phantom papers all get the same score equal to the maximum
+       score of the favored papers plus one.
+
+The assignment is then performed in such a way as to maximize the
+total score of the preferences over individuals in the match. Note,
+that one person may be assigned more than one phantom paper. The
+scores assigned in each match can be included in the output using
+the --verbose option.

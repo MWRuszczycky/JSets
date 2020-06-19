@@ -8,6 +8,7 @@ module View.Help
       -- Help strings
     , helpHelp
     , jsonHelp
+    , matchHelp
     , ranksHelp
     , readHelp
     , refsHelp
@@ -62,6 +63,9 @@ helpHelp = $(FE.embedStringFile "res/help/helpHelp.txt")
 
 jsonHelp :: Text
 jsonHelp = $(FE.embedStringFile "res/help/jsonHelp.txt")
+
+matchHelp :: Text
+matchHelp = $(FE.embedStringFile "res/help/matchHelp.txt")
 
 ranksHelp :: Text
 ranksHelp = $(FE.embedStringFile "res/help/ranksHelp.txt")
