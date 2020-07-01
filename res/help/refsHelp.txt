@@ -41,4 +41,4 @@ is specified by the corresponding fields in the configuration file:
 Most journals publish relatively regularly; however, it is possible
 that variations may lead to the publication dates estimated by JSets
 getting out of sync with the true publication dates. In these cases,
-the reference issue to should be updated.
+the reference issue should be updated.

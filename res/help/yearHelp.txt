@@ -2,7 +2,7 @@ Usage: jsets year YEAR
 
 Distributes all issues for all configured journals in the specified
 YEAR (entered as an integer) into 26 journal sets. The default output
-format is txt, and it is sent to standard out. Other supported output
+format is txt, and it is sent to standard-out. Other supported output
 formats are csv and Markdown. To choose another output format, use
 the --output/-o option to specify a path with the desired extension.
 For example, to generate 26 journal sets covering 2019 and save them

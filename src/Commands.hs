@@ -51,20 +51,21 @@ runCommands (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
 
 helpHelp :: (Text, Text)
 helpHelp = (s, H.helpHelp)
-    where s  = "display help information for a command (e.g., help refs)"
+    where s = "Display help information for a command (e.g., help refs)."
 
 helpCmd :: [String] -> T.AppMonad ()
-helpCmd []    = helpCmd ["help"]
-helpCmd (c:_) = maybe err go . find ( (==c) . T.cmdName ) $ commands
+helpCmd []          = helpCmd ["help"]
+helpCmd ("jsets":_) = display H.jsetsDetails
+helpCmd (c:_)       = maybe err go . find ( (==c) . T.cmdName ) $ commands
     where err = throwError $ "Unknown command: " <> c
-          go  = display . H.details
+          go  = display . H.cmdDetails
 
 ---------------------------------------------------------------------
 -- Downloading raw json from pubmed
 
 jsonHelp :: (Text, Text)
 jsonHelp = (s, H.jsonHelp)
-    where s  = "download raw PubMed json responses for a journal issue"
+    where s = "Download raw PubMed json responses for a journal issue."
 
 jsonCmd :: [String] -> T.AppMonad ()
 jsonCmd [] = throwError "A journal issue must be specified."
@@ -86,7 +87,7 @@ jsonCmd xs
 
 matchHelp :: (Text, Text)
 matchHelp = (s, H.matchHelp)
-    where s = "match citations to individuals based on rank lists"
+    where s = "Perform matchings according to a rank-lists file."
 
 matchCmd :: [String] -> T.AppMonad ()
 matchCmd []     = throwError "A path to a match file must be provided!"
@@ -100,7 +101,7 @@ matchCmd (fp:_) = do
 
 ranksHelp :: (Text, Text)
 ranksHelp = (s, H.ranksHelp)
-    where s  = "output a list of selected articles generating a ranklist"
+    where s = "Output a list of selected articles for ranking."
 
 ranksCmd :: [FilePath] -> T.AppMonad ()
 ranksCmd [] = throwError "Path(s) to journal set selection files required!"
@@ -144,7 +145,7 @@ checkForMissingCitations ics
 
 readHelp :: (Text, Text)
 readHelp = (s, H.readHelp)
-    where s  = "read journal sets from file"
+    where s = "Read journal sets from file."
 
 readCmd :: [FilePath] -> T.AppMonad ()
 readCmd []  = throwError "Path(s) to journal sets files are required!"
@@ -158,7 +159,7 @@ readCmd fps = do
 
 refsHelp :: (Text, Text)
 refsHelp = (s, H.refsHelp)
-    where s  = "list configured journals and reference issues"
+    where s = "List configured journals and reference issues."
 
 refsCmd :: [String] -> T.AppMonad ()
 refsCmd _ = do
@@ -172,7 +173,7 @@ refsCmd _ = do
 
 tocHelp :: (Text, Text)
 tocHelp = (s, H.tocHelp)
-    where s  = "generate tables of contents for a journal set"
+    where s = "Generate tables of contents for a journal set."
 
 tocCmd :: [FilePath] -> T.AppMonad ()
 tocCmd []  = throwError "Path(s) to journal sets files are required!"
@@ -187,7 +188,7 @@ tocCmd fps = do
 
 yearHelp :: (Text, Text)
 yearHelp = (s, H.yearHelp)
-    where s  = "build a collection of all journal sets in a given year"
+    where s = "Build a collection of 26 journal sets for a given year."
 
 yearCmd :: [String] -> T.AppMonad ()
 yearCmd []    = throwError "A valid year must be specified!"

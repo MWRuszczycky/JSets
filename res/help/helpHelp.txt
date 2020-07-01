@@ -1,10 +1,14 @@
-Usage: jsets help <command-name>
+Usage: jsets help COMMAND
 
-Displays detailed information for command <command-name>. For example,
+Displays detailed information for the command COMMAND. For example,
 
     jsets help read
 
-will display detailed help information for <read>. To see a help
-information summary and complete list of available commands, try
+will display detailed help information for <read>. To see a summary
+of all available options and commands, try
 
     jsets --help
+
+To get general help information regarding the JSets workflow, try
+
+    jsets help jsets

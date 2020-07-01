@@ -1,0 +1,50 @@
+JSets is a tool for managing literature review in the laboratory.
+
+The laboratory follows a collection of journals. Every other week a
+selection of articles from a set of issues from these journals is
+is reviewed and discussed in *Literature Review*. JSets helps in
+maintaining the set of issues and associated articles that will be
+reviewed during each Literature Review.
+
+The journals that are followed are specified in a configuration file.
+Each journal must be specified with a reference issue and a
+publication frequency from which all future issues can be computed.
+For more information on configuraing JSets, see the detailed help for
+the <refs> command.
+
+A set of all issues for review in a given Literature Review is called
+a *journal set* and the corresponding selection of articles for
+review is called a *selection*. A collection of 26 journal sets for
+an entire year can be constructed using the <year> command. Once
+constructed, this collection can then be edited, saved and used for
+the remainder of the year. Each journal set is dated according to
+when all issues in the set are expected to be published. These dates
+should be accurate to +/- one day.
+
+Given a collection of journal sets, a selection is created and
+assigned to students for review during Literature Review according to
+the following work flow:
+
+    1. A table of contents html document is created for the journal
+       set using the <toc> command and sent to those students who
+       will be presenting. This document allows the students to
+       propose a selection for review.
+
+    2. The proposed selections are collected and used to construct
+       another table of contents html document with the articles
+       proposed for review highlighted. This is again done using the
+       <toc> command with the selection files returned by the
+       students. The resulting document is sent to the boss. The boss
+       then makes his own selection, which is final.
+
+    3. The boss's selection is used to generate an html document for
+       ranking the articles selected for review using the <ranks>
+       command. This document is then sent to the students, who use
+       it to generate their rank-lists indicating their preference
+       for reviewing each article in the selection.
+
+    4. The rank-lists are used by the <match> command to assign the
+       articles to each student for presentation during the
+       Literature Review meeting. This attempts to match each student
+       to the articles according to their preferences. See the help
+       for the <match> command for more information.

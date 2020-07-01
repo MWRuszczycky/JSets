@@ -14,7 +14,7 @@ The resulting table of contents information for the journal set can
 be output in a variety of formats, with txt being the default. Other
 supported formats are Markdown (md or mkd) and html. The output
 format is specified using the --output/-o option and the appropriate
-file extension. For example, to generate table of contents
+file extension. For example, to generate tables of contents
 information for journal set 6 in file <jsets2019.txt> and display it
 formatted as Markdown, use
 
@@ -31,3 +31,8 @@ JSets to create another table of contents with highlighted citations
 or ranks output (see <ranks> command). Table of contents output can
 be formatted with additional instructions using the --instruct/-i
 option. The default style does not include these instructions.
+
+Note that the PubMed E-Utilities API allows a maximum of three
+requests per second, and each table of contents for an issue requires
+two requests. Therefore, JSets inserts a one second delay between
+each table of contents requests.

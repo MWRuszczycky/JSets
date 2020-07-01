@@ -1,17 +1,20 @@
 Usage: jsets ranks FILE [FILE]
 
-Collect together selections in the FILE arguments and generate a rank
-list. The default output format is text. Alternative output formats
-can be selected using the --output/-o option and choosing the desired
-file extension. When the output format is html, the rank list page
-generated allows users to enter numerical ranks and create an easy
-ranking string that can be emailed to the journal sets administrator.
-These can then be collected in a rank-lists file for use with the
-<match> command to assign papers to individuals.
+Collect together selections in the FILE arguments and generate a list
+of citations/articles for ranking. The default output format is text.
+Alternative output formats can be selected using the --output/-o
+option and choosing the desired file extension.
+
+When the output format is html, the ranks output is a webpage that
+allows users to enter numerical ranks and create a simple rank-list
+string that can be emailed to the journal sets administrator. These
+can then be collected in a rank-lists file for use with the <match>
+command assigning papers to individuals. See help for the <match>
+command for more information.
 
 For example, if you have three selection files sel1.txt, sel2.txt and
 sel3.txt all for the same journal set, they can be collected and used
-to generate the corresponding rank list in html format using
+to generate the corresponding ranks output in html format using
 
     jsets ranks sel1.txt sel2.txt sel3.txt --output=ranks.html
 

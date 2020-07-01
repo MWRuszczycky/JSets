@@ -1,10 +1,11 @@
-Usage: jsets json <Journal-abbreviation> <volume> <issue>
+Usage: jsets json JOURNAL VOL ISS
 
-Downloads and saves the raw PubMed json data for the specified issue.
-This is mostly used for debugging purposes. The command generates two
-files in the current working directry:
-    esearch.json  : the PubMed ESarch E-Utility response
-    esummary.json : the PubMed ESummary E-Utility response
+Downloads and saves the raw PubMed json data for the specified issue
+with abbreviation JOURNAL, volume VOL and issue number ISS. This is
+mostly used for debugging purposes. The command generates two files
+in the current working directry:
+    1. esearch.json  : the PubMed ESearch E-Utility response
+    2. esummary.json : the PubMed ESummary E-Utility response
 For example,
 
     jsets json Biochemistry 58 3
