@@ -167,8 +167,8 @@ readError d err = maybe noJournal go . lookup "journal" $ d
 resetsError :: T.ErrString
 resetsError = intercalate "\n" hs
     where hs = [ "Missing or invalid <resets> value!"
-               , "Use 'true' if issue numbers reset to 1 each year."
-               , "Use 'false' if issue numbers increase each year."
+               , "Use 'true' or 'yes' if issue numbers reset to 1 each year."
+               , "Use 'false' or 'no' if issue numbers increase each year."
                ]
 
 frequencyError :: T.ErrString
@@ -263,10 +263,12 @@ readMonth dict = maybe err pure $ lookup "month" dict >>= toMonth . prepString
 
 readResets :: Dict -> Either T.ErrString Bool
 readResets = maybe (Left resetsError) go . lookup "resets"
-    where go x = case prepString $ x of
-                       "true"  -> pure True
-                       "false" -> pure False
-                       _       -> Left resetsError
+    where go x = case prepString x of
+                      "true"  -> pure True
+                      "yes"   -> pure True
+                      "false" -> pure False
+                      "no"    -> pure False
+                      _       -> Left resetsError
 
 readJournalHeader :: Dict -> Either T.ErrString (Text, Text)
 readJournalHeader =  maybe (Left "") go . lookup "journal"
