@@ -77,15 +77,18 @@ combineJSets = pack . T.stir . concatMap unpack
 -- Creation of yearly journal sets
 
 yearly26Sets :: Int -> T.References -> T.JSets T.Issue
----- ^Compute 26 journal sets that cover all issues published in a
----- given year. The first 24 sets account for all monthly issues and
----- the first 48 weekly issues. The 25-th set accounts for 49-th and
----- 50-th weekly issues. The 26-th set is all straglers that may or
----- may not be published in the specified year.
-yearly26Sets y refs = pack . zipWith T.JSet [1..] $ C.zipLists wsets msets
-    where (ws,ms) = splitByFreq refs
-          wsets   = weekly26InYear y ws
-          msets   = monthly26InYear y ms
+-- ^Compute 26 journal sets that cover all issues published in a
+-- given year. The first 24 sets account for all monthly issues and
+-- the first 48 weekly issues. The 25-th set accounts for 49-th and
+-- 50-th weekly issues. The 26-th set is all straglers that may or
+-- may not be published in the specified year. Note that there may be
+-- fewer than 26 sets if some of the sets would otherwise be empty.
+yearly26Sets y refs = let (ws,ms) = splitByFreq refs
+                          wsets   = weekly26InYear y ws
+                          msets   = monthly26InYear y ms
+                      in  pack . zipWith T.JSet [1..]
+                               . filter ( not . null )
+                               $ C.zipLists wsets msets
 
 weekly26InYear :: Int -> T.References -> [[T.Issue]]
 -- ^Compute 26 sets of weekly issues. The first 24 sets contain two
@@ -100,6 +103,7 @@ monthly26InYear :: Int -> T.References -> [[T.Issue]]
 -- ^Compute 26 sets of monthly issues. The first two sets contain no
 -- issues at all. The remaining 24 sets contain either one or two
 -- issues from each journal.
+monthly26InYear _ []   = replicate 26 []
 monthly26InYear y refs = [] : [] : C.shuffleIn byqs byqrs
     where ms    = C.collate 1 . map (issuesInYear y) $ refs
           (q,r) = quotRem (length refs) 2
