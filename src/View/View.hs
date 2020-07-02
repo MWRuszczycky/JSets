@@ -4,6 +4,7 @@
 module View.View
     ( runView
       -- Formatting journals and reference issues
+    , viewConfig
     , referenceToTxt
       -- Views of journal sets of Issues
     , viewJSetsIssue
@@ -71,7 +72,24 @@ getFormat = asks ( fmap C.extension . T.cOutputPath )
                       _           -> pure T.TXT
 
 -- =============================================================== --
--- Formatting journals and reference issues
+-- Viewing configuration files and configured references
+
+viewConfig :: T.ViewMonad ()
+viewConfig = do
+    path <- asks T.cRefPath
+    refs <- asks T.cReferences
+    Vc.writeLn . configPathTxt $ path
+    Vc.newLine
+    if null refs
+       then Vc.writeLn "There are no references configured."
+       else Vc.writeLns' . map referenceToTxt $ refs
+
+configPathTxt :: Maybe FilePath -> Text
+configPathTxt (Just path) = "Configuration file: " <> Tx.pack path
+configPathTxt Nothing     = Tx.intercalate "\n" msg
+    where msg = [ "No configuration file provided."
+                , "Normally this file should be ~/.config/jsets/config"
+                ]
 
 referenceToTxt :: T.Issue -> Text
 referenceToTxt x = Tx.unlines hs

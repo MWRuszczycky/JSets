@@ -149,7 +149,7 @@ data Config = Config {
     , cOutputPath :: Maybe FilePath -- file output path
     , cJSetKey    :: Maybe Int      -- journal set key
     , cHelp       :: Bool           -- user requested help
-    , cRefPath    :: FilePath       -- path to the references file
+    , cRefPath    :: Maybe FilePath -- path to the references file
     , cReferences :: [Issue]        -- reference issues
     , cInstrToc   :: Bool           -- show instructions it htms ToC
     , cShowVer    :: Bool           -- show version number flag
@@ -164,7 +164,7 @@ defaultConfig = Config {
     , cOutputPath = Nothing
     , cJSetKey    = Nothing
     , cHelp       = False
-    , cRefPath    = ""
+    , cRefPath    = Nothing
     , cReferences = []
     , cInstrToc   = False
     , cShowVer    = False

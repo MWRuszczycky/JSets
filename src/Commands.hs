@@ -162,11 +162,7 @@ refsHelp = (s, H.refsHelp)
     where s = "List configured journals and reference issues."
 
 refsCmd :: [String] -> T.AppMonad ()
-refsCmd _ = do
-    rs <- map V.referenceToTxt <$> A.references
-    p  <- asks T.cRefPath
-    let hdr = Tx.pack $ "References file: " <> p <> "\n"
-    display . Tx.intercalate "\n" $ hdr : rs
+refsCmd _ = V.runView  V.viewConfig >>= display
 
 ---------------------------------------------------------------------
 -- Download tables of contents for all issues in a journal set
