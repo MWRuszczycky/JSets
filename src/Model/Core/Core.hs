@@ -61,11 +61,11 @@ chunksOf n xs
 takeEveryAt :: Int -> Int -> [a] -> [[a]]
 -- ^Take a chunk of n elements after every m elements in the list.
 -- The first chunk taken is from element 0. The last chunk may have
--- fewer than n elements if the end of the list is reached.
+-- fewer than n elements if the end of the list is reached. If n < 1
+-- return a list of empty lists one for every m in xs. If there is
+-- any overhang, then an additional empty list will be appended.
 takeEveryAt _ _ [] = []
-takeEveryAt n m xs
-    | n < 1     = []
-    | otherwise = (:) us . takeEveryAt n m . drop m $ vs
+takeEveryAt n m xs = (:) us . takeEveryAt n m . drop m $ vs
     where (us,vs) = splitAt n xs
 
 ---------------------------------------------------------------------

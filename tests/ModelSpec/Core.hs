@@ -62,8 +62,8 @@ takeEveryAtSpec = do
     it "handles empty lists" $ do
         C.takeEveryAt 1 2 "" `shouldBe` []
     it "handles nonpositive everies" $ do
-        C.takeEveryAt 0    2 xs1 `shouldBe` []
-        C.takeEveryAt (-2) 2 xs1 `shouldBe` []
+        C.takeEveryAt 0    2 xs1 `shouldBe` replicate 11 []
+        C.takeEveryAt (-2) 2 xs1 `shouldBe` replicate 11 []
     it "handles nonpositive ats" $ do
         C.takeEveryAt 2 0    xs1 `shouldBe` C.chunksOf 2 xs1
         C.takeEveryAt 3 0    xs1 `shouldBe` C.chunksOf 3 xs1
