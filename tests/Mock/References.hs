@@ -3,6 +3,15 @@
 module Mock.References
     ( refIssue
     , issueRefs
+    , acieRef
+    , biochemistryRef
+    , cellChemBiolRef
+    , jacsRef
+    , natureRef
+    , natChemRef
+    , natChemBiolRef
+    , pnasRef
+    , scienceRef
     ) where
 
 import qualified Data.Time        as Tm
