@@ -12,25 +12,30 @@ import           Test.Hspec                ( Spec (..)
 
 spec :: IO ()
 spec = hspec $ do
-    describe "extension" $ do
-        extensionSpec
-    describe "chunksOf" $ do
-        chunksOfSpec
-    describe "takeEveryAt" $ do
-        takeEveryAtSpec
-    describe "collate" $ do
-        collateSpec
-    describe "shuffleIn" $ do
-        shuffleInSpec
-    describe "shuffleInAt" $ do
-        shuffleInAtSpec
-    describe "zipLists" $ do
-        zipListsSpec
-    describe "hungarian" $ do
-        hungarianSpec
+    describe "Model.Core.Core.extension" $ do
+        spec_extension
+    describe "Model.Core.Core.chunksOf" $ do
+        spec_chunksOf
+    describe "Model.Core.Core.takeEveryAt" $ do
+        spec_takeEveryAt
+    describe "Model.Core.Core.collate" $ do
+        spec_collate
+    describe "Model.Core.Core.shuffleIn" $ do
+        spec_shuffleIn
+    describe "Model.Core.Core.shuffleInAt" $ do
+        spec_shuffleInAt
+    describe "Model.Core.Core.zipLists" $ do
+        spec_zipLists
+    describe "Model.Core.Hungarian.solveMax" $ do
+        spec_solveMax
+    describe "Model.Core.Hungarian.solveMin" $ do
+        spec_solveMin
 
-extensionSpec :: Spec
-extensionSpec = do
+-- =============================================================== --
+-- Model.Core.Core
+
+spec_extension :: Spec
+spec_extension = do
     it "Works on empty paths" $ do
         C.extension "" `shouldBe` []
     it "Works on paths with no extensions" $ do
@@ -41,8 +46,8 @@ extensionSpec = do
         C.extension "/dir1/dir2.dir/filename.mkd" `shouldBe` "mkd"
         C.extension "/dir1.cat/dir2.dir/file.name.cat.mkd" `shouldBe` "mkd"
 
-chunksOfSpec :: Spec
-chunksOfSpec = do
+spec_chunksOf :: Spec
+spec_chunksOf = do
     let xs1 = "the yellow cat"
     it "handles empty lists" $ do
         C.chunksOf 2 "" `shouldBe` []
@@ -56,8 +61,8 @@ chunksOfSpec = do
         C.chunksOf 1 xs1 `shouldBe` map (:[]) xs1
         C.chunksOf 7 xs1 `shouldBe` [ "the yel", "low cat" ]
 
-takeEveryAtSpec :: Spec
-takeEveryAtSpec = do
+spec_takeEveryAt :: Spec
+spec_takeEveryAt = do
     let xs1 = "the yellow cat is fat"
     it "handles empty lists" $ do
         C.takeEveryAt 1 2 "" `shouldBe` []
@@ -87,8 +92,8 @@ takeEveryAtSpec = do
         C.takeEveryAt 1  1 xs1 `shouldBe` [ "t", "e", "y", "l", "o", " "
                                           , "a", " ", "s", "f", "t"    ]
 
-collateSpec :: Spec
-collateSpec = do
+spec_collate :: Spec
+spec_collate = do
     it "handles empty lists" $ do
         C.collate 2 ["", "bbbb", "cccc"] `shouldBe` ""
         C.collate 2 ([] :: [String])     `shouldBe` ""
@@ -113,8 +118,8 @@ collateSpec = do
         C.collate 2 ["aaaa", "bbbb", "cccc"] `shouldBe` "aabbccaabbcc"
         C.collate 1 ["aaaa", "bbbb", "cccc"] `shouldBe` "abcabcabcabc"
 
-shuffleInSpec :: Spec
-shuffleInSpec = do
+spec_shuffleIn :: Spec
+spec_shuffleIn = do
     let xs1 = "cat"
         xs2 = "dog"
         xs3 = "monkeys"
@@ -128,8 +133,8 @@ shuffleInSpec = do
         C.shuffleIn xs1 xs3 `shouldBe` "cmaotn"
         C.shuffleIn xs3 xs1 `shouldBe` "mcoant"
 
-shuffleInAtSpec :: Spec
-shuffleInAtSpec = do
+spec_shuffleInAt :: Spec
+spec_shuffleInAt = do
     let xs1 = "cat"
         xs2 = "dog"
         xs3 = "monkeys"
@@ -158,8 +163,8 @@ shuffleInAtSpec = do
         C.shuffleInAt 1 2 xs1 xs3 `shouldBe` "cmoanktey"
         C.shuffleInAt 2 1 xs3 xs2 `shouldBe` "modnkoeyg"
 
-zipListsSpec :: Spec
-zipListsSpec = do
+spec_zipLists :: Spec
+spec_zipLists = do
     it "handles empty lists" $ do
         C.zipLists ["dog"] []   `shouldBe` []
         C.zipLists [] ["cat"]   `shouldBe` []
@@ -175,30 +180,11 @@ zipListsSpec = do
     it "handles exact lists correctly" $ do
         C.zipLists xs zs `shouldBe` ["doghorse", "catturtle", "fishmongoose"]
 
----------------------------------------------------------------------
--- Hungarian algorithm tests
+-- =============================================================== --
+-- Model.Core.Hungarian
 
 type TestSet = ( Int, [((Int,Int), Int)] )
 type Solver  = [((Int,Int),Int)] -> Either String (Int, [(Int,Int)])
-
-hungarianSpec :: Spec
-hungarianSpec = do
-    it "Maximizes matchings for valid inputs" $ do
-        mapM_ (runHTest H.solveMax) [ ( 271, test1 )
-                                    , ( 5,   test2 )
-                                    , ( 16,  test3 )
-                                    , ( 437, test4 )
-                                    , ( 24,  test5 )
-                                    , ( 66,  test6 )
-                                    ]
-    it "Minimizes matchings for valid inputs" $ do
-        mapM_ (runHTest H.solveMin) [ ( 112, test1 )
-                                    , ( 5,   test2 )
-                                    , ( 0,   test3 )
-                                    , ( 124, test4 )
-                                    , ( 8,   test5 )
-                                    , ( 36,  test6 )
-                                    ]
 
 runHTest :: Solver -> TestSet -> IO ()
 runHTest solver (expected, ws) = do
@@ -271,3 +257,31 @@ test6 = [ ((-2,14),9), ((-1,14),9), ((1,14),8)
         , ((7,21),6),  ((12,21),4), ((13,21),3)
         , ((7,22),6),  ((12,22),4), ((13,22),3)
         ]
+
+---------------------------------------------------------------------
+-- Model.Core.Hungarian.solveMax
+
+spec_solveMax :: Spec
+spec_solveMax = do
+    it "maximizes matchings for valid inputs" $ do
+        mapM_ (runHTest H.solveMax) [ ( 271, test1 )
+                                    , ( 5,   test2 )
+                                    , ( 16,  test3 )
+                                    , ( 437, test4 )
+                                    , ( 24,  test5 )
+                                    , ( 66,  test6 )
+                                    ]
+
+---------------------------------------------------------------------
+-- Model.Core.Hungarian.solveMin
+
+spec_solveMin :: Spec
+spec_solveMin = do
+    it "minimizes matchings for valid inputs" $ do
+        mapM_ (runHTest H.solveMin) [ ( 112, test1 )
+                                    , ( 5,   test2 )
+                                    , ( 0,   test3 )
+                                    , ( 124, test4 )
+                                    , ( 8,   test5 )
+                                    , ( 36,  test6 )
+                                    ]
