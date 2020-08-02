@@ -190,10 +190,28 @@ yearCmd :: [String] -> T.AppMonad ()
 yearCmd []      = throwError "A valid year must be specified!"
 yearCmd (y:[])  = yearCmd [ y, "2" ]
 yearCmd (y:w:_) = do
-    theYear <- maybe (throwError "Invalid YEAR.") pure . readMaybe $ y
-    theFreq <- maybe (throwError "Invalid FREQ.") pure . readMaybe $ w
+    theYear <- checkYear y
+    theFreq <- checkFreq w
     jsets   <- A.references >>= pure . J.yearlySets theYear theFreq
     V.runView ( V.viewJSetsIssue jsets ) >>= display
+
+checkYear :: String -> T.AppMonad Int
+checkYear y = do
+    theYear <- maybe (throwError "Invalid YEAR.") pure . readMaybe $ y
+    minYear <- maximum . map T.year <$> A.references
+    if minYear <= theYear && theYear <= 2100
+       then pure theYear
+       else throwError $ unwords [ "YEAR must be between"
+                                 , show minYear
+                                 , "and 2100 inclusive."
+                                 ]
+
+checkFreq :: String -> T.AppMonad Int
+checkFreq w = do
+    theFreq <- maybe (throwError "Invalid FREQ.") pure . readMaybe $ w
+    if theFreq < 1 || theFreq > 52
+       then throwError "FREQ must be between 1 and 52 inclusive."
+       else pure theFreq
 
 ---------------------------------------------------------------------
 -- Output handling
