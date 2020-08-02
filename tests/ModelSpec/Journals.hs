@@ -23,8 +23,8 @@ spec :: IO ()
 spec = hspec $ do
     describe "Model.Journals.issueAtDate" $ do
         spec_issueAtDate
-    describe "Model.Journals.yearly26Sets" $ do
-        spec_yearly26Sets
+    describe "Model.Journals.yearlySets" $ do
+        spec_yearlySets
     describe "Model.Journals.addCitations" $ do
         spec_addCitations
     describe "Model.Journals.missingPMIDs" $ do
@@ -59,25 +59,27 @@ check_yearly jsets path = do
 ---------------------------------------------------------------------
 -- Model.Journals.yearly26Sets
 
-spec_yearly26Sets :: Spec
-spec_yearly26Sets = do
+spec_yearlySets :: Spec
+spec_yearlySets = do
     it "works with no issues" $ do
-        let T.JSets result = J.yearly26Sets 2019 testRefs_Empty
+        let T.JSets result = J.yearlySets 2019 2 testRefs_Empty
         result `shouldSatisfy` null
-    it "works with one monthly issue" $ do
-        check_yearly (J.yearly26Sets 2019 testRefs_1M) "yearly26Sets_1M.txt"
-    it "works with two monthly issues" $ do
-        check_yearly (J.yearly26Sets 2019 testRefs_2M) "yearly26Sets_2M.txt"
-    it "works with three monthly issues" $ do
-        check_yearly (J.yearly26Sets 2019 testRefs_3M) "yearly26Sets_3M.txt"
-    it "works with one weekly issue (weekly-first)" $ do
-        check_yearly (J.yearly26Sets 2019 testRefs_1W) "yearly26Sets_1W.txt"
-    it "works with two weekly issues (weekly, weekly-first)" $ do
-        check_yearly (J.yearly26Sets 2019 testRefs_2W) "yearly26Sets_2W.txt"
-    it "works with three weekly issues (weekly, weekly-first, weekly-last)" $ do
-        check_yearly (J.yearly26Sets 2019 testRefs_3W) "yearly26Sets_3W.txt"
-    it "works with one weekly & one monthly issue" $ do
-        check_yearly (J.yearly26Sets 2019 testRefs_1W1M) "yearly26Sets_1W1M.txt"
+    it "works with 3 monthly & 6 weekly issues at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 TR.issueRefs) "yearlySets_6W3M2F.txt"
+    it "works with 1 monthly issue at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 testRefs_1M) "yearlySets_0W1M2F.txt"
+    it "works with 2 monthly issues at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 testRefs_2M) "yearlySets_0W2M2F.txt"
+    it "works with 3 monthly issues at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 testRefs_3M) "yearlySets_0W3M2F.txt"
+    it "works with 1 weekly-first issue at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 testRefs_1W) "yearlySets_1W0M2F.txt"
+    it "works with 1 weekly & 1 weekly-first issues at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 testRefs_2W) "yearlySets_2W0M2F.txt"
+    it "works with 1 weekly, 1 weekly-first & 1 weekly-last at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 testRefs_3W) "yearlySets_3W0M2F.txt"
+    it "works with 1 monthly & 1 weekly-first issues at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 testRefs_1W1M) "yearlySets_1W1M2F.txt"
 
 -- =============================================================== --
 -- Working with journal issues
