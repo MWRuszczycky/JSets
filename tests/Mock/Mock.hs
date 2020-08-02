@@ -12,5 +12,5 @@ import           Control.Monad.Writer       ( execWriterT    )
 runView :: T.ViewMonad a -> Text
 runView = Tx.concat
           . flip appEndo []
-          . flip runReader T.defaultConfig
+          . flip runReader ( T.defaultConfig { T.cSortJSets = False } )
           . execWriterT

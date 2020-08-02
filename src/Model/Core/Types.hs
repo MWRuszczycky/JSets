@@ -151,6 +151,7 @@ data Config = Config {
     , cHelp       :: Bool           -- user requested help
     , cRefPath    :: Maybe FilePath -- path to the references file
     , cReferences :: [Issue]        -- reference issues
+    , cSortJSets  :: Bool           -- sort issues by Journal in output
     , cInstrToc   :: Bool           -- show instructions it htms ToC
     , cShowVer    :: Bool           -- show version number flag
     , cVerbose    :: Bool           -- use verbose output
@@ -166,6 +167,7 @@ defaultConfig = Config {
     , cHelp       = False
     , cRefPath    = Nothing
     , cReferences = []
+    , cSortJSets  = True
     , cInstrToc   = False
     , cShowVer    = False
     , cVerbose    = False

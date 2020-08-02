@@ -71,20 +71,24 @@ configError (Just path) err = throwError msg
 options :: [ Opt.OptDescr (T.Config -> T.ErrMonad T.Config) ]
 options =
     [ Opt.Option "" [ "email" ]
-      ( Opt.ReqArg ( \ x s -> pure s { T.cEmail = Just . pack $ x } ) "EMAIL" )
+      ( Opt.ReqArg ( \ x s -> pure $ s { T.cEmail = Just . pack $ x } ) "EMAIL" )
       "Override the configured email with EMAIL."
 
     , Opt.Option "" [ "nickname" ]
-      ( Opt.ReqArg ( \ x s -> pure s { T.cNick = Just . pack $ x } ) "NICK" )
+      ( Opt.ReqArg ( \ x s -> pure $ s { T.cNick = Just . pack $ x } ) "NICK" )
       "Override the configured nickname with NICK."
 
     , Opt.Option "" [ "refs" ]
-      ( Opt.ReqArg ( \ x s -> pure s { T.cRefPath = Just x } ) "PATH" )
+      ( Opt.ReqArg ( \ x s -> pure $ s { T.cRefPath = Just x } ) "PATH" )
       "Reset the references configuration path to PATH."
 
     , Opt.Option "" [ "user" ]
-      ( Opt.ReqArg ( \ x s -> pure s { T.cUser = Just . pack $ x } ) "USER" )
+      ( Opt.ReqArg ( \ x s -> pure $ s { T.cUser = Just . pack $ x } ) "USER" )
       "Override the configured user name with USER."
+
+    , Opt.Option "" [ "no-sort" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cSortJSets = False } ) )
+      "Do not sort journal set issues."
 
     , Opt.Option "h" [ "help" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cHelp = True } ) )
