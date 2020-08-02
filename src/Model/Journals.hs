@@ -8,6 +8,7 @@ module Model.Journals
     , lookupJSet
     , combineJSets
     , yearly26Sets
+    , yearlySets
     , splitByFreq
     , issuesByAbbr
       -- Working with journal issues
@@ -75,6 +76,67 @@ combineJSets = pack . T.stir . concatMap unpack
 
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
+
+yearlySets :: Int -> Int -> T.References -> T.JSets T.Issue
+-- Compute the issues in each journal set for a specified year given
+-- some frequency k (in weeks) of the journal sets.
+yearlySets y k refs = let (ws,ms) = splitByFreq refs
+                          wsets   = weeklyInYear y k ws
+                          msets   = monthlyInYear y k ms
+                      in  pack . zipWith T.JSet [1..]
+                               . filter ( not . null )
+                               $ C.zipLists wsets msets
+
+setsInYear :: Int -> Int
+setsInYear k
+    | k < 1     = 0
+    | r == 0    = q
+    | otherwise = q + 1
+    where (q,r) = quotRem 52 k
+
+weeklyInYear :: Int -> Int -> T.References -> [[T.Issue]]
+weeklyInYear y k = foldr go start . map (weeklyIssues y k)
+    where start   = replicate (setsInYear k) []
+          go x xs = C.zipLists x xs
+
+weeklyIssues :: Int -> Int -> T.Issue -> [[T.Issue]]
+weeklyIssues y k x = xs <> replicate ( setsInYear k - length xs ) []
+    where xs = C.chunksOf k . issuesInYear y $ x
+
+groupMonthly :: Int -> [a] -> [[a]]
+-- Group the elements of a list of into n sublists so that they are
+-- more-or-less evenly distributed. The elements are distributed to
+-- push larger lists towards the end of the list. This helps to
+-- ensure journal sets become available as soon as possible, because
+-- monthly issues are guaranteed to be published only at the end of
+-- each month. The length of the returned list is n or 0 if n < 1.
+-- n   : site of the list to be created (i.e., the number of bins)
+-- q   : min number monthly issues per set
+-- q+1 : max number monthly issues per set, there will be r of these
+-- v   : initial number of sets with only q issues each
+-- u   : after the first v sets, we have u - 1 sets with only q
+--       monthly issues than one set with q + 1 sets & this repeats.
+groupMonthly n xs
+    | n <  1    = []
+    | null xs   = replicate n []
+    | r == 0    = C.chunksOf q xs
+    | q == 0    = replicate v [] <> ys
+    | otherwise = C.chunksOf q vs <> ys
+    where (q,r)       = quotRem (length xs) n
+          (u,v)       = quotRem n r
+          (vs,us)     = splitAt ( v * q ) xs
+          (ys,_,_)    = iterate f ([],us,1) !! ( n - v )
+          f (ps,zs,t) | rem t u == 0 = g $ q + 1
+                      | otherwise    = g   q
+                      where g m = let (ts,rs) = splitAt m zs
+                                  in  (ps <> [ts], rs, t+1)
+
+monthlyInYear :: Int -> Int -> T.References -> [[T.Issue]]
+monthlyInYear y k = groupMonthly n . C.collate 1 . map (issuesInYear y)
+    where n = setsInYear k
+
+---------------------------------------------------------------------
+-- Creation of yearly journal sets -- old
 
 yearly26Sets :: Int -> T.References -> T.JSets T.Issue
 -- ^Compute 26 journal sets that cover all issues published in a
