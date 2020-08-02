@@ -1,15 +1,21 @@
-Usage: jsets year YEAR
+Usage: jsets year YEAR [FREQ]
 
 Distributes all issues for all configured journals in the specified
-YEAR (entered as an integer) into 26 journal sets. The default output
-format is txt, and it is sent to standard-out. Other supported output
-formats are csv and Markdown. To choose another output format, use
-the --output/-o option to specify a path with the desired extension.
-For example, to generate 26 journal sets covering 2019 and save them
-in csv format use
+YEAR (entered as an integer) into journal sets at a frequency of FREQ
+weeks. The default frequency is 2 weeks. The default output format is
+txt, and it is sent to standard-out. Other supported output formats
+are csv and Markdown. To choose another output format, use the
+--output/-o option to specify a path with the desired extension.
+
+For example, to generate 26 journal sets (2 week frequency) covering
+2019 and save them in csv format use
 
     jsets year 2019 --output=jsets2019.csv
 
+to generate 52 journal sets (1 week frequency) covering 2020 and
+save them in txt form use
+
+    jsets year 2020 1 --output=jsets2020.txt
+
 You can read the resulting file (in csv or txt) and convert it to
 other output formats using the <read> command.
-

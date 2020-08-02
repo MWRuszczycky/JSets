@@ -184,13 +184,15 @@ tocCmd fps = do
 
 yearHelp :: (Text, Text)
 yearHelp = (s, H.yearHelp)
-    where s = "Build a collection of 26 journal sets for a given year."
+    where s = "Build a collection of journal sets for a given year."
 
 yearCmd :: [String] -> T.AppMonad ()
-yearCmd []    = throwError "A valid year must be specified!"
-yearCmd (x:_) = do
-    theYear <- maybe (throwError "Invalid year.") pure . readMaybe $ x
-    jsets   <- A.references >>= pure . J.yearly26Sets theYear
+yearCmd []      = throwError "A valid year must be specified!"
+yearCmd (y:[])  = yearCmd [ y, "2" ]
+yearCmd (y:w:_) = do
+    theYear <- maybe (throwError "Invalid YEAR.") pure . readMaybe $ y
+    theFreq <- maybe (throwError "Invalid FREQ.") pure . readMaybe $ w
+    jsets   <- A.references >>= pure . J.yearlySets theYear theFreq
     V.runView ( V.viewJSetsIssue jsets ) >>= display
 
 ---------------------------------------------------------------------

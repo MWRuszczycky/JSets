@@ -7,7 +7,6 @@ module Model.Journals
     , emptyJSets
     , lookupJSet
     , combineJSets
-    , yearly26Sets
     , yearlySets
     , splitByFreq
     , issuesByAbbr
@@ -80,12 +79,15 @@ combineJSets = pack . T.stir . concatMap unpack
 yearlySets :: Int -> Int -> T.References -> T.JSets T.Issue
 -- Compute the issues in each journal set for a specified year given
 -- some frequency k (in weeks) of the journal sets.
-yearlySets y k refs = let (ws,ms) = splitByFreq refs
-                          wsets   = weeklyInYear y k ws
-                          msets   = monthlyInYear y k ms
-                      in  pack . zipWith T.JSet [1..]
-                               . filter ( not . null )
-                               $ C.zipLists wsets msets
+yearlySets y k refs
+    | y < 2000  = pack []
+    | k < 1     = pack []
+    | otherwise = let (ws,ms) = splitByFreq refs
+                      wsets   = weeklyInYear y k ws
+                      msets   = monthlyInYear y k ms
+                  in  pack . zipWith T.JSet [1..]
+                           . filter ( not . null )
+                           $ C.zipLists wsets msets
 
 setsInYear :: Int -> Int
 setsInYear k
@@ -134,43 +136,6 @@ groupMonthly n xs
 monthlyInYear :: Int -> Int -> T.References -> [[T.Issue]]
 monthlyInYear y k = groupMonthly n . C.collate 1 . map (issuesInYear y)
     where n = setsInYear k
-
----------------------------------------------------------------------
--- Creation of yearly journal sets -- old
-
-yearly26Sets :: Int -> T.References -> T.JSets T.Issue
--- ^Compute 26 journal sets that cover all issues published in a
--- given year. The first 24 sets account for all monthly issues and
--- the first 48 weekly issues. The 25-th set accounts for 49-th and
--- 50-th weekly issues. The 26-th set is all straglers that may or
--- may not be published in the specified year. Note that there may be
--- fewer than 26 sets if some of the sets would otherwise be empty.
-yearly26Sets y refs = let (ws,ms) = splitByFreq refs
-                          wsets   = weekly26InYear y ws
-                          msets   = monthly26InYear y ms
-                      in  pack . zipWith T.JSet [1..]
-                               . filter ( not . null )
-                               $ C.zipLists wsets msets
-
-weekly26InYear :: Int -> T.References -> [[T.Issue]]
--- ^Compute 26 sets of weekly issues. The first 24 sets contain two
--- issues from each journal. The first 25 sets contain 2 issues from
--- each journal. The 26-th set contains 1 or 2 issues from each set
--- depending on whether 51 or 52 issues are published that year.
-weekly26InYear y = foldr go start . map (C.chunksOf 2 . issuesInYear y)
-    where start     = replicate 26 []
-          go xss ws = C.zipLists xss ws
-
-monthly26InYear :: Int -> T.References -> [[T.Issue]]
--- ^Compute 26 sets of monthly issues. The first two sets contain no
--- issues at all. The remaining 24 sets contain either one or two
--- issues from each journal.
-monthly26InYear _ []   = replicate 26 []
-monthly26InYear y refs = [] : [] : C.shuffleIn byqs byqrs
-    where ms    = C.collate 1 . map (issuesInYear y) $ refs
-          (q,r) = quotRem (length refs) 2
-          byqs  = C.takeEveryAt q (q+r) ms
-          byqrs = C.takeEveryAt (q+r) q . drop q $ ms
 
 ---------------------------------------------------------------------
 -- Helper functions
