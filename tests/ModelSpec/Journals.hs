@@ -64,8 +64,6 @@ spec_yearlySets = do
     it "works with no issues" $ do
         let T.JSets result = J.yearlySets 2019 2 testRefs_Empty
         result `shouldSatisfy` null
-    it "works with 3 monthly & 6 weekly issues at 2 week freq" $ do
-        check_yearly (J.yearlySets 2019 2 TR.issueRefs) "yearlySets_6W3M2F.txt"
     it "works with 1 monthly issue at 2 week freq" $ do
         check_yearly (J.yearlySets 2019 2 testRefs_1M) "yearlySets_0W1M2F.txt"
     it "works with 2 monthly issues at 2 week freq" $ do
@@ -80,6 +78,14 @@ spec_yearlySets = do
         check_yearly (J.yearlySets 2019 2 testRefs_3W) "yearlySets_3W0M2F.txt"
     it "works with 1 monthly & 1 weekly-first issues at 2 week freq" $ do
         check_yearly (J.yearlySets 2019 2 testRefs_1W1M) "yearlySets_1W1M2F.txt"
+    it "works with 3 monthly & 6 weekly issues at 1 week freq" $ do
+        check_yearly (J.yearlySets 2019 1 TR.issueRefs) "yearlySets_6W3M1F.txt"
+    it "works with 3 monthly & 6 weekly issues at 2 week freq" $ do
+        check_yearly (J.yearlySets 2019 2 TR.issueRefs) "yearlySets_6W3M2F.txt"
+    it "works with 3 monthly & 6 weekly issues at 5 week freq" $ do
+        check_yearly (J.yearlySets 2019 5 TR.issueRefs) "yearlySets_6W3M5F.txt"
+    it "works with 3 monthly & 6 weekly issues at 52 week freq" $ do
+        check_yearly (J.yearlySets 2019 52 TR.issueRefs) "yearlySets_6W3M52F.txt"
 
 -- =============================================================== --
 -- Working with journal issues
