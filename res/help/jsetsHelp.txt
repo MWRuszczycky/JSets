@@ -18,8 +18,7 @@ review is called a *selection*. A collection of 26 journal sets for
 an entire year can be constructed using the <year> command. Once
 constructed, this collection can then be edited, saved and used for
 the remainder of the year. Each journal set is dated according to
-when all issues in the set are expected to be published. These dates
-should be accurate to +/- one day.
+when all issues in the set are expected to be published.
 
 Given a collection of journal sets, a selection is created and
 assigned to students for review during Literature Review according to

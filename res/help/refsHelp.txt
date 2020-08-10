@@ -19,11 +19,9 @@ is specified by the corresponding fields in the configuration file:
                    monthly      : 12 issues each year (one per month)
                    weekly       : 52 issues each year (one per week)
                    weekly-first : 51/52 issues each year (one per
-                                  weekdrop but drop first issue of
-                                  the year)
+                                  week but drop first of the year)
                    weekly-last  : 51/52 issues each year (one per
-                                  weekdrop but drop the last issue of
-                                  the year)
+                                  week but drop last of the year)
     resets:    Does the issue number reset to 1 at the start of each
                year or does it continuously increase.
     volume:    The volume number of the reference issue of the
