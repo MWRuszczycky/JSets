@@ -29,7 +29,7 @@ import           System.Directory             ( getHomeDirectory
 runApp :: ([String], T.Config) -> T.ErrMonad ()
 runApp (cmds, config)
     | T.cHelp config    = liftIO . Tx.putStrLn . H.summary commands $ options
-    | T.cShowVer config = liftIO . Tx.putStrLn $ H.version
+    | T.cShowVer config = liftIO . Tx.putStrLn $ H.versionStr
     | otherwise         = runReaderT ( runCommands cmds ) config
 
 -- =============================================================== --
