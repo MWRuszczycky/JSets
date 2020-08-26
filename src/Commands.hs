@@ -198,7 +198,9 @@ yearCmd (y:w:_) = do
 checkYear :: String -> T.AppMonad Int
 checkYear y = do
     theYear <- maybe (throwError "Invalid YEAR.") pure . readMaybe $ y
-    minYear <- maximum . map T.year <$> A.references
+    minYear <- A.references >>= \case
+                   [] -> throwError "No references specified."
+                   rs -> pure . maximum . map T.year $ rs
     if minYear <= theYear && theYear <= 2100
        then pure theYear
        else throwError $ unwords [ "YEAR must be between"
