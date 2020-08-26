@@ -78,9 +78,9 @@ options =
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cNick = Just . pack $ x } ) "NICK" )
       "Override the configured nickname with NICK."
 
-    , Opt.Option "" [ "refs" ]
+    , Opt.Option "c" [ "config" ]
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cRefPath = Just x } ) "PATH" )
-      "Reset the references configuration path to PATH."
+      "Use the configuration file at path PATH."
 
     , Opt.Option "" [ "user" ]
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cUser = Just . pack $ x } ) "USER" )
