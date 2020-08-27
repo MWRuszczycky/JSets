@@ -9,7 +9,7 @@ reviewed during each Literature Review.
 The journals that are followed are specified in a configuration file.
 Each journal must be specified with a reference issue and a
 publication frequency from which all future issues can be computed.
-For more information on configuraing JSets, see the detailed help for
+For more information on configuring JSets, see the detailed help for
 the <refs> command.
 
 A set of all issues for review in a given Literature Review is called
