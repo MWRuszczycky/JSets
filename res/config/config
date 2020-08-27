@@ -1,0 +1,61 @@
+# References configuration file
+# Comments begin with hashes
+# extra whitespace and new lines are ignored
+
+user:       Manager's Name # Name of the person managing Literature Review
+nickname:   First Name     # Used for generating output files
+email:      youlemail.com  # Contact email for the manager.
+
+# journal: <journal name>/<unique abbreviation>
+#   pubmed:     <unique key for PubMed lookup>
+#   frequency:  <publication frequency>
+#               <monthly>
+#               <weekly>
+#               <weekly-first>
+#               <weekly-last>
+#   resets:     <true/false>
+#   volume:     <volume of reference issue>
+#   issue:      <issue number of reference issue>
+#   year:       <year of reference issue>
+#   month:      <month of reference issue>
+#   day:        <day of reference issue>
+
+journal: Journal of the American Chemical Society/JACS
+  pubmed:    J Am Chem Soc
+  frequency: weekly-first
+  resets:    yes
+  year:      2010
+  month:     january
+  day:       13
+  volume:    132
+  issue:     1
+
+journal: Nature/Nature
+  pubmed:    Nature
+  frequency: weekly-last
+  resets:    no
+  year:      2010
+  month:     january
+  day:       7
+  volume:    2010
+  issue:     7277
+
+journal: Proceedings of the National Academy of Sciences/PNAS
+  pubmed:    Proc Natl Acad Sci U S A
+  frequency: weekly
+  resets:    true
+  year:      2015
+  month:     january
+  day:       6
+  volume:    112
+  issue:     1
+
+journal: Nature Chemical Biology/Nat Chem Biol
+  pubmed:    Nat Chem Biol
+  frequency: monthly
+  resets:    true
+  year:      2010
+  month:     january
+  day:       1
+  volume:    6
+  issue:     1
