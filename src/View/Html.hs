@@ -122,12 +122,17 @@ saveInstructions name email = fill (Map.fromList dict) Temp.saveInstrHtml
 
 tocEntries :: T.Content -> Text
 -- ^Construct html for all citations in a Table of Contents.
-tocEntries (T.Content sel cs) =
-    let msg = "<p>There are no articles listed for this issue at PubMed</p>"
-        bdy | null cs   = Tx.replicate 12 " " <> msg
-            | otherwise = Tx.intercalate "\n" . map (tocEntry sel) $ cs
-        xys = Map.fromList [ ("issue", issueHeader sel), ("citations", bdy) ]
-    in  fill xys Temp.tocHtml
+tocEntries (T.Content sel url [])
+    | Tx.null url = fill xys Temp.tocMissingHtml
+    | otherwise   = fill xys Temp.tocMissingUrlHtml
+    where xys = Map.fromList [ ("issue", issueHeader sel  )
+                             , ("url",   "https://" <> url)
+                             ]
+tocEntries (T.Content sel _ cs) = fill xys Temp.tocHtml
+    where cstxt = Tx.intercalate "\n" . map (tocEntry sel) $ cs
+          xys   = Map.fromList [ ("issue",     issueHeader sel)
+                               , ("citations", cstxt          )
+                               ]
 
 tocEntry :: T.Selection -> T.Citation -> Text
 -- ^Construct html for a single citation in a Table of Contents.
@@ -144,11 +149,11 @@ tocEntry sel@(T.Selection _ ps) c
 rankListContents :: [T.Content] -> Text
 -- ^Construct html for all rank list elements in the content list.
 rankListContents = Tx.unlines . fst . foldl' go ([],1)
-    where go (xs,n) (T.Content sel cs) =
+    where go (xs,n) (T.Content sel _ cs) =
              ( xs <> zipWith (rankListElement sel) [n..] cs, length cs + n )
 
 rankListElement :: T.Selection -> Int -> T.Citation -> Text
--- ^Construct html for an citation element of a rank list.
+-- ^Construct html for a citation element of a rank list.
 rankListElement sel index cite = fill dict Temp.citationHtml
     where dict = rankListElementDict index sel cite
 

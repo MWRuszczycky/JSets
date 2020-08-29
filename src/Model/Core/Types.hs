@@ -301,6 +301,7 @@ instance MayMix Selection where
 -- been added possibly restricted by the selection.
 data Content = Content {
       selection :: Selection
+    , tocURL    :: Text
     , citations :: [Citation]
     } deriving ( Show, Eq )
 

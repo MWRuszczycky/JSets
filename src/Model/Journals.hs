@@ -241,10 +241,10 @@ selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
 
 emptyContent :: T.JSet T.Selection -> T.JSet T.Content
 emptyContent jset = T.JSet (T.setNo jset) . map go . T.issues $ jset
-    where go = flip T.Content []
+    where go x = T.Content x Tx.empty []
 
 restrictContent :: T.Content -> T.Content
-restrictContent ic@(T.Content iss cs) = ic { T.citations = cs' }
+restrictContent ic@(T.Content iss _ cs) = ic { T.citations = cs' }
     where sel = T.selected iss
           cs' = filter ( flip elem sel . T.pmid ) cs
 
@@ -266,7 +266,7 @@ addContent cites = foldr go ([],cites)
 addCitations :: T.Selection -> [T.Citation] -> (T.Content, [T.Citation])
 -- ^Add citations to a selection if they have been selected to
 -- generate an issue content and return any left over citations.
-addCitations sel = bimap (T.Content sel) id . foldr go ([],[])
+addCitations sel = bimap (T.Content sel Tx.empty) id . foldr go ([],[])
     where pmids        = T.selected sel
           go c (xs,cs) | elem (T.pmid c) pmids = (c:xs,cs)
                        | otherwise             = (xs,c:cs)

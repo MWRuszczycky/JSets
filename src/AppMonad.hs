@@ -129,7 +129,9 @@ downloadContent wreq sel = do
     -- PubMed allows at most 3 requests per second. We've alrady made
     -- two at this point, so we pause for another second.
     liftIO . D.wait $ 10^12
-    pure $ T.Content sel cites
+    if null cites
+       then handleMissingPMIDs sel
+       else pure $ T.Content sel Tx.empty cites
 
 downloadContents :: [T.Selection] -> T.AppMonad [T.Content]
 downloadContents xs = do
@@ -137,6 +139,14 @@ downloadContents xs = do
     contents <- mapM (downloadContent wreq) xs
     C.putTxtLnMIO "Done"
     pure contents
+
+handleMissingPMIDs :: T.Selection -> T.AppMonad T.Content
+handleMissingPMIDs sel = do
+    C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue sel
+    C.putTxtLnMIO $ "  Enter an alternate URL or just press enter to continue:"
+    C.putTxtMIO   $ "    https://"
+    url <- Tx.strip . Tx.pack <$> liftIO getLine
+    pure $ T.Content sel url []
 
 -- =============================================================== --
 -- Rank matching

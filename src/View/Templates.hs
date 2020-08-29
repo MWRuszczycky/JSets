@@ -14,6 +14,8 @@ module View.Templates
     , issueJS
     , tocsHtml
     , tocHtml
+    , tocMissingHtml
+    , tocMissingUrlHtml
     , saveInstrHtml
     , saveInstrBasicHtml
     , tocInstrHtml
@@ -136,6 +138,20 @@ tocHtml :: Template
 -- articles : html for all articles in the issue
 tocHtml = parseTemplate' "res/html/toc.html"
           $(FE.embedStringFile "res/html/toc.html")
+
+tocMissingHtml :: Template
+-- ^Table of contents substitute when there are no PMIDs at PubMed
+-- issue : issue header
+tocMissingHtml = parseTemplate' "res/html/tocMissing.html"
+                 $(FE.embedStringFile "res/html/tocMissing.html")
+
+tocMissingUrlHtml :: Template
+-- ^Same as tocMissingHtml but with an alternate link to the table of
+-- contents at the publisher's website.
+-- issue : issue header
+-- url   : url to the toc at the publisher's website.
+tocMissingUrlHtml = parseTemplate' "res/html/tocMissingUrl.html"
+                    $(FE.embedStringFile "res/html/tocMissingUrl.html")
 
 citationHtml :: Template
 -- ^Paragraph environment for a single article citation

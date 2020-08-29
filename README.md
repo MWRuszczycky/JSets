@@ -18,7 +18,7 @@ Given a collection of journal sets, a selection is created and assigned to the g
 
 ### PubMed
 
-*JSets* works closely with [PubMed](https://pubmed.ncbi.nlm.nih.gov/) to determine what articles are in each issue of a configured journal. Therefore, all the *JSets* features will not work with journals that are not tracked by *PubMed*. However, *JSets* *does not* require that journal articles also be available at [PubMed Central](https://www.ncbi.nlm.nih.gov/pmc/). I have found that every once in a while a journal issue does not appear to be properly indexed at *PubMed* so that it cannot be accessed using the standard search parameters. Consequently, *JSets* will fail to find such issue contents. This is a known issue that I am working on.
+*JSets* works closely with [PubMed](https://pubmed.ncbi.nlm.nih.gov/) to determine what articles are in each issue of a configured journal. Therefore, the *JSets* features will not all work with journals that are not tracked by *PubMed*. However, *JSets* *does not* require that journal articles also be available at [PubMed Central](https://www.ncbi.nlm.nih.gov/pmc/). I have also found that every once in a while a journal issue does not appear to be consistently indexed at *PubMed* so that it cannot be accessed using the standard search parameters that *JSets* uses. Consequently, *JSets* will fail to find such issue contents; however, when this happens you have the option to enter a URL directly to the table of contents at the publisher's website.
 
 ## Getting help
 
@@ -53,5 +53,3 @@ stack install
 ## To Do
 
 * List journal set numbers and dates without issue information
-* Handle issues missing from PubMed better.
-* Allow *ad hoc* articles to be included in a selection.

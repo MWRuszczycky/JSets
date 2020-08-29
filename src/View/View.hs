@@ -302,13 +302,13 @@ selectionTxt (T.Selection iss pmids) = do
 -- Views of Contents
 
 contentTxt :: T.Content -> T.ViewMonad ()
-contentTxt (T.Content sel cs) = do
+contentTxt (T.Content sel _ cs) = do
     issueTxt sel
     replicateM_ 2 Vc.newLine
     Vc.separate Vc.newLine . map (citationTxt sel) $ cs
 
 contentMkd :: T.Content -> T.ViewMonad ()
-contentMkd (T.Content x cs) = do
+contentMkd (T.Content x _ cs) = do
     Vc.write "## "
     issueMkd x
     replicateM_ 2 Vc.newLine
