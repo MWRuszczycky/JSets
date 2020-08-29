@@ -50,6 +50,16 @@ stack install
 
 *JSets* also requires a configuration file be provided that lists the journals that are reviewed during each *Literature Review*. A sample configuration files is provided in the `res/config/` that you can use as a template. You can specify a configuration file using the `--config/-c` option or you can create it as the `~/.config/jsets/config` file in your home directory.
 
+### Updating *JSets*
+
+To update *JSets* to the newest version, change to the *JSets* repository directory and run the following:
+```sh
+git pull origin master
+stack clean --full
+stack build
+```
+You can then install the updated version usinge `stack install` or run it through *Stack* inside the *JSets* repository with `stack exec jsets --`.
+
 ## To Do
 
 * List journal set numbers and dates without issue information
