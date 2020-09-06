@@ -4,11 +4,11 @@
 
 *JSets* is a tool customized for managing literature review in the laboratory where I work.
 
-The basic work flow involves the laboratory following a set collection of journals that may change periodically. Every other week a selection of articles from a set of issues from these journals is is reviewed and discussed in *Literature Review*. *JSets* helps in maintaining the set of issues and associated articles that will be reviewed during each *Literature Review*.
+The basic work flow involves the laboratory following a set collection of journals that may change periodically. Every other week a selection of articles from a set of issues from these journals is reviewed and discussed in *Literature Review*. *JSets* helps in maintaining the set of issues and associated articles that will be reviewed during each *Literature Review*.
 
 The journals that are followed are specified in a configuration file. Each journal must be specified with a reference issue and a publication frequency from which all future issues can be computed.
 
-A set of all issues for review in a given *Literature Review* is called a *journal set* and the corresponding selection of articles for review is called a *selection*. A collection of 26 journal sets for an entire year can be constructed using the `year` command. You can also specify journal set frequencies other than every two weeks. Once constructed, this collection can then be edited, saved and used for the remainder of the year. Each journal set is dated according to when all issues in the set are expected to be published.
+A set of all issues for review in a given *Literature Review* is called a *journal set* and the corresponding selection of articles for review is called a *selection*. A collection of 26 journal sets (i.e., every two weeks) for an entire year can be constructed using the `year` command. You can also specify journal set frequencies other than every two weeks. Once constructed, this collection can then be edited, saved and used for the remainder of the year. Each journal set is dated according to when all issues in the set are expected to be published.
 
 Given a collection of journal sets, a selection is created and assigned to the graduate students for review during *Literature Review* according to the following work flow:
 1. A table of contents `html` document is created for the journal set using the `toc` command and sent to those students who will be presenting. This document allows the students to propose their own selections for review.

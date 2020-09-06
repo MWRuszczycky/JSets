@@ -2,7 +2,7 @@ JSets is a tool for managing literature review in the laboratory.
 
 The laboratory follows a collection of journals. Every other week a
 selection of articles from a set of issues from these journals is
-is reviewed and discussed in *Literature Review*. JSets helps in
+reviewed and discussed in *Literature Review*. JSets helps in
 maintaining the set of issues and associated articles that will be
 reviewed during each Literature Review.
 
