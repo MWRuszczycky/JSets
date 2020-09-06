@@ -4,7 +4,7 @@
 
 user:       Manager's Name # Name of the person managing Literature Review
 nickname:   First Name     # Used for generating output files
-email:      youlemail.com  # Contact email for the manager.
+email:      your@email.com # Contact email for the manager.
 
 # journal: <journal name>/<unique abbreviation>
 #   pubmed:     <unique key for PubMed lookup>
