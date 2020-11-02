@@ -162,6 +162,7 @@ data Config = Config {
     , cInstrToc   :: Bool           -- show instructions it htms ToC
     , cShowVer    :: Bool           -- show version number flag
     , cVerbose    :: Bool           -- use verbose output
+    , cDelay      :: Integer        -- Delay in seconds between PubMed requests
     } deriving ( Show )
 
 defaultConfig :: Config
@@ -178,6 +179,7 @@ defaultConfig = Config {
     , cInstrToc   = False
     , cShowVer    = False
     , cVerbose    = False
+    , cDelay      = 1
     }
 
 data Command = Command {

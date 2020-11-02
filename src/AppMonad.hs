@@ -127,8 +127,9 @@ downloadContent wreq sel = do
     delta <- liftIO . D.deltaClock $ start
     C.putTxtLnMIO $ " (" <> Vc.showPicoSec delta <> ")"
     -- PubMed allows at most 3 requests per second. We've alrady made
-    -- two at this point, so we pause for another second.
-    liftIO . D.wait $ 10^12
+    -- two at this point, so we need to pause for at least 1 second.
+    delay <- asks T.cDelay
+    liftIO . D.wait $ delay * 10^12
     if null cites
        then handleMissingPMIDs sel
        else pure $ T.Content sel Tx.empty cites

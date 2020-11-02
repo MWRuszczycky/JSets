@@ -113,6 +113,10 @@ options =
     , Opt.Option "v" [ "version" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )
       "Just show the version number and quit."
+
+    , Opt.Option "" [ "delay" ]
+      ( Opt.ReqArg configDelay "SEC" )
+      "Delay in whole seconds between PubMed requests."
     ]
 
 configKey :: String -> T.Config -> T.ErrMonad T.Config
@@ -120,3 +124,9 @@ configKey key config
     | n < 1     = throwError $ "Key must be a positive integer."
     | otherwise = pure $ config { T.cJSetKey = Just n }
     where n = maybe 0 id . readMaybe $ key
+
+configDelay :: String -> T.Config -> T.ErrMonad T.Config
+configDelay delay config
+    | d < 1     = throwError $ "Delay time must be a positive integer."
+    | otherwise = pure $ config { T.cDelay = d }
+    where d = maybe 0 id . readMaybe $ delay
