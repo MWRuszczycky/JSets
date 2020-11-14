@@ -2,6 +2,5 @@
 dev/
 Setup.hs
 stack.yaml.lock
-default.nix
+*.nix
 result
-shell.nix
