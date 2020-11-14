@@ -29,24 +29,25 @@ module Model.Core.Types
     , Frequency         (..)
       -- Journal issues
     , Issue             (..)
-    , Selection         (..)
     , Content           (..)
+    , RawIssue          (..)
       -- Table of contents and citations
+    , PMID
     , Citation          (..)
     , PageNo            (..)
     , PageRange         (..)
-    , PMID
       -- Rank matchings
     , MatchResult       (..)
     ) where
 
-import Data.Time            ( Day, toGregorian  )
-import Data.Text            ( Text              )
-import Data.List            ( foldl', nub, sort )
-import Data.Monoid          ( Endo              )
-import Control.Monad.Except ( ExceptT           )
-import Control.Monad.Reader ( ReaderT, Reader   )
-import Control.Monad.Writer ( WriterT           )
+import qualified Data.Text             as Tx
+import           Data.Time                   ( Day, toGregorian  )
+import           Data.Text                   ( Text              )
+import           Data.List                   ( foldl', nub, sort )
+import           Data.Monoid                 ( Endo              )
+import           Control.Monad.Except        ( ExceptT           )
+import           Control.Monad.Reader        ( ReaderT, Reader   )
+import           Control.Monad.Writer        ( WriterT           )
 
 -- =============================================================== --
 -- Classes
@@ -200,26 +201,24 @@ data Format =
 
 -- |A Journal Set (JSet) is a list of all journal issues to be
 -- reviewed in a single along with an identifying INT key.
-data JSet a = JSet {
-      setNo  :: Int
-    , issues :: [a]
+data JSet = JSet {
+      setNo     :: Int
+    , issues    :: [Issue]
+    , selection :: [PMID]
     } deriving Show
 
-instance HasDate a => HasDate (JSet a) where
+instance HasDate JSet where
     date = maximum . map date . issues
 
--- The following instance satisifies associativety for mix of JSet
--- whenever associativity of mix is satisifed for a because
---   stir ( stir (xs <> ys) <> zs ) == stir ( (xs <> ys) <> zs              )
---                                  == stir (  xs        <> (ys <> zs)      )
---                                  == stir (  xs        <> stir (ys <> zs) )
-instance MayMix a => MayMix (JSet a) where
-    mix (JSet n1 s1) (JSet n2 s2)
-        | n1 == n2  = pure . JSet n1 . stir $ s1 <> s2
+instance MayMix JSet where
+    mix (JSet n1 i1 s1) (JSet n2 i2 s2)
+        | n1 == n2  = pure $ JSet n1 i3 s3
         | otherwise = Nothing
+        where i3 = nub $ i1 <> i2
+              s3 = nub $ s1 <> s2
 
 -- |A Collection of journal sets
-newtype JSets a = JSets [JSet a]
+newtype JSets = JSets [JSet]
 
 -- |A list of reference issues
 type References = [Issue]
@@ -247,22 +246,15 @@ data Frequency =
 -- =============================================================== --
 -- Journal Issues
 
--- Journal issues are defined in terms of a progression of types:
--- You start with an *Issue*, make a *Selection* based on the PMIDs
--- of the desired citations in the issue and then add the citations
--- to create a *Content*. Populating the citations may (or may not)
--- be modulated by the PMIDs in the *Selection*.
-
--- This may not be the best way to structure the data and pipeline.
--- For example, we could just have a single type that has separate
--- fields for the selection and content. This 'progression' approach
--- has caused some headaches, but it works for the most part, and it
--- makes at least some logical sense. For example, a base Issue
--- shouldn't have selected PMIDs at all.
+-- An Issue is the base description of a published issue of a journal.
+-- A Content is essentially the table of contents associated witha an
+-- Issue. It provides all the PubMed IDs of citations in the issue as
+-- well a possible URL where the ToC can be found at the publisher's
+-- website if necessary.
 
 ---------------------------------------------------------------------
 
--- |Basice information about a given issue of a journal.
+-- |Basic information about a given issue of a journal.
 data Issue = Issue {
       theDate    :: Day
     , theVolNo   :: Int
@@ -276,56 +268,59 @@ instance HasDate Issue where
 instance HasIssue Issue where
     issue = id
 
----------------------------------------------------------------------
-
--- |An Issue to which certain citations have been selected for review
--- etc. They are indexed by thier PMIDs. Once the selected citations
--- have been acquired, the Selection becomes a Content.
-data Selection = Selection {
-      theIssue :: Issue
-    , selected :: [PMID]
-    } deriving ( Show, Eq )
-
-instance HasDate Selection where
-    date = theDate . theIssue
-
-instance HasIssue Selection where
-    issue = theIssue
-
-instance MayMix Selection where
-    mix (Selection i1 s1) (Selection i2 s2)
-        | i1 == i2  = pure . Selection i1 . sort . nub $ s1 <> s2
+instance MayMix Issue where
+    mix i1 i2
+        | i1 == i2  = Just i1
         | otherwise = Nothing
 
 ---------------------------------------------------------------------
 
--- |A Selection to which the citations associated with the Issue have
--- been added possibly restricted by the selection.
+-- |Table of contents for an issue of a journal
 data Content = Content {
-      selection :: Selection
-    , tocURL    :: Text
-    , citations :: [Citation]
-    } deriving ( Show, Eq )
+      theIssue :: Issue  -- The issue the contents reflect.
+    , tocURL   :: Text   -- URL to the online ToC at the publisher's website.
+    , contents :: [PMID] -- PubMed IDs for all articles in the issue.
+    } deriving ( Show )
 
 instance HasIssue Content where
-    issue = theIssue . selection
+    issue = theIssue
 
 instance HasDate Content where
-    date = theDate . theIssue . selection
+    date = theDate . theIssue
+
+instance MayMix Content where
+    mix c1 c2
+        | issue c1 == issue c2 = Just c1 { tocURL = u, contents = xs }
+        | otherwise            = Nothing
+        where xs = nub $ contents c1 <> contents c2
+              u  | Tx.null (tocURL c1) = tocURL c2
+                 | otherwise           = tocURL c1
+
+---------------------------------------------------------------------
+
+-- |Issues of journals that are not configured. These are used for
+-- parsing citations based on PMIDs from PubMed.
+data RawIssue = RawIssue {
+      rawJournal :: Text
+    , rawVolNo   :: Maybe Int
+    , rawIssNo   :: Maybe Int
+    , rawDate    :: Maybe Day
+    } deriving ( Show, Eq )
 
 -- =============================================================== --
--- Citations and selections
+-- Citations
+
+type PMID = Text
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {
-      title   :: Text
-    , authors :: [Text]
-    , pages   :: PageRange
-    , doi     :: Text
-    , pmid    :: PMID
+      title    :: Text
+    , authors  :: [Text]
+    , pubIssue :: Either RawIssue Issue
+    , pages    :: PageRange
+    , doi      :: Text
+    , pmid     :: PMID
     } deriving ( Show, Eq )
-
-type PMID = Text
 
 ---------------------------------------------------------------------
 -- Page numbers
