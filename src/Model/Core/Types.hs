@@ -30,10 +30,10 @@ module Model.Core.Types
       -- Journal issues
     , Issue             (..)
     , Content           (..)
-    , RawIssue          (..)
       -- Table of contents and citations
     , PMID
     , Citation          (..)
+    , Citations
     , PageNo            (..)
     , PageRange         (..)
       -- Rank matchings
@@ -48,6 +48,7 @@ import           Data.Monoid                 ( Endo              )
 import           Control.Monad.Except        ( ExceptT           )
 import           Control.Monad.Reader        ( ReaderT, Reader   )
 import           Control.Monad.Writer        ( WriterT           )
+import           Data.Map.Strict             ( Map               )
 
 -- =============================================================== --
 -- Classes
@@ -201,24 +202,24 @@ data Format =
 
 -- |A Journal Set (JSet) is a list of all journal issues to be
 -- reviewed in a single along with an identifying INT key.
-data JSet = JSet {
+data JSet a = JSet {
       setNo     :: Int
-    , issues    :: [Issue]
+    , issues    :: [a]
     , selection :: [PMID]
     } deriving Show
 
-instance HasDate JSet where
+instance HasDate a => HasDate (JSet a) where
     date = maximum . map date . issues
 
-instance MayMix JSet where
+instance MayMix a => MayMix (JSet a) where
     mix (JSet n1 i1 s1) (JSet n2 i2 s2)
         | n1 == n2  = pure $ JSet n1 i3 s3
         | otherwise = Nothing
-        where i3 = nub $ i1 <> i2
-              s3 = nub $ s1 <> s2
+        where i3 = stir $ i1 <> i2
+              s3 = nub  $ s1 <> s2
 
 -- |A Collection of journal sets
-newtype JSets = JSets [JSet]
+newtype JSets a = JSets [JSet a]
 
 -- |A list of reference issues
 type References = [Issue]
@@ -296,17 +297,6 @@ instance MayMix Content where
               u  | Tx.null (tocURL c1) = tocURL c2
                  | otherwise           = tocURL c1
 
----------------------------------------------------------------------
-
--- |Issues of journals that are not configured. These are used for
--- parsing citations based on PMIDs from PubMed.
-data RawIssue = RawIssue {
-      rawJournal :: Text
-    , rawVolNo   :: Maybe Int
-    , rawIssNo   :: Maybe Int
-    , rawDate    :: Maybe Day
-    } deriving ( Show, Eq )
-
 -- =============================================================== --
 -- Citations
 
@@ -316,11 +306,19 @@ type PMID = Text
 data Citation = Citation {
       title    :: Text
     , authors  :: [Text]
-    , pubIssue :: Either RawIssue Issue
+    , pubIssue :: Issue
     , pages    :: PageRange
     , doi      :: Text
     , pmid     :: PMID
     } deriving ( Show, Eq )
+
+instance HasDate Citation where
+    date = date . pubIssue
+
+instance HasIssue Citation where
+    issue = pubIssue
+
+type Citations = Map PMID Citation
 
 ---------------------------------------------------------------------
 -- Page numbers

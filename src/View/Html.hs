@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module View.Html
-    ( tocBasic
-    , tocInstr
+    ( tocsHtml
     , rankList
     ) where
 
@@ -32,45 +31,26 @@ className iss = Tx.intercalate "-" xs
 -- =============================================================== --
 -- Exported html document compositors
 
-tocBasic :: T.JSet T.Content -> Text
+tocsHtml :: T.JSet T.Content -> T.Citations -> Text
 -- ^Generate the complete html web document for a table of contents.
--- This is the most simple output that contains no instructions or
--- JavaScript. It is basically equivalent to the Markdown output;
--- however, selected citations are highlighted.
-tocBasic jset@(T.JSet n contents) =
-    let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n            )
-               , ( "jsetHeader", Vc.jsetHeader jset                     )
-               , ( "savePrefix", savePrefix jset                        )
-               , ( "saveinstr",  fillNone Temp.saveInstrBasicHtml       )
-               , ( "issues",     issuesArray . T.issues $ jset          )
-               , ( "tocs",       Tx.unlines . map tocEntries $ contents )
+tocsHtml jset@(T.JSet n tocs sel) cs =
+    let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n                 )
+               , ( "jsetHeader", Vc.jsetHeader jset                          )
+               , ( "savePrefix", savePrefix jset                             )
+               , ( "instr",      fillNone Temp.tocInstrHtml                  )
+               , ( "saveinstr",  fillNone Temp.saveInstrHtml                 )
+               , ( "issues",     issuesArray . T.issues $ jset               )
+               , ( "tocs",       Tx.unlines . map (tocEntries cs sel) $ tocs )
                ]
     in fill (Map.fromList dict) Temp.tocsHtml
 
-tocInstr :: Text -> Text -> T.JSet T.Content -> Text
--- ^Generate the complete html web document for a table of contents.
--- This webpage allows check-box selection of article citations and
--- autogeneration of the selection text file. Include instructions at
--- the top for how to use the checkboxes.
-tocInstr name email jset@(T.JSet n contents) =
-    let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n            )
-               , ( "jsetHeader", Vc.jsetHeader jset                     )
-               , ( "savePrefix", savePrefix jset                        )
-               , ( "instr",      fillNone Temp.tocInstrHtml             )
-               , ( "saveinstr",  saveInstructions name email            )
-               , ( "issues",     issuesArray . T.issues $ jset          )
-               , ( "tocs",       Tx.unlines . map tocEntries $ contents )
-               ]
-    in fill (Map.fromList dict) Temp.tocsHtml
-
-rankList :: Text -> Text -> T.JSet T.Content -> Text
--- ^Construct html for the rank list of a journal set. Each Content
--- in the set must contain only the citations that have been selected.
-rankList name email (T.JSet n contents) =
-    let dict = [ ( "jsetTitle", "Journal Set " <> C.tshow n )
-               , ( "name",      name                        )
-               , ( "email",     " at " <> email             )
-               , ( "citations", rankListContents contents   )
+rankList :: Text -> Text -> T.Citations -> T.JSet a -> Text
+-- ^Construct html for the rank list of a journal set.
+rankList name email cs jset =
+    let dict = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
+               , ( "name",      name                                     )
+               , ( "email",     " at " <> email                          )
+               , ( "citations", rankListContents cs (T.selection jset)   )
                ]
     in fill (Map.fromList dict) Temp.rankListHtml
 
@@ -106,83 +86,77 @@ issueHeader iss = Tx.concat xs
                , C.tshow . T.issNo $ iss
                ]
 
----------------------------------------------------------------------
--- Other html components
-
-saveInstructions :: Text -> Text -> Text
--- ^Construct html for the save instructions for select and propose
--- style html tables of contents.
-saveInstructions name email = fill (Map.fromList dict) Temp.saveInstrHtml
-    where dict = [ ( "name",  name            )
-                 , ( "email", " at " <> email )
-                 ]
-
 -- --------------------------------------------------------------- --
 -- html of the citations in the Tables of Contents or Rank lists
 
-tocEntries :: T.Content -> Text
+tocEntries :: T.Citations -> [T.PMID] -> T.Content -> Text
 -- ^Construct html for all citations in a Table of Contents.
-tocEntries (T.Content sel url [])
+tocEntries _ _ (T.Content iss url [])
     | Tx.null url = fill xys Temp.tocMissingHtml
     | otherwise   = fill xys Temp.tocMissingUrlHtml
-    where xys = Map.fromList [ ("issue", issueHeader sel  )
+    where xys = Map.fromList [ ("issue", issueHeader iss  )
                              , ("url",   "https://" <> url)
                              ]
-tocEntries (T.Content sel _ cs) = fill xys Temp.tocHtml
-    where cstxt = Tx.intercalate "\n" . map (tocEntry sel) $ cs
-          xys   = Map.fromList [ ("issue",     issueHeader sel)
+tocEntries cs sel (T.Content iss _ pmids) = fill xys Temp.tocHtml
+    where cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
+          xys   = Map.fromList [ ("issue",     issueHeader iss)
                                , ("citations", cstxt          )
                                ]
 
-tocEntry :: T.Selection -> T.Citation -> Text
--- ^Construct html for a single citation in a Table of Contents.
--- Highlight citation if it has been selected.
-tocEntry sel@(T.Selection _ ps) c
-    | elem p ps = fill ( go " class=\"selected\"" ) Temp.citationHtml
-    | otherwise = fill ( go Tx.empty              ) Temp.citationHtml
-    where p    = T.pmid c
-          go u = Map.insert "selected" u . citationDict sel $ c
+tocEntry :: T.Citations -> [T.PMID] -> T.PMID -> Text
+-- ^Construct html for a single citation based on its PMID and a Map
+-- of citations. If the PMID is not a member of the Citations map,
+-- then it is ignored.
+tocEntry cs sel pmid = maybe Tx.empty go . Map.lookup pmid $ cs
+    where go c | elem pmid sel = fill (citationDictSel c) Temp.citationHtml
+               | otherwise     = fill (citationDict    c) Temp.citationHtml
 
 ---------------------------------------------------------------------
 -- html for tables of contents with only selected citations
 
-rankListContents :: [T.Content] -> Text
--- ^Construct html for all rank list elements in the content list.
-rankListContents = Tx.unlines . fst . foldl' go ([],1)
-    where go (xs,n) (T.Content sel _ cs) =
-             ( xs <> zipWith (rankListElement sel) [n..] cs, length cs + n )
+-- rankListContents :: [T.Content] -> Text
+rankListContents :: T.Citations -> [T.PMID] -> Text
 
-rankListElement :: T.Selection -> Int -> T.Citation -> Text
+-- ^Construct html for all rank list elements in the content list.
+rankListContents cs = Tx.unlines . map (uncurry rankListElement)
+                                 . zip [1..]
+                                 . map (flip Map.lookup cs)
+
+rankListElement :: Int -> Maybe T.Citation -> Text
 -- ^Construct html for a citation element of a rank list.
-rankListElement sel index cite = fill dict Temp.citationHtml
-    where dict = rankListElementDict index sel cite
+rankListElement n Nothing  = Tx.empty
+rankListElement n (Just c) = fill (rankCitationDict n c) Temp.citationHtml
 
 ---------------------------------------------------------------------
 -- html template dictionaries for citations
 
-rankListElementDict :: Int -> T.Selection -> T.Citation -> Map.Map Text Text
+rankCitationDict :: Int -> T.Citation -> Map.Map Text Text
 -- ^html template dictionary for rank list element.
-rankListElementDict index sel c = Map.union m . citationDict sel $ c
+rankCitationDict index c = Map.union m . citationDict $ c
     where m = Map.fromList [ ( "index", C.tshow index        )
                            , ( "length", Vc.citationLength c )
                            , ( "type",   "text"              )
                            , ( "class",  "_citation"         )
                            ]
 
-citationDict :: T.Selection -> T.Citation -> Map.Map Text Text
+citationDictSel :: T.Citation -> Map.Map Text Text
+-- ^Basic html template for a selected citation.
+citationDictSel = Map.insert "selected" " class=\"selected\"" . citationDict
+
+citationDict :: T.Citation -> Map.Map Text Text
 -- ^Basic html template for a citation.
-citationDict (T.Selection iss _) c = Map.fromList xys
-    where xys = [ ("id",       T.pmid c                        )
-                , ("class",    className iss                   )
-                , ("type",     "checkbox"                      )
-                , ("href",     T.doi c                         )
-                , ("title",    T.title       $ c               )
-                , ("authors",  Vc.authorLine $ c               )
-                , ("journal",  T.name  . T.journal $ iss       )
-                , ("volume",   C.tshow . T.volNo   $ iss       )
-                , ("number",   C.tshow . T.issNo   $ iss       )
-                , ("pages",    C.tshow . T.pages   $ c         )
-                , ("pmid",     T.pmid c                        )
+citationDict c = Map.fromList xys
+    where xys = [ ("id",       T.pmid c                          )
+                , ("class",    className . T.issue $ c           )
+                , ("type",     "checkbox"                        )
+                , ("href",     T.doi c                           )
+                , ("title",    T.title c                         )
+                , ("authors",  Vc.authorLine c                   )
+                , ("journal",  T.name  . T.journal . T.issue $ c )
+                , ("volume",   C.tshow . T.volNo   . T.issue $ c )
+                , ("number",   C.tshow . T.issNo   . T.issue $ c )
+                , ("pages",    C.tshow . T.pages   $ c           )
+                , ("pmid",     T.pmid c                          )
                 ]
 
 -- --------------------------------------------------------------- --

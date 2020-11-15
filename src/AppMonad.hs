@@ -18,17 +18,18 @@ module AppMonad
     , runMatch
     ) where
 
+import qualified Data.Map.Strict           as Map
 import qualified Data.Text                 as Tx
-import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Dates          as D
+import qualified Model.Core.Types          as T
 import qualified Model.Journals            as J
-import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.JournalSets as P
-import qualified View.View                 as V
+import qualified Model.Parsers.PubMed      as P
 import qualified View.Core                 as Vc
-import           Network.Wreq.Session               ( newSession     )
+import qualified View.View                 as V
 import           Data.Text                          ( Text           )
+import           Network.Wreq.Session               ( newSession     )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO
                                                     , runExceptT
@@ -41,7 +42,7 @@ import           Control.Monad.Except               ( liftIO
 ---------------------------------------------------------------------
 -- Acquiring journal sets
 
-readJSets :: FilePath -> T.AppMonad (T.JSets T.Selection)
+readJSets :: FilePath -> T.AppMonad (T.JSets T.Issue)
 -- ^Obtain a collection of journal sets from a file.
 readJSets fp = do
     content <- lift . C.readFileErr $ fp
@@ -98,56 +99,56 @@ getIssue abbr v n = references >>= maybe err pure . go
 -- =============================================================== --
 -- PubMed Pipeline
 
-downloadPMIDs :: T.HasIssue a => C.WebRequest -> a -> T.AppMonad [Text]
+downloadPMIDs :: T.HasIssue a => C.WebRequest -> a -> T.AppMonad [T.PMID]
 downloadPMIDs wreq iss = do
     let query = J.tocESearchQuery iss
     C.putTxtMIO $ "Downloading " <> V.showIssue iss <> " PMIDs..."
     result <- liftIO . runExceptT . wreq query $ J.eSearchUrl
     case result >>= P.parsePMIDs of
-         Left err  -> C.putStrMIO err                    *> pure []
-         Right []  -> C.putStrMIO "None found at PubMed" *> pure []
-         Right ids -> C.putStrMIO "OK "                  *> pure ids
+         Left err    -> C.putStrMIO err                    *> pure []
+         Right []    -> C.putStrMIO "None found at PubMed" *> pure []
+         Right pmids -> C.putStrMIO "OK "                  *> pure pmids
 
-downloadCitations :: C.WebRequest -> [Text] -> T.AppMonad [T.Citation]
-downloadCitations _    []    = pure []
+-- downloadCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad [T.Citation]
+downloadCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
+downloadCitations _    []    = pure Map.empty
 downloadCitations wreq pmids = do
     C.putTxtMIO "Downloading Citations..."
     let query = J.tocESumQuery pmids
     result <- liftIO . runExceptT . wreq query $ J.eSummaryUrl
-    case result >>= P.parseCitations of
-         Left  err     -> C.putStrMIO err  *> pure []
+    case result >>= P.parseCitations pmids of
+         Left  err     -> C.putStrMIO err  *> pure Map.empty
          Right ([],cs) -> C.putStrMIO "OK" *> pure cs
          Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
                           in  C.putTxtMIO msg *> pure cs
 
-downloadContent :: C.WebRequest -> T.Selection -> T.AppMonad T.Content
-downloadContent wreq sel = do
+downloadContent :: C.WebRequest -> T.Issue -> T.AppMonad T.Content
+downloadContent wreq iss = do
     start <- liftIO D.readClock
-    cites <- downloadPMIDs wreq sel >>= downloadCitations wreq
+    pmids <- downloadPMIDs wreq iss
     delta <- liftIO . D.deltaClock $ start
     C.putTxtLnMIO $ " (" <> Vc.showPicoSec delta <> ")"
-    -- PubMed allows at most 3 requests per second. We've alrady made
-    -- two at this point, so we need to pause for at least 1 second.
+    -- Delay by at least one second or risk being cutoff by PubMed.
     delay <- asks T.cDelay
     liftIO . D.wait $ delay * 10^12
-    if null cites
-       then handleMissingPMIDs sel
-       else pure $ T.Content sel Tx.empty cites
+    if null pmids
+       then handleMissingPMIDs iss
+       else pure $ T.Content iss Tx.empty pmids
 
-downloadContents :: [T.Selection] -> T.AppMonad [T.Content]
+downloadContents :: [T.Issue] -> T.AppMonad [T.Content]
 downloadContents xs = do
     wreq     <- C.webRequestIn <$> liftIO newSession
     contents <- mapM (downloadContent wreq) xs
     C.putTxtLnMIO "Done"
     pure contents
 
-handleMissingPMIDs :: T.Selection -> T.AppMonad T.Content
-handleMissingPMIDs sel = do
-    C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue sel
+handleMissingPMIDs :: T.Issue -> T.AppMonad T.Content
+handleMissingPMIDs iss = do
+    C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue iss
     C.putTxtLnMIO $ "  Enter an alternate URL or just press enter to continue:"
     C.putTxtMIO   $ "    https://"
     url <- Tx.strip . Tx.pack <$> liftIO getLine
-    pure $ T.Content sel url []
+    pure $ T.Content iss url []
 
 -- =============================================================== --
 -- Rank matching

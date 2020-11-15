@@ -60,25 +60,25 @@ import           Data.List                    ( (\\), find
 ---------------------------------------------------------------------
 -- Basic operations
 
-pack :: [T.JSet] -> T.JSets
+pack :: [T.JSet a] -> T.JSets a
 pack = T.JSets
 
-unpack :: T.JSets -> [T.JSet]
+unpack :: T.JSets a -> [T.JSet a]
 unpack (T.JSets jsets) = jsets
 
-emptyJSets :: T.JSets
+emptyJSets :: T.JSets a
 emptyJSets = T.JSets []
 
-lookupJSet :: Int -> T.JSets -> Maybe T.JSet
+lookupJSet :: Int -> T.JSets a -> Maybe (T.JSet a)
 lookupJSet k (T.JSets jsets) = find ( (==k) . T.setNo ) jsets
 
-combineJSets :: [T.JSets] -> T.JSets
+combineJSets :: T.MayMix a => [T.JSets a] -> T.JSets a
 combineJSets = pack . T.stir . concatMap unpack
 
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
 
-yearlySets :: Int -> Int -> T.References -> T.JSets
+yearlySets :: Int -> Int -> T.References -> T.JSets T.Issue
 -- Compute the issues in each journal set for a specified year given
 -- some frequency k (in weeks) of the journal sets.
 yearlySets y k refs

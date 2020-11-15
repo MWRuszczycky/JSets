@@ -4,17 +4,18 @@ module Model.Parsers.PubMed
     , parsePMIDs
     ) where
 
+import qualified Data.Attoparsec.Text as At
+import qualified Data.Text            as Tx
+import qualified Data.Map.Strict      as Map
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
-import qualified Data.Text            as Tx
 import qualified Model.Parsers.JSON   as JS
 import qualified Model.Parsers.Core   as P
-import qualified Data.Attoparsec.Text as At
-import           Data.Time                    ( Day, fromGregorian )
-import           Data.Text                    ( Text               )
+import           Control.Applicative          ( (<|>), many        )
 import           Data.List                    ( sortBy             )
 import           Data.Ord                     ( comparing          )
-import           Control.Applicative          ( many               )
+import           Data.Text                    ( Text               )
+import           Data.Time                    ( Day, fromGregorian )
 
 -- =============================================================== --
 -- Parsing PubMed Entrez ESearch results
@@ -27,48 +28,53 @@ parsePMIDs json = JS.parse json >>= maybe err pure . go
 -- =============================================================== --
 -- Parsing PubMed Entrez ESummary results
 
-parseCitations :: Text -> Either T.ErrString ([T.PMID], [T.Citation])
+parseCitations :: [T.PMID] -> Text -> Either T.ErrString ([T.PMID], T.Citations)
 -- ^Parse esummary json from PubMed to construct citations. If any
 -- pmids are indexed in the json but do not have corresponding
 -- document summaries, these pmids are also returned; however, this
--- should never happen unless PubMed is not working correctly. The
--- issue in each parsed citation is always a Left RawIssue.
-parseCitations txt = do
+-- should never happen unless PubMed is not working correctly.
+parseCitations pmids txt = do
     json  <- JS.parse txt
-    pmids <- getResultIDs json
     let (cs, missing) = C.splitMaybe . map (getCitation json) $ pmids
-    pure (missing, sortBy (comparing T.pages) . snd . unzip $ cs)
+    pure (missing, Map.fromList cs)
 
 ---------------------------------------------------------------------
 -- Components
-
-getResultIDs :: JS.JSON -> Either T.ErrString [T.PMID]
--- ^Read the PMID in the JSON file. These should be provided in the
--- 'result.uids' list of the ESummary JSON.
-getResultIDs = maybe err pure . JS.lookupListWith [ "result", "uids" ] JS.str
-    where err = Left "Unable to find PMIDs in ESummary JSON."
 
 getCitation :: JS.JSON -> T.PMID -> (T.PMID, Maybe T.Citation)
 getCitation json pmid = (pmid, c)
     where c = do doc <- JS.lookupWith [ "result", pmid ] pure json
                  T.Citation <$> JS.lookupWith [ "title" ] JS.str doc
-                            <*> getAuthors  doc
-                            <*> getRawIssue doc
-                            <*> getPages    doc
-                            <*> getDoi      doc
-                            <*> pure        pmid
+                            <*> getAuthors doc
+                            <*> getIssue   doc
+                            <*> getPages   doc
+                            <*> getDoi     doc
+                            <*> pure       pmid
 
 getAuthors :: JS.JSON -> Maybe [Text]
 getAuthors json = JS.lookupListWith [ "authors" ] go json
     where go = JS.lookupWith [ "name" ] JS.str
 
-getRawIssue :: JS.JSON -> Maybe (Either T.RawIssue T.Issue)
-getRawIssue json = JS.lookupWith [ "source" ] JS.str json >>= pure . Left . go
-    where go j = T.RawIssue j
-                 ( JS.lookupWith [ "volume"  ] JS.str json >>= C.readMaybeTxt )
-                 ( JS.lookupWith [ "issue"   ] JS.str json >>= C.readMaybeTxt )
-                 ( JS.lookupWith [ "pubdate" ] JS.str json >>=
-                       either (const Nothing) pure . At.parseOnly parseDate )
+getIssue :: JS.JSON -> Maybe T.Issue
+getIssue json = T.Issue <$> getDate json
+                        <*> getInt [ "volume" ] json
+                        <*> getInt [ "issue"  ] json
+                        <*> getJournal json
+
+getDate :: JS.JSON -> Maybe Day
+getDate json = dateTxt >>= either (const Nothing) pure . At.parseOnly parseDate
+    where dateTxt = JS.lookupWith [ "pubdate" ] JS.str json
+                    <|> JS.lookupWith ["epubdate" ] JS.str json
+
+getInt :: [Text] -> JS.JSON -> Maybe Int
+getInt keys json = mbInt <|> Just 0
+    where mbInt = JS.lookupWith keys JS.str json >>= C.readMaybeTxt
+
+-- This needs to be fixed. It defaults to a Weekly/Resets publication
+-- frequency.
+getJournal :: JS.JSON -> Maybe T.Journal
+getJournal json = JS.lookupWith [ "source" ] JS.str json >>= pure . go
+    where go j = T.Journal j j j T.Weekly True
 
 getDoi :: JS.JSON -> Maybe Text
 getDoi json = JS.lookupWith [ "elocationid" ] JS.str json >>= go

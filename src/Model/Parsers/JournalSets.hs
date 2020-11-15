@@ -20,12 +20,12 @@ import           Data.Char                    ( isSpace, isDigit
 -- =============================================================== --
 -- Main parsers
 
-parseJSets :: [T.Issue] -> Text -> Either T.ErrString T.JSets
+parseJSets :: [T.Issue] -> Text -> Either T.ErrString (T.JSets T.Issue)
 -- ^Parse JSets from a csv or text file. First attempts to parse from
 -- csv and if that fails then tries to parse from text.
 parseJSets refs x = parseCsv refs x <|> parseTxt refs x
 
-parseCsv :: [T.Issue] -> Text -> Either T.ErrString T.JSets
+parseCsv :: [T.Issue] -> Text -> Either T.ErrString (T.JSets T.Issue)
 -- ^Parse a properly formatted csv file to a collection of JSets.
 -- The csv file should not contain any empty rows between sets. Empty
 -- csv cells are treated as no issues for the corresponding journal.
@@ -35,7 +35,7 @@ parseCsv refs x = let err = (<>) "Cannot parse CSV: "
                                      >>= csvCollection
                                      >>= validate refs
 
-parseTxt :: [T.Issue] -> Text -> Either T.ErrString T.JSets
+parseTxt :: [T.Issue] -> Text -> Either T.ErrString (T.JSets T.Issue)
 -- ^Parse a properly formatted text file to a Collection.
 parseTxt refs t = let err = (<>) "Cannot parse selection: "
                   in  bimap err id $ At.parseOnly txtJSets t >>= validate refs
@@ -60,10 +60,10 @@ type Issue' = ( Text, Int, Int )
 ---------------------------------------------------------------------
 -- Validation
 
-validate :: T.References -> [JSet'] -> Either T.ErrString T.JSets
+validate :: T.References -> [JSet'] -> Either T.ErrString (T.JSets T.Issue)
 validate refs js = mapM (validateJSet refs) js >>= packJSets
 
-validateJSet :: T.References -> JSet' -> Either T.ErrString T.JSet
+validateJSet :: T.References -> JSet' -> Either T.ErrString (T.JSet T.Issue)
 validateJSet refs (n,xs,ids) = T.JSet <$> pure n
                                       <*> mapM (validateIssue refs) xs
                                       <*> pure ids
@@ -72,7 +72,7 @@ validateIssue :: T.References -> Issue' -> Either T.ErrString T.Issue
 validateIssue refs (j,v,n) = maybe err pure . J.lookupIssue refs j $ (v,n)
     where err = Left $ invalidIssErr j v n
 
-packJSets :: [T.JSet]-> Either T.ErrString T.JSets
+packJSets :: [T.JSet T.Issue]-> Either T.ErrString (T.JSets T.Issue)
 packJSets js
     | duplicateSetNos js = Left "There are duplicated journal set numbers."
     | otherwise          = pure . J.pack $ js
@@ -176,7 +176,7 @@ csvIssue abbrs xs = fmap concat . sequence . zipWith go abbrs $ ys
 -- =============================================================== --
 -- Helper functions
 
-duplicateSetNos :: [T.JSet] -> Bool
+duplicateSetNos :: [T.JSet T.Issue] -> Bool
 -- ^Check for duplicated journal set numbers.
 duplicateSetNos = go . map T.setNo
     where go []     = False
