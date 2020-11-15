@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module AppMonad
     ( -- Data structer construction & aquisition
@@ -99,7 +100,10 @@ getIssue abbr v n = references >>= maybe err pure . go
 -- =============================================================== --
 -- PubMed Pipeline
 
-downloadPMIDs :: T.HasIssue a => C.WebRequest -> a -> T.AppMonad [T.PMID]
+---------------------------------------------------------------------
+-- Core pipeline functions
+
+downloadPMIDs :: C.WebRequest -> T.Issue -> T.AppMonad [T.PMID]
 downloadPMIDs wreq iss = do
     let query = J.tocESearchQuery iss
     C.putTxtMIO $ "Downloading " <> V.showIssue iss <> " PMIDs..."
@@ -109,23 +113,27 @@ downloadPMIDs wreq iss = do
          Right []    -> C.putStrMIO "None found at PubMed" *> pure []
          Right pmids -> C.putStrMIO "OK "                  *> pure pmids
 
--- downloadCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad [T.Citation]
-downloadCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
-downloadCitations _    []    = pure Map.empty
-downloadCitations wreq pmids = do
+downloadCitations :: C.WebRequest -> Maybe T.Issue -> [T.PMID]
+                     -> T.AppMonad T.Citations
+downloadCitations _    _     []    = pure Map.empty
+downloadCitations wreq mbIss pmids = do
     C.putTxtMIO "Downloading Citations..."
     let query = J.tocESumQuery pmids
     result <- liftIO . runExceptT . wreq query $ J.eSummaryUrl
-    case result >>= P.parseCitations pmids of
+    case result >>= P.parseCitations (T.issue <$> mbIss) pmids of
          Left  err     -> C.putStrMIO err  *> pure Map.empty
          Right ([],cs) -> C.putStrMIO "OK" *> pure cs
          Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
                           in  C.putTxtMIO msg *> pure cs
 
-downloadContent :: C.WebRequest -> T.Issue -> T.AppMonad T.Content
+---------------------------------------------------------------------
+-- Downloading issue content
+
+downloadContent :: C.WebRequest -> T.Issue -> T.AppMonad (T.Citations, T.Content)
 downloadContent wreq iss = do
     start <- liftIO D.readClock
     pmids <- downloadPMIDs wreq iss
+    cites <- downloadCitations wreq (Just iss) pmids
     delta <- liftIO . D.deltaClock $ start
     C.putTxtLnMIO $ " (" <> Vc.showPicoSec delta <> ")"
     -- Delay by at least one second or risk being cutoff by PubMed.
@@ -133,23 +141,26 @@ downloadContent wreq iss = do
     liftIO . D.wait $ delay * 10^12
     if null pmids
        then handleMissingPMIDs iss
-       else pure $ T.Content iss Tx.empty pmids
+       else pure $ (cites, T.Content iss Tx.empty pmids)
 
 downloadToCs :: [T.Issue] -> T.AppMonad (T.Citations, [T.Content])
+-- ^PubMed has a limit on the length of a request. Too many PMIDs
+-- requested will generate a 414 error. So, it is best to request the
+-- citations for each issue separately then combine them rather than
+-- collecting all the PMIDs for all issues into a single request.
 downloadToCs xs = do
-    wreq      <- C.webRequestIn <$> liftIO newSession
-    contents  <- mapM (downloadContent wreq) xs
-    citations <- downloadCitations wreq (concatMap T.contents contents)
+    wreq          <- C.webRequestIn <$> liftIO newSession
+    (cites,conts) <- unzip <$> mapM (downloadContent wreq) xs
     C.putTxtLnMIO "Done"
-    pure (citations, contents)
+    pure (mconcat cites, conts)
 
-handleMissingPMIDs :: T.Issue -> T.AppMonad T.Content
+handleMissingPMIDs :: T.Issue -> T.AppMonad (T.Citations, T.Content)
 handleMissingPMIDs iss = do
     C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue iss
     C.putTxtLnMIO $ "  Enter an alternate URL or just press enter to continue:"
     C.putTxtMIO   $ "    https://"
     url <- Tx.strip . Tx.pack <$> liftIO getLine
-    pure $ T.Content iss url []
+    pure $ (Map.empty, T.Content iss url [])
 
 -- =============================================================== --
 -- Rank matching

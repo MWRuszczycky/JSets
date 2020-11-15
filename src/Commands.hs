@@ -108,37 +108,9 @@ ranksCmd [] = throwError "Path(s) to journal set selection files required!"
 ranksCmd fps = do
     jsets     <- J.combineJSets <$> mapM A.readJSets fps
     jset      <- asks T.cJSetKey >>= A.getJSet jsets
-    citations <- A.downloadCitations C.webRequest . T.selection $ jset
+    citations <- A.downloadCitations C.webRequest Nothing . T.selection $ jset
     C.putStrLnMIO "\nDone"
-    -- let (ics, cs) = J.addContent citations sel
-    --     jset      = T.JSet n ics
-    -- checkForUnrequestedCitations cs
-    -- checkForMissingCitations ics
     V.runView ( V.viewRanks citations jset ) >>= display
-
--- checkForUnrequestedCitations :: [T.Citation] -> T.AppMonad ()
--- -- ^These are citations that were downloaded from PubMed but not were
--- -- not requested as part of the selection. In principle, there should
--- -- never be any unrequested citations if PubMed is working correctly.
--- -- These will not be included in the constructed content. We just
--- -- to let the user know that something weird happened.
--- checkForUnrequestedCitations [] = pure ()
--- checkForUnrequestedCitations cs = do
---     C.putTxtMIO "There are unrequested citations returned by PubMed, PMIDs: "
---     C.putTxtLnMIO . Tx.unwords . map T.pmid $ cs
---     C.putTxtMIO "  These have not been included in the ranks list output."
---
--- checkForMissingCitations :: [T.Content] -> T.AppMonad ()
--- -- ^Check to make sure each pmid in the selection for each issue has
--- -- a corresponding citation. Otherwise, the citation is missing. Note
--- -- that there will never be citations without corresponding pmids.
--- -- These will always end up as unrequested citations, because only
--- -- the requested citations are incorporated into the issue contents.
--- checkForMissingCitations ics
---     | null pmids = pure ()
---     | otherwise  = C.putTxtLnMIO msg
---     where pmids = concatMap J.missingPMIDs ics
---           msg   = "There are missing citations, PMIDS: " <> Tx.unwords pmids
 
 ---------------------------------------------------------------------
 -- File reading and conversion

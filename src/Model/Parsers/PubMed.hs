@@ -26,25 +26,26 @@ parsePMIDs json = JS.parse json >>= maybe err pure . go
 -- =============================================================== --
 -- Parsing PubMed Entrez ESummary results
 
-parseCitations :: [T.PMID] -> Text -> Either T.ErrString ([T.PMID], T.Citations)
+parseCitations :: Maybe T.Issue -> [T.PMID] -> Text
+                  -> Either T.ErrString ([T.PMID], T.Citations)
 -- ^Parse esummary json from PubMed to construct citations. If any
 -- pmids are indexed in the json but do not have corresponding
 -- document summaries, these pmids are also returned; however, this
 -- should never happen unless PubMed is not working correctly.
-parseCitations pmids txt = do
+parseCitations mbIssue pmids txt = do
     json  <- JS.parse txt
-    let (cs, missing) = C.splitMaybe . map (getCitation json) $ pmids
+    let (cs, missing) = C.splitMaybe . map (getCitation mbIssue json) $ pmids
     pure (missing, Map.fromList cs)
 
 ---------------------------------------------------------------------
 -- Components
 
-getCitation :: JS.JSON -> T.PMID -> (T.PMID, Maybe T.Citation)
-getCitation json pmid = (pmid, c)
+getCitation :: Maybe T.Issue -> JS.JSON -> T.PMID -> (T.PMID, Maybe T.Citation)
+getCitation mbIssue json pmid = (pmid, c)
     where c = do doc <- JS.lookupWith [ "result", pmid ] pure json
                  T.Citation <$> JS.lookupWith [ "title" ] JS.str doc
                             <*> getAuthors doc
-                            <*> getIssue   doc
+                            <*> ( mbIssue <|> getIssue doc )
                             <*> getPages   doc
                             <*> getDoi     doc
                             <*> pure       pmid
@@ -99,8 +100,9 @@ parsePageNumbers = do
     pure $ T.InPrint (T.PageNo prefix0 suffix0) (T.PageNo prefix1 suffix1)
 
 parseDate :: At.Parser Day
-parseDate = fromGregorian <$> P.unsigned <*> month <*> P.unsigned'
+parseDate = fromGregorian <$> P.unsigned <*> month <*> day
     where month  = At.skipSpace *> At.choice aMonth <* At.skipSpace
+          day    = P.unsigned' <|> pure 0
           aMonth = [ At.string "Jan" *> At.skipSpace *> pure 1
                    , At.string "Feb" *> At.skipSpace *> pure 2
                    , At.string "Mar" *> At.skipSpace *> pure 3

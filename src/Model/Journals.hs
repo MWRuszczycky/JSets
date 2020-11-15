@@ -21,14 +21,6 @@ module Model.Journals
     , nextWeekly
     , nextMonthly
 
-      -- Working with selection sets
---    , selectNone
---    , emptyContent
---    , restrictContent
---    , missingPMIDs
---    , addContent
---    , addCitations
-
       -- Working with rank matching
     , score
     , match
@@ -232,44 +224,6 @@ nextWeekly x1
           n2  = succ . T.theIssNo $ x1
           x2  = x1 { T.theIssNo = n2 }
           n2y = if T.resets . T.theJournal $ x1 then 1 else n2
-
--- =============================================================== --
--- Working with selection sets for review
-
---selectNone :: T.JSet T.Issue -> T.JSet T.Selection
---selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
---
---emptyContent :: T.JSet T.Selection -> T.JSet T.Content
---emptyContent jset = T.JSet (T.setNo jset) . map go . T.issues $ jset
---    where go x = T.Content x Tx.empty []
---
---restrictContent :: T.Content -> T.Content
---restrictContent ic@(T.Content iss _ cs) = ic { T.citations = cs' }
---    where sel = T.selected iss
---          cs' = filter ( flip elem sel . T.pmid ) cs
---
---missingPMIDs :: T.Content -> [T.PMID]
----- ^Given an issue content with citations, return the PMIDs of all
----- citations that were selected but are not in the content citations.
---missingPMIDs content = sPMIDs \\ cPMIDs
---    where cPMIDs = map T.pmid . T.citations $ content
---          sPMIDs = T.selected . T.selection $ content
---
---addContent :: [T.Citation] -> [T.Selection] -> ([T.Content], [T.Citation])
----- ^Take a list of selections and a list of citations and add each
----- citation to the appropriate selection in former to generate a list
----- of contents. Return any left-over citations that were not among
----- the selections. Repeated selections will not be populated.
---addContent cites = foldr go ([],cites)
---    where go x (xs,cs) = bimap (:xs) id $ addCitations x cs
---
---addCitations :: T.Selection -> [T.Citation] -> (T.Content, [T.Citation])
----- ^Add citations to a selection if they have been selected to
----- generate an issue content and return any left over citations.
---addCitations sel = bimap (T.Content sel Tx.empty) id . foldr go ([],[])
---    where pmids        = T.selected sel
---          go c (xs,cs) | elem (T.pmid c) pmids = (c:xs,cs)
---                       | otherwise             = (xs,c:cs)
 
 -- =============================================================== --
 -- Working with rank-matchings for assigning selections

@@ -25,10 +25,6 @@ spec = hspec $ do
         spec_issueAtDate
     describe "Model.Journals.yearlySets" $ do
         spec_yearlySets
-    describe "Model.Journals.addCitations" $ do
-        spec_addCitations
-    describe "Model.Journals.missingPMIDs" $ do
-        spec_missingPMIDs
     describe "Model.Journals.score" $ do
         spec_score
 
@@ -54,7 +50,7 @@ testRefs_1W1M = [ TR.biochemistryRef, TR.natChemRef ]
 check_yearly :: T.JSets T.Issue -> FilePath -> IO ()
 check_yearly jsets path = do
     expected <- Tx.readFile $ "tests/res/" <> path
-    Mock.runView ( V.jsetsIssueTxt jsets ) `shouldBe` expected
+    Mock.runView ( V.jsetsTxt jsets ) `shouldBe` expected
 
 ---------------------------------------------------------------------
 -- Model.Journals.yearly26Sets
@@ -269,81 +265,6 @@ test_IssuesForCellChemBiol = do
         checkVolNum n7 23 11
         checkVolNum n8 23 12
         checkVolNum n9 24 1
-
--- =============================================================== --
--- Working with selection sets
-
-testBV58N49 :: IO (T.Issue, [T.Citation])
--- ^Citations for Biochemistry (2019) Volume 58 Issue 49.
-testBV58N49 = do
-    let Just iss = J.lookupIssue TR.issueRefs "Biochemistry" (58,49)
-    esummary <- Tx.readFile "tests/res/Biochemistry_V58N49_esummary.json"
-    case P.parseCitations esummary of
-         Right ([], cs) -> pure (iss, sortBy (comparing T.pmid) cs)
-         Right (_, _  ) -> error $ "Test Error:"
-                                   <> " res/Biochemistry_V58N49_esummary.json"
-                                   <> " has missing citations!"
-         _              -> error $ "Test Error:"
-                                   <> " Cannot parse: "
-                                   <> " res/Biochemistry_V58N49_esummary.json"
-
-checkAddCitations :: (T.Content, [T.Citation]) -> [T.PMID] -> IO ()
-checkAddCitations (T.Content sel _ cs, rest) allpmids = do
-    let selected = T.selected sel
-        added    = map T.pmid cs
-        notAdded = map T.pmid rest
-    added                    `shouldBe` selected
-    sort (added <> notAdded) `shouldBe` allpmids
-
----------------------------------------------------------------------
--- Model.Journals.addCitations
-
-spec_addCitations :: Spec
-spec_addCitations = do
-    it "works with no missing PMIDs"
-        addCitationsNoMissingSpec
-
-addCitationsNoMissingSpec :: IO ()
-addCitationsNoMissingSpec = do
-    (iss, cites) <- testBV58N49
-    let pmids = sort . map T.pmid $ cites
-        sel0  = []
-        sel1  = [ "31710808" ]
-        sel3  = [ "31710808", "31743022", "31746596" ]
-        toSel = T.Selection iss
-    checkAddCitations (J.addCitations (toSel sel0)  cites) pmids
-    checkAddCitations (J.addCitations (toSel sel1)  cites) pmids
-    checkAddCitations (J.addCitations (toSel sel3)  cites) pmids
-    checkAddCitations (J.addCitations (toSel pmids) cites) pmids
-
----------------------------------------------------------------------
--- Model.Journals.missingPMIDs
-
-spec_missingPMIDs :: Spec
-spec_missingPMIDs = do
-    it "(with addCitations) works with and without missing PMIDs"
-        addCitationsMissingSpec
-
-addCitationsMissingSpec :: IO ()
-addCitationsMissingSpec = do
-    (iss, cites) <- testBV58N49
-    let pmids = sort . map T.pmid $ cites
-        sel0  = [ "31710808", "31743022", "31746596" ]
-        sel1  = [ "00000000", "31710808" ]
-        sel2  = [ "00000000", "11111111" ]
-        sel3  = [ "31710808", "00000000", "31743022", "31746596", "11111111" ]
-        seln  = "00000000" : pmids <> [ "11111111" ]
-        toSel = T.Selection iss
-    (J.missingPMIDs . fst $ J.addCitations (toSel sel0) cites)
-        `shouldBe` []
-    (J.missingPMIDs . fst $ J.addCitations (toSel sel1) cites)
-        `shouldBe` [ "00000000" ]
-    (J.missingPMIDs . fst $ J.addCitations (toSel sel2) cites)
-        `shouldBe` [ "00000000", "11111111" ]
-    (J.missingPMIDs . fst $ J.addCitations (toSel sel3) cites)
-        `shouldBe` [ "00000000", "11111111" ]
-    (J.missingPMIDs . fst $ J.addCitations (toSel seln) cites)
-        `shouldBe` [ "00000000", "11111111" ]
 
 -- =============================================================== --
 -- Working with rank matching
