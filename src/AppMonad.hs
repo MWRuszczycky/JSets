@@ -13,7 +13,7 @@ module AppMonad
     , downloadPMIDs
     , downloadCitations
     , downloadContent
-    , downloadContents
+    , downloadToCs
       -- Running rank matchings
     , runMatch
     ) where
@@ -135,12 +135,13 @@ downloadContent wreq iss = do
        then handleMissingPMIDs iss
        else pure $ T.Content iss Tx.empty pmids
 
-downloadContents :: [T.Issue] -> T.AppMonad [T.Content]
-downloadContents xs = do
-    wreq     <- C.webRequestIn <$> liftIO newSession
-    contents <- mapM (downloadContent wreq) xs
+downloadToCs :: [T.Issue] -> T.AppMonad (T.Citations, [T.Content])
+downloadToCs xs = do
+    wreq      <- C.webRequestIn <$> liftIO newSession
+    contents  <- mapM (downloadContent wreq) xs
+    citations <- downloadCitations wreq (concatMap T.contents contents)
     C.putTxtLnMIO "Done"
-    pure contents
+    pure (citations, contents)
 
 handleMissingPMIDs :: T.Issue -> T.AppMonad T.Content
 handleMissingPMIDs iss = do
