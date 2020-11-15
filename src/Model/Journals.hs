@@ -20,13 +20,15 @@ module Model.Journals
     , lookupIssue
     , nextWeekly
     , nextMonthly
+
       -- Working with selection sets
-    , selectNone
-    , emptyContent
-    , restrictContent
-    , missingPMIDs
-    , addContent
-    , addCitations
+--    , selectNone
+--    , emptyContent
+--    , restrictContent
+--    , missingPMIDs
+--    , addContent
+--    , addCitations
+
       -- Working with rank matching
     , score
     , match
@@ -58,25 +60,25 @@ import           Data.List                    ( (\\), find
 ---------------------------------------------------------------------
 -- Basic operations
 
-pack :: [T.JSet a] -> T.JSets a
+pack :: [T.JSet] -> T.JSets
 pack = T.JSets
 
-unpack :: T.JSets a -> [T.JSet a]
+unpack :: T.JSets -> [T.JSet]
 unpack (T.JSets jsets) = jsets
 
-emptyJSets :: T.JSets a
+emptyJSets :: T.JSets
 emptyJSets = T.JSets []
 
-lookupJSet :: T.HasIssue a => Int -> T.JSets a -> Maybe (T.JSet a)
+lookupJSet :: Int -> T.JSets -> Maybe T.JSet
 lookupJSet k (T.JSets jsets) = find ( (==k) . T.setNo ) jsets
 
-combineJSets :: T.MayMix a => [T.JSets a] -> T.JSets a
+combineJSets :: [T.JSets] -> T.JSets
 combineJSets = pack . T.stir . concatMap unpack
 
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
 
-yearlySets :: Int -> Int -> T.References -> T.JSets T.Issue
+yearlySets :: Int -> Int -> T.References -> T.JSets
 -- Compute the issues in each journal set for a specified year given
 -- some frequency k (in weeks) of the journal sets.
 yearlySets y k refs
@@ -85,9 +87,8 @@ yearlySets y k refs
     | otherwise = let (ws,ms) = splitByFreq refs
                       wsets   = weeklyInYear y k ws
                       msets   = monthlyInYear y k ms
-                  in  pack . zipWith T.JSet [1..]
-                           . filter ( not . null )
-                           $ C.zipLists wsets msets
+                      sets    = filter ( not . null ) $ C.zipLists wsets msets
+                  in  pack [ T.JSet n i [] | (n, i) <- zip [1..] sets ]
 
 setsInYear :: Int -> Int
 setsInYear k
@@ -236,40 +237,40 @@ nextWeekly x1
 -- =============================================================== --
 -- Working with selection sets for review
 
-selectNone :: T.JSet T.Issue -> T.JSet T.Selection
-selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
-
-emptyContent :: T.JSet T.Selection -> T.JSet T.Content
-emptyContent jset = T.JSet (T.setNo jset) . map go . T.issues $ jset
-    where go x = T.Content x Tx.empty []
-
-restrictContent :: T.Content -> T.Content
-restrictContent ic@(T.Content iss _ cs) = ic { T.citations = cs' }
-    where sel = T.selected iss
-          cs' = filter ( flip elem sel . T.pmid ) cs
-
-missingPMIDs :: T.Content -> [T.PMID]
--- ^Given an issue content with citations, return the PMIDs of all
--- citations that were selected but are not in the content citations.
-missingPMIDs content = sPMIDs \\ cPMIDs
-    where cPMIDs = map T.pmid . T.citations $ content
-          sPMIDs = T.selected . T.selection $ content
-
-addContent :: [T.Citation] -> [T.Selection] -> ([T.Content], [T.Citation])
--- ^Take a list of selections and a list of citations and add each
--- citation to the appropriate selection in former to generate a list
--- of contents. Return any left-over citations that were not among
--- the selections. Repeated selections will not be populated.
-addContent cites = foldr go ([],cites)
-    where go x (xs,cs) = bimap (:xs) id $ addCitations x cs
-
-addCitations :: T.Selection -> [T.Citation] -> (T.Content, [T.Citation])
--- ^Add citations to a selection if they have been selected to
--- generate an issue content and return any left over citations.
-addCitations sel = bimap (T.Content sel Tx.empty) id . foldr go ([],[])
-    where pmids        = T.selected sel
-          go c (xs,cs) | elem (T.pmid c) pmids = (c:xs,cs)
-                       | otherwise             = (xs,c:cs)
+--selectNone :: T.JSet T.Issue -> T.JSet T.Selection
+--selectNone (T.JSet setNo xs) = T.JSet setNo . map (flip T.Selection []) $ xs
+--
+--emptyContent :: T.JSet T.Selection -> T.JSet T.Content
+--emptyContent jset = T.JSet (T.setNo jset) . map go . T.issues $ jset
+--    where go x = T.Content x Tx.empty []
+--
+--restrictContent :: T.Content -> T.Content
+--restrictContent ic@(T.Content iss _ cs) = ic { T.citations = cs' }
+--    where sel = T.selected iss
+--          cs' = filter ( flip elem sel . T.pmid ) cs
+--
+--missingPMIDs :: T.Content -> [T.PMID]
+---- ^Given an issue content with citations, return the PMIDs of all
+---- citations that were selected but are not in the content citations.
+--missingPMIDs content = sPMIDs \\ cPMIDs
+--    where cPMIDs = map T.pmid . T.citations $ content
+--          sPMIDs = T.selected . T.selection $ content
+--
+--addContent :: [T.Citation] -> [T.Selection] -> ([T.Content], [T.Citation])
+---- ^Take a list of selections and a list of citations and add each
+---- citation to the appropriate selection in former to generate a list
+---- of contents. Return any left-over citations that were not among
+---- the selections. Repeated selections will not be populated.
+--addContent cites = foldr go ([],cites)
+--    where go x (xs,cs) = bimap (:xs) id $ addCitations x cs
+--
+--addCitations :: T.Selection -> [T.Citation] -> (T.Content, [T.Citation])
+---- ^Add citations to a selection if they have been selected to
+---- generate an issue content and return any left over citations.
+--addCitations sel = bimap (T.Content sel Tx.empty) id . foldr go ([],[])
+--    where pmids        = T.selected sel
+--          go c (xs,cs) | elem (T.pmid c) pmids = (c:xs,cs)
+--                       | otherwise             = (xs,c:cs)
 
 -- =============================================================== --
 -- Working with rank-matchings for assigning selections
