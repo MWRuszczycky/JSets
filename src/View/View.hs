@@ -211,10 +211,7 @@ jsetContentMkd cs (T.JSet setNo xs _) = do
 -- As HTML
 
 jsetContentHtml :: T.Citations -> T.JSet T.Content -> T.ViewMonad ()
-jsetContentHtml cs jset = do
-    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
-    email <- asks $ maybe "their email address" id . T.cEmail
-    Vc.write . Html.tocsHtml jset $ cs
+jsetContentHtml cs jset = Vc.write . Html.tocsHtml jset $ cs
 
 -- ==================================================================
 -- Viewing rankings

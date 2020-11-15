@@ -47,7 +47,6 @@ import qualified Model.Core.Hungarian as Hn
 import qualified Data.Text            as Tx
 import qualified Data.Time            as Tm
 import qualified Network.Wreq         as Wreq
-import           Data.Bifunctor               ( bimap           )
 import           Data.Time                    ( Day             )
 import           Data.Text                    ( Text            )
 import           Lens.Micro                   ( (.~), (&)       )

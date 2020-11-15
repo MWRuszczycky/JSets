@@ -43,7 +43,7 @@ module Model.Core.Types
 import qualified Data.Text             as Tx
 import           Data.Time                   ( Day, toGregorian  )
 import           Data.Text                   ( Text              )
-import           Data.List                   ( foldl', nub, sort )
+import           Data.List                   ( foldl', nub       )
 import           Data.Monoid                 ( Endo              )
 import           Control.Monad.Except        ( ExceptT           )
 import           Control.Monad.Reader        ( ReaderT, Reader   )

@@ -11,7 +11,6 @@ import qualified Model.Core.Types as T
 import qualified Model.Core.Core  as C
 import qualified View.Templates   as Temp
 import qualified View.Core        as Vc
-import           Data.List                ( foldl'         )
 import           Data.Text                ( Text           )
 import           View.Templates           ( fill, fillNone )
 
@@ -124,7 +123,7 @@ rankListContents cs = Tx.unlines . map (uncurry rankListElement)
 
 rankListElement :: Int -> Maybe T.Citation -> Text
 -- ^Construct html for a citation element of a rank list.
-rankListElement n Nothing  = Tx.empty
+rankListElement _ Nothing  = Tx.empty
 rankListElement n (Just c) = fill (rankCitationDict n c) Temp.citationHtml
 
 ---------------------------------------------------------------------

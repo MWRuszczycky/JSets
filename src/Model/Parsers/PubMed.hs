@@ -12,8 +12,6 @@ import qualified Model.Core.Core      as C
 import qualified Model.Parsers.JSON   as JS
 import qualified Model.Parsers.Core   as P
 import           Control.Applicative          ( (<|>), many        )
-import           Data.List                    ( sortBy             )
-import           Data.Ord                     ( comparing          )
 import           Data.Text                    ( Text               )
 import           Data.Time                    ( Day, fromGregorian )
 
