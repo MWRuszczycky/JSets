@@ -62,4 +62,6 @@ You can then install the updated version usinge `stack install` or run it throug
 
 ## To Do
 
-* List journal set numbers and dates without issue information
+* Currently refactoring everything to decouple citations from journal issues. This will provide a more modular interface with PubMed. Currently some things may be broken because of this. The last reasonably stable version before the refactor is version-2.4.1.
+* Add bimontly publication frequencies and value for no frequencies when downloading from PubMed.
+* Use Template Haskell to implement a custom file-embed and version tagging with commit hashes.
