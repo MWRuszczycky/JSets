@@ -152,36 +152,34 @@ data ConfigFile = ConfigFile Dict [Dict] deriving ( Show )
 
 -- |Application configuration
 data Config = Config {
-      cUser       :: Maybe Text     -- user's full formal name
-    , cNick       :: Maybe Text     -- user's short/nickname
+      cUser       :: Maybe Text     -- user's name
     , cEmail      :: Maybe Text     -- user's email
     , cOutputPath :: Maybe FilePath -- file output path
+    , cRefPath    :: Maybe FilePath -- path to the references file
     , cJSetKey    :: Maybe Int      -- journal set key
     , cHelp       :: Bool           -- user requested help
-    , cRefPath    :: Maybe FilePath -- path to the references file
-    , cReferences :: [Issue]        -- reference issues
     , cSortJSets  :: Bool           -- sort issues by Journal in output
     , cInstrToc   :: Bool           -- show instructions it htms ToC
     , cShowVer    :: Bool           -- show version number flag
     , cVerbose    :: Bool           -- use verbose output
     , cDelay      :: Integer        -- Delay in seconds between PubMed requests
+    , cReferences :: [Issue]        -- reference issues
     } deriving ( Show )
 
 defaultConfig :: Config
 defaultConfig = Config {
       cUser       = Nothing
-    , cNick       = Nothing
     , cEmail      = Nothing
     , cOutputPath = Nothing
+    , cRefPath    = Nothing
     , cJSetKey    = Nothing
     , cHelp       = False
-    , cRefPath    = Nothing
-    , cReferences = []
     , cSortJSets  = True
     , cInstrToc   = False
     , cShowVer    = False
     , cVerbose    = False
     , cDelay      = 1
+    , cReferences = []
     }
 
 data Command = Command {

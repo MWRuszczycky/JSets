@@ -27,28 +27,33 @@ className iss = Tx.intercalate "-" xs
                , C.tshow . T.issNo $ iss
                ]
 
+adminDefault :: Maybe Text -> Text
+-- ^Handler for missing user names and emails.
+adminDefault Nothing  = "the journal sets administrator"
+adminDefault (Just x) = x
+
 -- =============================================================== --
 -- Exported html document compositors
 
-tocsHtml :: T.JSet T.Content -> T.Citations -> Text
+tocsHtml :: Maybe Text -> Maybe Text -> T.JSet T.Content -> T.Citations -> Text
 -- ^Generate the complete html web document for a table of contents.
-tocsHtml jset@(T.JSet n tocs sel) cs =
+tocsHtml name email jset@(T.JSet n tocs sel) cs =
     let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n                 )
                , ( "jsetHeader", Vc.jsetHeader jset                          )
                , ( "savePrefix", savePrefix jset                             )
                , ( "instr",      fillNone Temp.tocInstrHtml                  )
-               , ( "saveinstr",  fillNone Temp.saveInstrHtml                 )
+               , ( "saveinstr",  saveInstr name email                        )
                , ( "issues",     issuesArray . T.issues $ jset               )
                , ( "tocs",       Tx.unlines . map (tocEntries cs sel) $ tocs )
                ]
     in fill (Map.fromList dict) Temp.tocsHtml
 
-rankList :: Text -> Text -> T.Citations -> T.JSet a -> Text
+rankList :: Maybe Text -> Maybe Text -> T.Citations -> T.JSet a -> Text
 -- ^Construct html for the rank list of a journal set.
 rankList name email cs jset =
     let dict = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
-               , ( "name",      name                                     )
-               , ( "email",     " at " <> email                          )
+               , ( "name",      adminDefault name                        )
+               , ( "email",     adminDefault  email                      )
                , ( "citations", rankListContents cs (T.selection jset)   )
                ]
     in fill (Map.fromList dict) Temp.rankListHtml
@@ -165,3 +170,9 @@ savePrefix :: T.HasIssue a => T.JSet a -> Text
 -- ^Filename prefix for the selection text file.
 savePrefix jset = "sel" <> C.tshow y <> "-" <> ( C.tshow . T.setNo $ jset )
     where y = T.year jset
+
+saveInstr :: Maybe Text -> Maybe Text -> Text
+saveInstr name email = fill (Map.fromList dict) Temp.saveInstrHtml
+    where dict = [ ( "name", adminDefault name   )
+                 , ( "email", adminDefault email )
+                 ]

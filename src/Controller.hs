@@ -74,10 +74,6 @@ options =
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cEmail = Just . pack $ x } ) "EMAIL" )
       "Override the configured email with EMAIL."
 
-    , Opt.Option "" [ "nickname" ]
-      ( Opt.ReqArg ( \ x s -> pure $ s { T.cNick = Just . pack $ x } ) "NICK" )
-      "Override the configured nickname with NICK."
-
     , Opt.Option "c" [ "config" ]
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cRefPath = Just x } ) "PATH" )
       "Use the configuration file at path PATH."

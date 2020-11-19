@@ -17,7 +17,6 @@ module View.Templates
     , tocMissingHtml
     , tocMissingUrlHtml
     , saveInstrHtml
-    , saveInstrBasicHtml
     , tocInstrHtml
     , rankListHtml
       -- markdown
@@ -175,11 +174,6 @@ saveInstrHtml :: Template
 -- email : email string for person to send selections to
 saveInstrHtml = parseTemplate' "res/html/saveInstr.html"
                 $(FE.embedStringFile "res/html/saveInstr.html")
-
-saveInstrBasicHtml :: Template
--- ^Save instructions for basic style Table of Contents.
-saveInstrBasicHtml = parseTemplate' "res/html/saveInstrBasic.html"
-                     $(FE.embedStringFile "res/html/saveInstrBasic.html")
 
 tocInstrHtml :: Template
 -- ^General instructions for table of contents to be included at the

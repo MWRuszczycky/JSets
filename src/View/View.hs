@@ -185,10 +185,12 @@ jsetMkd jset = do
 
 viewToCs :: T.Citations -> T.JSet T.Content -> T.ViewMonad ()
 viewToCs cs jset = do
+    name  <- asks T.cUser
+    email <- asks T.cEmail
     getFormat >>= \case
-        T.HTML -> jsetContentHtml cs jset
-        T.MKD  -> jsetContentMkd  cs jset
-        _      -> jsetContentTxt  cs jset
+        T.HTML -> jsetContentHtml name email cs jset
+        T.MKD  -> jsetContentMkd             cs jset
+        _      -> jsetContentTxt             cs jset
 
 ---------------------------------------------------------------------
 -- As Text
@@ -210,16 +212,18 @@ jsetContentMkd cs (T.JSet setNo xs _) = do
 ---------------------------------------------------------------------
 -- As HTML
 
-jsetContentHtml :: T.Citations -> T.JSet T.Content -> T.ViewMonad ()
-jsetContentHtml cs jset = Vc.write . Html.tocsHtml jset $ cs
+jsetContentHtml :: Maybe Text -> Maybe Text -> T.Citations -> T.JSet T.Content
+                   -> T.ViewMonad ()
+jsetContentHtml name email cs jset =
+    Vc.write . Html.tocsHtml name email jset $ cs
 
 -- ==================================================================
 -- Viewing rankings
 
 viewRanks :: T.Citations -> T.JSet a -> T.ViewMonad ()
 viewRanks cs jset@(T.JSet _ _ sel) = do
-    name  <- maybe "Somebody" id . C.choice <$> mapM asks [T.cNick, T.cUser]
-    email <- asks $ maybe "their email address" id . T.cEmail
+    name  <- asks T.cUser
+    email <- asks T.cEmail
     let go = flip Map.lookup cs
     getFormat >>= \case
          T.HTML -> Vc.write . Html.rankList name email cs  $ jset

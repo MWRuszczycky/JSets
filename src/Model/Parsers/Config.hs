@@ -24,22 +24,19 @@ import           Control.Monad               ( foldM                  )
 -- Configuration file parsing takes place in two stages.
 --
 -- 1. The raw text file is parsed to structured data in the form of
---    of Text -> Text dictionaries pairing a configuraton parameter
---    with a configured value. The general configuration parameters
---    are parsed into a single such dictionary. Each following
---    journal reference issue dictionary is then parsed into its own
---    Text -> Text dictionary. These dictionaries of type Dict are
---    then packaged into a ConfigFile value.
---    This parsing is handeled by parseConfig.
+--    of [(Text, Text)] dictionaries of type Dict, which pairing a
+--    configuration parameter name with a configured string value.
+--    Configuration parameters and reference issue information are
+--    each parsed into their Dict values forming a ConfigFile value.
+--    This is all done with the parseConfig function.
 --
--- 2. The parsed, structured data representing the configuration file
---    as a value of type ConfigFile is then read into reference
---    reference issues and the final configuration value.
---    This reading is handeled by readConfig.
+-- 2. The raw structured data in the form of a ConfigFile can then be
+--    converted to a Config value on which the AppMonad is based as
+--    using the readConfig function.
 
 -- =============================================================== --
--- Parsing a configuration file to a configuration dictionary before
--- reading to the file configuration.
+-- Parsing a configuration text file to a lists of configuration
+-- parameter names and values represented as Text strings.
 
 parseConfig :: Text -> Either T.ErrString ConfigFile
 parseConfig txt = handleResult txt . At.parse configFile $ txt
@@ -72,11 +69,10 @@ configDict = P.comments *> many configField
 configField :: At.Parser (Text, Text)
 configField = At.choice $ map keyValuePair [ "email"
                                            , "user"
-                                           , "nickname"
                                            ]
 
 ---------------------------------------------------------------------
--- Parsing reference dictionaries
+-- Parsing journal reference issues
 
 refDicts :: At.Parser [Dict]
 refDicts = do
@@ -123,23 +119,24 @@ keyValuePair key = do
 
 -- =============================================================== --
 -- Reading configuration files and journal issue references
+-- This is where the Text string pairs representing the parsed
+-- configuration file are read and checked as configuration values.
 
 readConfig :: T.Config -> T.ConfigFile -> Either T.ErrString T.Config
-readConfig config (T.ConfigFile hdrs dicts) = do
-    config' <- foldM readHeader config hdrs
-    refs    <- readRefs dicts
+readConfig config (T.ConfigFile configParams configRefs) = do
+    config' <- foldM readParam config configParams
+    refs    <- readRefs configRefs
     pure $ config' { T.cReferences = refs }
 
 readRefs :: [Dict] -> Either T.ErrString [T.Issue]
 readRefs ds = mapM readRef ds >>= checkForDuplicates
 
-readHeader :: T.Config -> (Text,Text) -> Either T.ErrString T.Config
--- ^Assign configuration data from header information. Note that
+readParam :: T.Config -> (Text,Text) -> Either T.ErrString T.Config
+-- ^Read configuration parameters Text strings to values. Note that
 -- configuration data can be overridden by command line options.
-readHeader c ("user", u )    = pure $ c { T.cUser  = T.cUser  c <|> pure u }
-readHeader c ("email", e)    = pure $ c { T.cEmail = T.cEmail c <|> pure e }
-readHeader c ("nickname", n) = pure $ c { T.cNick  = T.cNick  c <|> pure n }
-readHeader c _               = pure c
+readParam c ("user", u )    = pure $ c { T.cUser  = T.cUser  c <|> pure u }
+readParam c ("email", e)    = pure $ c { T.cEmail = T.cEmail c <|> pure e }
+readParam c _               = pure c
 
 ---------------------------------------------------------------------
 -- Read validation and error handling
