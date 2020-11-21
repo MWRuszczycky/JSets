@@ -15,6 +15,7 @@ import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.Rankings    as P
+import qualified Model.PubMed              as PM
 import qualified View.View                 as V
 import qualified View.Help                 as H
 import           Data.Text                          ( Text           )
@@ -76,10 +77,10 @@ jsonCmd xs
         v   <- maybe (throwError "invalid volume!")   pure . readMaybe $ xs !! 1
         n   <- maybe (throwError "invalid number!") pure . readMaybe $ xs !! 2
         iss <- A.getIssue abbr v n
-        esearch <- lift . C.webRequest (J.tocESearchQuery iss) $ J.eSearchUrl
+        esearch <- lift . C.webRequest (PM.tocESearchQuery iss) $ PM.eSearchUrl
         lift . C.writeFileErr "esearch.json" $ esearch
         pmids <- liftEither . P.parsePMIDs $ esearch
-        esummary <- lift . C.webRequest (J.tocESumQuery pmids) $ J.eSummaryUrl
+        esummary <- lift . C.webRequest (PM.tocESumQuery pmids) $ PM.eSummaryUrl
         lift . C.writeFileErr "esummary.json" $ esummary
 
 ---------------------------------------------------------------------

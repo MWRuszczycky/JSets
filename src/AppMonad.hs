@@ -27,6 +27,7 @@ import qualified Model.Core.Types          as T
 import qualified Model.Journals            as J
 import qualified Model.Parsers.JournalSets as P
 import qualified Model.Parsers.PubMed      as P
+import qualified Model.PubMed              as PM
 import qualified View.Core                 as Vc
 import qualified View.View                 as V
 import           Data.Text                          ( Text           )
@@ -105,9 +106,9 @@ getIssue abbr v n = references >>= maybe err pure . go
 
 downloadPMIDs :: C.WebRequest -> T.Issue -> T.AppMonad [T.PMID]
 downloadPMIDs wreq iss = do
-    let query = J.tocESearchQuery iss
+    let query = PM.tocESearchQuery iss
     C.putTxtMIO $ "Downloading " <> V.showIssue iss <> " PMIDs..."
-    result <- liftIO . runExceptT . wreq query $ J.eSearchUrl
+    result <- liftIO . runExceptT . wreq query $ PM.eSearchUrl
     case result >>= P.parsePMIDs of
          Left err    -> C.putStrMIO err                    *> pure []
          Right []    -> C.putStrMIO "None found at PubMed" *> pure []
@@ -118,8 +119,8 @@ downloadCitations :: C.WebRequest -> Maybe T.Issue -> [T.PMID]
 downloadCitations _    _     []    = pure Map.empty
 downloadCitations wreq mbIss pmids = do
     C.putTxtMIO "Downloading Citations..."
-    let query = J.tocESumQuery pmids
-    result <- liftIO . runExceptT . wreq query $ J.eSummaryUrl
+    let query = PM.tocESumQuery pmids
+    result <- liftIO . runExceptT . wreq query $ PM.eSummaryUrl
     case result >>= P.parseCitations (T.issue <$> mbIss) pmids of
          Left  err     -> C.putStrMIO err  *> pure Map.empty
          Right ([],cs) -> C.putStrMIO "OK" *> pure cs
