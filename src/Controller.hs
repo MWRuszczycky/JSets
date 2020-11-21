@@ -70,29 +70,20 @@ configError (Just path) err = throwError msg
 
 options :: [ Opt.OptDescr (T.Config -> T.ErrMonad T.Config) ]
 options =
-    [ Opt.Option "" [ "email" ]
+    [
+    -- Parameters
+
+      Opt.Option "" [ "user" ]
+      ( Opt.ReqArg ( \ x s -> pure $ s { T.cUser = Just . pack $ x } ) "USER" )
+      "Override the configured user name with USER."
+
+    , Opt.Option "" [ "email" ]
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cEmail = Just . pack $ x } ) "EMAIL" )
       "Override the configured email with EMAIL."
 
     , Opt.Option "c" [ "config" ]
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cRefPath = Just x } ) "PATH" )
       "Use the configuration file at path PATH."
-
-    , Opt.Option "" [ "user" ]
-      ( Opt.ReqArg ( \ x s -> pure $ s { T.cUser = Just . pack $ x } ) "USER" )
-      "Override the configured user name with USER."
-
-    , Opt.Option "" [ "no-sort" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cSortJSets = False } ) )
-      "Do not sort journal set issues."
-
-    , Opt.Option "h" [ "help" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cHelp = True } ) )
-      "Display help information."
-
-    , Opt.Option "i" [ "instruct" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cInstrToc = True } ) )
-      "Show instructions in html ToC output."
 
     , Opt.Option "k" [ "key" ]
       ( Opt.ReqArg configKey "KEY" )
@@ -102,17 +93,27 @@ options =
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cOutputPath = Just x } ) "PATH" )
       "Set the output filepath to PATH."
 
-    , Opt.Option "" [ "verbose" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cVerbose = True } ) )
-      "Provide verbose output."
+    , Opt.Option "" [ "delay" ]
+      ( Opt.ReqArg configDelay "SEC" )
+      "Delay in whole seconds between PubMed requests."
+
+    -- Flags
+
+    , Opt.Option "h" [ "help" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cHelp = True } ) )
+      "Display help information."
 
     , Opt.Option "v" [ "version" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )
       "Just show the version number and quit."
 
-    , Opt.Option "" [ "delay" ]
-      ( Opt.ReqArg configDelay "SEC" )
-      "Delay in whole seconds between PubMed requests."
+    , Opt.Option "" [ "no-sort" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cSortJSets = False } ) )
+      "Do not sort journal set issues."
+
+    , Opt.Option "" [ "match-details" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cMatchDetails = True } ) )
+      "Provide detailed match output."
     ]
 
 configKey :: String -> T.Config -> T.ErrMonad T.Config

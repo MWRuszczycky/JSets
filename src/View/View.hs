@@ -327,8 +327,8 @@ viewMatchResult (T.MatchResult t ps ids ss (Right (s,xs))) = do
     let indent = replicateM_ 2 Vc.space
     Vc.write t
     Vc.writeLn $ ", score: " <> C.tshow s
-    useVerbose <- asks T.cVerbose
-    when useVerbose $ do
+    showDetails <- asks T.cMatchDetails
+    when showDetails $ do
         indent *> Vc.write "papers: "
         Vc.separate Vc.space . map ( Vc.write . C.tshow ) . filter (>0) $ ps
         Vc.newLine

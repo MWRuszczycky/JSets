@@ -59,4 +59,4 @@ The assignment is then performed in such a way as to maximize the
 total score of the preferences over individuals in the match. Note,
 that one person may be assigned more than one phantom paper, which
 corresponds to being assigned no paper. The scores assigned in each
-match can be included in the output using the --verbose option.
+match can be included in the output using the --match-details option.

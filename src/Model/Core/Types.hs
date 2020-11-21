@@ -152,34 +152,32 @@ data ConfigFile = ConfigFile Dict [Dict] deriving ( Show )
 
 -- |Application configuration
 data Config = Config {
-      cUser       :: Maybe Text     -- user's name
-    , cEmail      :: Maybe Text     -- user's email
-    , cOutputPath :: Maybe FilePath -- file output path
-    , cRefPath    :: Maybe FilePath -- path to the references file
-    , cJSetKey    :: Maybe Int      -- journal set key
-    , cHelp       :: Bool           -- user requested help
-    , cSortJSets  :: Bool           -- sort issues by Journal in output
-    , cInstrToc   :: Bool           -- show instructions it htms ToC
-    , cShowVer    :: Bool           -- show version number flag
-    , cVerbose    :: Bool           -- use verbose output
-    , cDelay      :: Integer        -- Delay in seconds between PubMed requests
-    , cReferences :: [Issue]        -- reference issues
+      cUser         :: Maybe Text     -- user's name
+    , cEmail        :: Maybe Text     -- user's email
+    , cOutputPath   :: Maybe FilePath -- file output path
+    , cRefPath      :: Maybe FilePath -- path to the references file
+    , cJSetKey      :: Maybe Int      -- journal set key
+    , cHelp         :: Bool           -- user requested help
+    , cSortJSets    :: Bool           -- sort issues by Journal in output
+    , cShowVer      :: Bool           -- show version number flag
+    , cMatchDetails :: Bool           -- show detailed match output
+    , cDelay        :: Integer        -- delay (sec) between PubMed requests
+    , cReferences   :: [Issue]        -- reference issues
     } deriving ( Show )
 
 defaultConfig :: Config
 defaultConfig = Config {
-      cUser       = Nothing
-    , cEmail      = Nothing
-    , cOutputPath = Nothing
-    , cRefPath    = Nothing
-    , cJSetKey    = Nothing
-    , cHelp       = False
-    , cSortJSets  = True
-    , cInstrToc   = False
-    , cShowVer    = False
-    , cVerbose    = False
-    , cDelay      = 1
-    , cReferences = []
+      cUser         = Nothing
+    , cEmail        = Nothing
+    , cOutputPath   = Nothing
+    , cRefPath      = Nothing
+    , cJSetKey      = Nothing
+    , cHelp         = False
+    , cSortJSets    = True
+    , cShowVer      = False
+    , cMatchDetails = False
+    , cDelay        = 1
+    , cReferences   = []
     }
 
 data Command = Command {
