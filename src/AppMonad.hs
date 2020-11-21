@@ -25,6 +25,7 @@ import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Dates          as D
 import qualified Model.Core.Types          as T
 import qualified Model.Journals            as J
+import qualified Model.Matching            as Mt
 import qualified Model.Parsers.JournalSets as P
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.PubMed              as PM
@@ -167,4 +168,4 @@ handleMissingPMIDs iss = do
 -- Rank matching
 
 runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
-runMatch ranklists (title, indices) = pure $ J.match title indices ranklists
+runMatch ranklists (title, indices) = pure $ Mt.match title indices ranklists

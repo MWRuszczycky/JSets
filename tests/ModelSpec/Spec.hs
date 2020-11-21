@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import qualified ModelSpec.Journals as J
 import qualified ModelSpec.Core     as C
+import qualified ModelSpec.Journals as J
+import qualified ModelSpec.Matching as Mt
 
 main :: IO ()
 main = do
-    J.spec
     C.spec
+    J.spec
+    Mt.spec

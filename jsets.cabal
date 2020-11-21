@@ -32,6 +32,7 @@ library jsets-internal
                       , Model.Core.Types
                       , Model.Core.Dates
                       , Model.Journals
+                      , Model.Matching
                       , Model.PubMed
                       , Model.Parsers.Config
                       , Model.Parsers.Core
@@ -68,6 +69,7 @@ test-suite model
   main-is:              ModelSpec/Spec.hs
   other-modules:        ModelSpec.Core
                       , ModelSpec.Journals
+                      , ModelSpec.Matching
                       , Mock.Mock
                       , Mock.References
   build-depends:        base >= 4.7 && < 5
