@@ -25,8 +25,8 @@ module View.Templates
 
 import qualified Data.Text            as Tx
 import qualified Data.Attoparsec.Text as At
-import qualified Data.FileEmbed       as FE
 import qualified Data.Map.Strict      as Map
+import qualified Model.Core.CoreTH    as MT
 import           Data.Text                   ( Text               )
 import           Control.Applicative         ( (<|>), empty, many )
 
@@ -60,9 +60,9 @@ parseTemplate' fp = either error id . parseTemplate fp
 
 parseTemplate :: String -> Text -> Either String Template
 -- ^Parses at-braced text. Anything in "@{key}" is parsed out as
--- 'AtVar'. The open brace must immediately follow the @ symbol,
+-- 'Var'. The open brace must immediately follow the @ symbol,
 -- otherwise it is parsed as an @-symbol (FreeAt). Everything else
--- parses as AtRaw. Fails on unclosed braces after @{ open braces.
+-- parses as Raw. Fails on unclosed braces after @{ open braces.
 parseTemplate fp txt = go . At.parse atText $ txt
     where go (At.Partial cont  ) = go . cont $ Tx.empty
           go (At.Done xs r     ) | Tx.null xs = pure r
@@ -113,7 +113,7 @@ tocsHtml :: Template
 -- tocs       : table of contents html for all issues
 -- saveinstr  : save instructions
 tocsHtml = parseTemplate' "res/html/tocs.html"
-           $(FE.embedStringFile "res/html/tocs.html")
+           $(MT.embedFile "res/html/tocs.html")
 
 issueJS :: Template
 -- ^Element of the 'issues array'
@@ -136,13 +136,13 @@ tocHtml :: Template
 -- issue    : issue header
 -- articles : html for all articles in the issue
 tocHtml = parseTemplate' "res/html/toc.html"
-          $(FE.embedStringFile "res/html/toc.html")
+          $(MT.embedFile "res/html/toc.html")
 
 tocMissingHtml :: Template
 -- ^Table of contents substitute when there are no PMIDs at PubMed
 -- issue : issue header
 tocMissingHtml = parseTemplate' "res/html/tocMissing.html"
-                 $(FE.embedStringFile "res/html/tocMissing.html")
+                 $(MT.embedFile "res/html/tocMissing.html")
 
 tocMissingUrlHtml :: Template
 -- ^Same as tocMissingHtml but with an alternate link to the table of
@@ -150,7 +150,7 @@ tocMissingUrlHtml :: Template
 -- issue : issue header
 -- url   : url to the toc at the publisher's website.
 tocMissingUrlHtml = parseTemplate' "res/html/tocMissingUrl.html"
-                    $(FE.embedStringFile "res/html/tocMissingUrl.html")
+                    $(MT.embedFile "res/html/tocMissingUrl.html")
 
 citationHtml :: Template
 -- ^Paragraph environment for a single article citation
@@ -166,20 +166,20 @@ citationHtml :: Template
 -- pages    : pages string
 -- pmid     : pubmed uid
 citationHtml = parseTemplate' "res/html/citation.html"
-               $(FE.embedStringFile "res/html/citation.html")
+               $(MT.embedFile "res/html/citation.html")
 
 saveInstrHtml :: Template
 -- ^Save instructions for Table of Contents with instructions.
 -- name  : nickname of person to send selections to
 -- email : email string for person to send selections to
 saveInstrHtml = parseTemplate' "res/html/saveInstr.html"
-                $(FE.embedStringFile "res/html/saveInstr.html")
+                $(MT.embedFile "res/html/saveInstr.html")
 
 tocInstrHtml :: Template
 -- ^General instructions for table of contents to be included at the
 -- top of the webpage when the --instruct option is used.
 tocInstrHtml = parseTemplate' "res/html/tocInstr.html"
-               $(FE.embedStringFile "res/html/tocInstr.html")
+               $(MT.embedFile "res/html/tocInstr.html")
 
 rankListHtml :: Template
 -- ^Full html template document for generating rankings for articles.
@@ -189,7 +189,7 @@ rankListHtml :: Template
 -- email     : email string for person to send rankings to
 -- citations : Individual citations for ranking.
 rankListHtml = parseTemplate' "res/html/rankList.html"
-               $(FE.embedStringFile "res/html/rankList.html")
+               $(MT.embedFile "res/html/rankList.html")
 
 ---------------------------------------------------------------------
 -- Markdown templates
@@ -204,4 +204,4 @@ citationMkd :: Template
 -- pages   : page range
 -- pmid    : pubmed id
 citationMkd = parseTemplate' "res/mkd/citation.mkd"
-              $(FE.embedStringFile "res/mkd/citation.mkd")
+              $(MT.embedFile "res/mkd/citation.mkd")

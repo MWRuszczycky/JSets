@@ -28,6 +28,7 @@ library jsets-internal
                       , AppMonad
                       , Model.Core.Core
                       , Model.Core.CoreIO
+                      , Model.Core.CoreTH
                       , Model.Core.Hungarian
                       , Model.Core.Types
                       , Model.Core.Dates
@@ -57,8 +58,8 @@ library jsets-internal
                       , containers
                       , microlens
                       , mtl
+                      , template-haskell
                       , text
-                      , file-embed
                       , time
                       , wreq
 

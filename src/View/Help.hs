@@ -22,13 +22,13 @@ module View.Help
 -- Help strings and output formatting
 -- =============================================================== --
 
-import qualified Data.Text             as Tx
-import qualified System.Console.GetOpt as Opt
-import qualified Data.FileEmbed        as FE
-import qualified Model.Core.Types      as T
 import qualified Model.Core.Core       as M
+import qualified Model.Core.CoreTH     as MT
+import qualified Model.Core.Types      as T
+import qualified Data.Text             as Tx
 import qualified Data.Version          as Ver
 import qualified Paths_jsets           as Paths
+import qualified System.Console.GetOpt as Opt
 import           Data.Text                      ( Text        )
 
 -- =============================================================== --
@@ -99,28 +99,28 @@ sep = Tx.replicate 20 "-"
 -- Help strings
 
 helpHelp :: Text
-helpHelp = $(FE.embedStringFile "res/help/helpHelp.txt")
+helpHelp = $(MT.embedFile "res/help/helpHelp.txt")
 
 jsetsHelp :: Text
-jsetsHelp = $(FE.embedStringFile "res/help/jsetsHelp.txt")
+jsetsHelp = $(MT.embedFile "res/help/jsetsHelp.txt")
 
 jsonHelp :: Text
-jsonHelp = $(FE.embedStringFile "res/help/jsonHelp.txt")
+jsonHelp = $(MT.embedFile "res/help/jsonHelp.txt")
 
 matchHelp :: Text
-matchHelp = $(FE.embedStringFile "res/help/matchHelp.txt")
+matchHelp = $(MT.embedFile "res/help/matchHelp.txt")
 
 ranksHelp :: Text
-ranksHelp = $(FE.embedStringFile "res/help/ranksHelp.txt")
+ranksHelp = $(MT.embedFile "res/help/ranksHelp.txt")
 
 readHelp :: Text
-readHelp = $(FE.embedStringFile "res/help/readHelp.txt")
+readHelp = $(MT.embedFile "res/help/readHelp.txt")
 
 refsHelp :: Text
-refsHelp = $(FE.embedStringFile "res/help/refsHelp.txt")
+refsHelp = $(MT.embedFile "res/help/refsHelp.txt")
 
 tocHelp :: Text
-tocHelp = $(FE.embedStringFile "res/help/tocHelp.txt")
+tocHelp = $(MT.embedFile "res/help/tocHelp.txt")
 
 yearHelp :: Text
-yearHelp = $(FE.embedStringFile "res/help/yearHelp.txt")
+yearHelp = $(MT.embedFile "res/help/yearHelp.txt")
