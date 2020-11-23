@@ -6,7 +6,6 @@ module View.Help
     , cmdDetails
     , jsetsDetails
     , version
-    , versionStr
       -- Help strings
     , helpHelp
     , jsonHelp
@@ -22,7 +21,6 @@ module View.Help
 -- Help strings and output formatting
 -- =============================================================== --
 
-import qualified Model.Core.Core       as M
 import qualified Model.Core.CoreTH     as MT
 import qualified Model.Core.Types      as T
 import qualified Data.Text             as Tx
@@ -43,7 +41,7 @@ summary :: [T.Command] -> [Option] -> Text
 -- ^General summary of all commands and options available. This
 -- string is displayed when the user runs JSets with the --help flag.
 summary cmds opts = Tx.intercalate "\n" hs
-    where hs = [ versionStr
+    where hs = [ version
                , sep
                , "Management of journal sets for lab meetings."
                , "  (Run 'jsets help jsets' for more information.)\n"
@@ -54,27 +52,17 @@ summary cmds opts = Tx.intercalate "\n" hs
 
 cmdDetails :: T.Command -> Text
 -- ^Detailed help for a given command.
-cmdDetails cmd = Tx.intercalate "\n" [ versionStr, cmdHeader cmd, hs ]
+cmdDetails cmd = Tx.intercalate "\n" [ version, cmdHeader cmd, hs ]
     where hs = snd . T.cmdHelp $ cmd
 
 jsetsDetails :: Text
 -- ^Detailed description of the the JSets application.
-jsetsDetails = Tx.intercalate "\n" [ versionStr, sep <> "\n", jsetsHelp ]
+jsetsDetails = Tx.intercalate "\n" [ version, sep <> "\n", jsetsHelp ]
 
-version :: T.Version
-version = let go = Tx.intercalate "." . map M.tshow
-          in  case Ver.versionBranch Paths.version of
-                   []   -> T.DevVersion $ "jsets-0.0"
-                   0:[] -> T.DevVersion $ "jsets-0.0"
-                   0:xs -> T.DevVersion $ "jsets-" <> go xs
-                   xs   -> T.RelVersion $ "jsets-" <> go xs
-
-versionStr :: Text
--- ^Current version of the application. If the version starts with
--- with a leading 0, then it is a development version.
-versionStr = case version of
-                  T.DevVersion x -> "post-" <> x <> " development version"
-                  T.RelVersion x -> x
+version :: Text
+version = "jsets-" <> v <> "-" <> g
+    where v = Tx.pack . Ver.showVersion $ Paths.version
+          g = Tx.take 7 $(MT.readGitHash)
 
 -- =============================================================== --
 -- Formatting helper functions

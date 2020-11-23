@@ -12,7 +12,6 @@ module Model.Core.Types
     , ErrMonad
     , AppMonad
     , ViewMonad
-    , Version           (..)
       -- Program configuration
     , Dict
     , ConfigFile        (..)
@@ -134,12 +133,6 @@ type AppMonad  = ReaderT Config ErrMonad
 
 -- |Non-IO monad for use with generating formatted output
 type ViewMonad = WriterT (Endo [Text]) (Reader Config)
-
--- |JSets version. This is handled in View.Help
-data Version =
-      RelVersion Text
-    | DevVersion Text
-      deriving (Show, Eq)
 
 ---------------------------------------------------------------------
 -- Program configuration
