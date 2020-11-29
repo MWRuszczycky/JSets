@@ -34,6 +34,7 @@ commands :: [ T.Command ]
 commands = [ T.Command "help"  helpCmd  helpHelp
            , T.Command "json"  jsonCmd  jsonHelp
            , T.Command "match" matchCmd matchHelp
+           , T.Command "pmid"  pmidCmd  pmidHelp
            , T.Command "ranks" ranksCmd ranksHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "refs"  refsCmd  refsHelp
@@ -98,6 +99,20 @@ matchCmd (fp:_) = do
     mapM_ ( \ r -> V.runView (V.viewMatchResult r) >>= display ) results
 
 ---------------------------------------------------------------------
+-- Look up PMIDs at PubMed
+
+pmidHelp :: (Text, Text)
+pmidHelp = (s, "Long help for pmid command still being written.\n")
+    where s = "Download citations based on ther PMIDs."
+
+pmidCmd :: [String] -> T.AppMonad ()
+pmidCmd [] = throwError "One or more PMIDs must be provided!"
+pmidCmd xs = do
+    citations <- A.downloadCitations . map Tx.pack $ xs
+    C.putStrLnMIO "\n"
+    V.runView ( mapM V.viewCitation citations ) >>= display
+
+---------------------------------------------------------------------
 -- Generating output for ranking articles
 
 ranksHelp :: (Text, Text)
@@ -109,7 +124,7 @@ ranksCmd [] = throwError "Path(s) to journal set selection files required!"
 ranksCmd fps = do
     jsets     <- J.combineJSets <$> mapM A.readJSets fps
     jset      <- asks T.cJSetKey >>= A.getJSet jsets
-    citations <- A.downloadCitations C.webRequest Nothing . T.selection $ jset
+    citations <- A.downloadCitations . T.selection $ jset
     C.putStrLnMIO "\nDone"
     V.runView ( V.viewRanks citations jset ) >>= display
 

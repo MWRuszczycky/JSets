@@ -28,6 +28,7 @@ module View.View
     , contentTxt
     , contentMkd
       -- Views of Citations
+    , viewCitation
     , citationTxt
     , citationMkd
       -- Views of match results
@@ -288,6 +289,11 @@ contentMkd cs (T.Content x _ pmids) = do
 
 -- =============================================================== --
 -- Viewing citations
+
+viewCitation :: T.Citation -> T.ViewMonad ()
+viewCitation x = getFormat >>= \case
+                     T.MKD -> citationMkd x
+                     _     -> citationTxt x
 
 citationTxt :: T.Citation -> T.ViewMonad ()
 citationTxt x = do

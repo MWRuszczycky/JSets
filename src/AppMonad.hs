@@ -11,7 +11,6 @@ module AppMonad
     , references
     , getIssue
       -- Internet requests
-    , downloadPMIDs
     , downloadCitations
     , downloadContent
     , downloadToCs
@@ -106,6 +105,7 @@ getIssue abbr v n = references >>= maybe err pure . go
 -- Core pipeline functions
 
 downloadPMIDs :: C.WebRequest -> T.Issue -> T.AppMonad [T.PMID]
+-- ^Download the PubMed IDs (PMIDs) associated with a given issue.
 downloadPMIDs wreq iss = do
     let query = PM.tocESearchQuery iss
     C.putTxtMIO $ "Downloading " <> V.showIssue iss <> " PMIDs..."
@@ -115,10 +115,21 @@ downloadPMIDs wreq iss = do
          Right []    -> C.putStrMIO "None found at PubMed" *> pure []
          Right pmids -> C.putStrMIO "OK "                  *> pure pmids
 
-downloadCitations :: C.WebRequest -> Maybe T.Issue -> [T.PMID]
+downloadCitations :: [T.PMID] -> T.AppMonad T.Citations
+-- ^Download citations based on their PubMed IDs.
+downloadCitations pmids = downloadCitations' C.webRequest Nothing pmids
+
+downloadCitations' :: C.WebRequest -> Maybe T.Issue -> [T.PMID]
                      -> T.AppMonad T.Citations
-downloadCitations _    _     []    = pure Map.empty
-downloadCitations wreq mbIss pmids = do
+-- ^Download citations bosed on their PubMed IDs using a given web
+-- request sesion. If all the PMIDs are known to be associated with
+-- a specific issue, this can be provided and will be used to assign
+-- the issue rather than trying to parse it from the downloaded JSON.
+-- This is useful, because Issues computed from the configuration
+-- have more information (e.g., the Journal publication frequency)
+-- that is not available from PubMed.
+downloadCitations' _    _     []    = pure Map.empty
+downloadCitations' wreq mbIss pmids = do
     C.putTxtMIO "Downloading Citations..."
     let query = PM.tocESumQuery pmids
     result <- liftIO . runExceptT . wreq query $ PM.eSummaryUrl
@@ -135,7 +146,7 @@ downloadContent :: C.WebRequest -> T.Issue -> T.AppMonad (T.Citations, T.Content
 downloadContent wreq iss = do
     start <- liftIO D.readClock
     pmids <- downloadPMIDs wreq iss
-    cites <- downloadCitations wreq (Just iss) pmids
+    cites <- downloadCitations' wreq (Just iss) pmids
     delta <- liftIO . D.deltaClock $ start
     C.putTxtLnMIO $ " (" <> Vc.showPicoSec delta <> ")"
     -- Delay by at least one second or risk being cutoff by PubMed.
