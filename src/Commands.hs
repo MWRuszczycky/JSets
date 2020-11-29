@@ -7,6 +7,7 @@ module Commands
     , runCommands
     ) where
 
+import qualified Data.Map.Strict           as Map
 import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
 import qualified AppMonad                  as A
@@ -110,7 +111,7 @@ pmidCmd [] = throwError "One or more PMIDs must be provided!"
 pmidCmd xs = do
     citations <- A.downloadCitations . map Tx.pack $ xs
     C.putStrLnMIO "\n"
-    V.runView ( mapM V.viewCitation citations ) >>= display
+    V.runView ( V.viewCitations . Map.elems $ citations ) >>= display
 
 ---------------------------------------------------------------------
 -- Generating output for ranking articles
