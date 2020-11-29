@@ -42,6 +42,7 @@ import qualified Model.Journals   as J
 import qualified View.Core        as Vc
 import qualified View.Html        as Html
 import qualified View.Templates   as Temp
+import           Control.Applicative      ( (<|>)                )
 import           Control.Monad            ( replicateM_, when    )
 import           Control.Monad.Reader     ( ask, asks, runReader )
 import           Control.Monad.Writer     ( execWriterT          )
@@ -60,13 +61,10 @@ runView view = ask >>= pure . Tx.concat . flip appEndo [] . run
     where run config = flip runReader config . execWriterT $ view
 
 getFormat :: T.ViewMonad T.Format
-getFormat = asks ( fmap C.extension . T.cOutputPath )
-            >>= \case Just "txt"  -> pure T.TXT
-                      Just "csv"  -> pure T.CSV
-                      Just "html" -> pure T.HTML
-                      Just "mkd"  -> pure T.MKD
-                      Just "md"   -> pure T.MKD
-                      _           -> pure T.TXT
+getFormat = do
+   argFmt <- asks T.cFormat
+   extFmt <- asks $ \ x -> T.cOutputPath x >>= C.readFormat . C.extension
+   maybe (pure T.TXT) pure $ argFmt <|> extFmt
 
 -- =============================================================== --
 -- Viewing configuration files and configured references

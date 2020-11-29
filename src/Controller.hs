@@ -5,23 +5,24 @@ module Controller
     , configure
     ) where
 
-import qualified System.Console.GetOpt as Opt
 import qualified Data.Text.IO          as Tx
 import qualified Data.Text             as Tx
 import qualified Model.Core.Types      as T
 import qualified Model.Core.CoreIO     as C
+import qualified Model.Core.Core       as C
 import qualified Model.Parsers.Config  as P
+import qualified System.Console.GetOpt as Opt
 import qualified View.Help             as H
-import           System.Environment           ( getArgs                )
-import           Text.Read                    ( readMaybe              )
-import           Data.Text                    ( pack                   )
-import           Data.List                    ( intercalate            )
+import           Commands                     ( runCommands, commands  )
 import           Control.Monad                ( foldM                  )
 import           Control.Monad.Except         ( throwError             )
 import           Control.Monad.Reader         ( runReaderT, liftIO     )
-import           Commands                     ( runCommands, commands  )
+import           Data.List                    ( intercalate            )
+import           Data.Text                    ( pack                   )
 import           System.Directory             ( getHomeDirectory
                                               , doesFileExist          )
+import           System.Environment           ( getArgs                )
+import           Text.Read                    ( readMaybe              )
 
 -- =============================================================== --
 -- Main control point and routers
@@ -97,6 +98,10 @@ options =
       ( Opt.ReqArg configDelay "SEC" )
       "Delay in whole seconds between PubMed requests."
 
+    , Opt.Option "" [ "fmt" ]
+      ( Opt.ReqArg configFormat "FMT" )
+      "Set the output format to FMT overriding file extension"
+
     -- Flags
 
     , Opt.Option "h" [ "help" ]
@@ -127,3 +132,8 @@ configDelay delay config
     | d < 1     = throwError $ "Delay time must be a positive integer."
     | otherwise = pure $ config { T.cDelay = d }
     where d = maybe 0 id . readMaybe $ delay
+
+configFormat :: String -> T.Config -> T.ErrMonad T.Config
+configFormat arg config = maybe err go . C.readFormat $ arg
+    where go x = pure $ config { T.cFormat = Just x }
+          err  = throwError $ "Unrecognized format " <> arg

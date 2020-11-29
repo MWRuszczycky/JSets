@@ -150,6 +150,7 @@ data Config = Config {
     , cOutputPath   :: Maybe FilePath -- file output path
     , cRefPath      :: Maybe FilePath -- path to the references file
     , cJSetKey      :: Maybe Int      -- journal set key
+    , cFormat       :: Maybe Format   -- explicit output format
     , cHelp         :: Bool           -- user requested help
     , cSortJSets    :: Bool           -- sort issues by Journal in output
     , cShowVer      :: Bool           -- show version number flag
@@ -165,6 +166,7 @@ defaultConfig = Config {
     , cOutputPath   = Nothing
     , cRefPath      = Nothing
     , cJSetKey      = Nothing
+    , cFormat       = Nothing
     , cHelp         = False
     , cSortJSets    = True
     , cShowVer      = False

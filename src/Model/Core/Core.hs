@@ -5,6 +5,7 @@ module Model.Core.Core
     , readTxt
       -- Working with file paths
     , extension
+    , readFormat
       -- List manipulation
     , chunksOf
     , takeEveryAt
@@ -17,10 +18,12 @@ module Model.Core.Core
     ) where
 
 import qualified Data.Text           as Tx
+import qualified Model.Core.Types    as T
+import           Control.Applicative        ( (<|>), Alternative (..) )
+import           Data.Char                  ( toLower                 )
+import           Data.List                  ( foldl'                  )
 import           Data.Text                  ( Text                    )
 import           Text.Read                  ( readMaybe               )
-import           Data.List                  ( foldl'                  )
-import           Control.Applicative        ( (<|>), Alternative (..) )
 
 -- =============================================================== --
 -- Working with Text strings
@@ -42,6 +45,15 @@ extension fp
     | null p    = []
     | otherwise = reverse e
     where (e,p) = break (=='.') . reverse $ fp
+
+readFormat :: String -> Maybe T.Format
+readFormat fmt = case map toLower fmt of
+                      "csv"  -> Just T.CSV
+                      "mkd"  -> Just T.MKD
+                      "md"   -> Just T.MKD
+                      "html" -> Just T.HTML
+                      "txt"  -> Just T.TXT
+                      _      -> Nothing
 
 -- =============================================================== --
 -- List manipulation
