@@ -109,9 +109,10 @@ pmidHelp = (s, "Long help for pmid command still being written.\n")
 pmidCmd :: [String] -> T.AppMonad ()
 pmidCmd [] = throwError "One or more PMIDs must be provided!"
 pmidCmd xs = do
-    citations <- A.downloadCitations . map Tx.pack $ xs
+    fromPubMed <- A.downloadCitations . map Tx.pack $ xs
+    citations  <- mapM A.resolveIssue . Map.elems $ fromPubMed
     C.putStrLnMIO "\n"
-    V.runView ( V.viewCitations . Map.elems $ citations ) >>= display
+    V.runView ( V.viewCitations citations ) >>= display
 
 ---------------------------------------------------------------------
 -- Generating output for ranking articles

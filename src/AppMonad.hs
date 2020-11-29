@@ -10,6 +10,7 @@ module AppMonad
       -- Working with configured reference issues
     , references
     , getIssue
+    , resolveIssue
       -- Internet requests
     , downloadCitations
     , downloadContent
@@ -30,6 +31,7 @@ import qualified Model.Parsers.PubMed      as P
 import qualified Model.PubMed              as PM
 import qualified View.Core                 as Vc
 import qualified View.View                 as V
+import           Data.List                          ( find           )
 import           Data.Text                          ( Text           )
 import           Network.Wreq.Session               ( newSession     )
 import           Control.Monad.Reader               ( asks           )
@@ -97,6 +99,19 @@ getIssue abbr v n = references >>= maybe err pure . go
     where issMsg = Tx.unpack abbr <> " " <> show v <> ":" <> show n
           err    = throwError $ "Invalid issue: " <> issMsg
           go rs  = J.lookupIssue rs abbr (v,n)
+
+resolveIssue :: T.Citation -> T.AppMonad T.Citation
+-- ^Attempt to resolve the issue of a citation to a configured issue.
+-- If successful, replace the citation's issue with the configured
+-- issue. Otherwise, do nothing. This function is useful for setting
+-- the issue of citations downloaded from PubMed without knowing from
+-- which issue they come.
+resolveIssue x = references >>= pure . maybe x id . go
+    where name  = T.pubmed . T.journal $ x
+          go rs = do r   <- find ( (== name) . T.pubmed . T.journal ) rs
+                     let key = T.abbr . T.journal $ r
+                     iss <- J.lookupIssue rs key ( T.volNo x, T.issNo x )
+                     pure $ x { T.pubIssue = iss }
 
 -- =============================================================== --
 -- PubMed Pipeline
