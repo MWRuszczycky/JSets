@@ -88,7 +88,7 @@ options =
 
     , Opt.Option "k" [ "key" ]
       ( Opt.ReqArg configKey "KEY" )
-      "Set the journal set key to KEY (positive integer)"
+      "Set the journal set key to KEY (positive integer)."
 
     , Opt.Option "o" [ "output" ]
       ( Opt.ReqArg ( \ x s -> pure $ s { T.cOutputPath = Just x } ) "PATH" )
@@ -100,7 +100,7 @@ options =
 
     , Opt.Option "" [ "fmt" ]
       ( Opt.ReqArg configFormat "FMT" )
-      "Set the output format to FMT overriding file extension"
+      "Set the output format to FMT overriding file extension."
 
     -- Flags
 

@@ -103,7 +103,7 @@ matchCmd (fp:_) = do
 -- Look up PMIDs at PubMed
 
 pmidHelp :: (Text, Text)
-pmidHelp = (s, "Long help for pmid command still being written.\n")
+pmidHelp = (s, H.pmidHelp)
     where s = "Download citations based on ther PMIDs."
 
 pmidCmd :: [String] -> T.AppMonad ()

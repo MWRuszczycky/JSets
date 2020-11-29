@@ -1,0 +1,12 @@
+Usage: jsets pmid PMID [PMID]
+
+Download article citations from PubMed based on their PubMed ids.
+The downloaded citations will be ordered according to their PubMed
+ids and can be formatted as either text or Markdown. If the article
+is found in a configured journal after the date of the corresponding
+reference issue, then the issue will be resolved based on the issue
+calculated for the given volume number and issue number. Note that
+this may not work if multiple volumes are published each year as in
+the case of Nature and Science (in this case, JSets currently uses
+the year as the volume number). If the issue cannot be resolved from
+the configuration, then the issue will be directly read from PubMed.
