@@ -305,6 +305,8 @@ citationTxt x = do
     Vc.write ","
     Vc.space
     Vc.write . C.tshow . T.pages $ x
+    Vc.space
+    Vc.write . Vc.bracket '(' ')' . T.pmid $ x
     Vc.newLine
 
 citationMkd :: T.Citation -> T.ViewMonad ()
