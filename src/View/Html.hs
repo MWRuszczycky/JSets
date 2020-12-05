@@ -9,9 +9,11 @@ import qualified Data.Text        as Tx
 import qualified Data.Map.Strict  as Map
 import qualified Model.Core.Types as T
 import qualified Model.Core.Core  as C
+import qualified View.Help        as H
 import qualified View.Templates   as Temp
 import qualified View.Core        as Vc
 import           Data.Text                ( Text           )
+import           Data.Time                ( Day            )
 import           View.Templates           ( fill, fillNone )
 
 -- =============================================================== --
@@ -35,10 +37,12 @@ adminDefault (Just x) = x
 -- =============================================================== --
 -- Exported html document compositors
 
-tocsHtml :: Maybe Text -> Maybe Text -> T.JSet T.Content -> T.Citations -> Text
+tocsHtml :: Maybe Text -> Maybe Text -> Day
+            -> T.JSet T.Content -> T.Citations -> Text
 -- ^Generate the complete html web document for a table of contents.
-tocsHtml name email jset@(T.JSet n tocs sel) cs =
-    let dict = [ ( "jsetTitle",  "Journal Set " <> C.tshow n                 )
+tocsHtml name email date jset@(T.JSet n tocs sel) cs =
+    let dict = [ ( "meta",       tocMeta n date                              )
+               , ( "title",      "Journal Set " <> C.tshow n                 )
                , ( "jsetHeader", Vc.jsetHeader jset                          )
                , ( "savePrefix", savePrefix jset                             )
                , ( "instr",      fillNone Temp.tocInstrHtml                  )
@@ -165,6 +169,14 @@ citationDict c = Map.fromList xys
 
 -- --------------------------------------------------------------- --
 -- Javascript elements for building the selection text file
+
+tocMeta :: Int -> Day -> Text
+-- ^HTML meta data at the top of the ToC html document.
+tocMeta setNo date = fill (Map.fromList dict) Temp.tocMetaHtml
+    where dict = [ ( "title",   "Journal Set " <> C.tshow setNo )
+                 , ( "date",    Vc.dateN date                   )
+                 , ( "version", H.version                       )
+                 ]
 
 savePrefix :: T.HasIssue a => T.JSet a -> Text
 -- ^Filename prefix for the selection text file.

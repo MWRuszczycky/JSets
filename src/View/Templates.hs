@@ -18,6 +18,7 @@ module View.Templates
     , issueHtml
     , issueMissingHtml
     , issueMissingLinkedHtml
+    , tocMetaHtml
     , tocSaveInstrHtml
     , tocInstrHtml
       -- HTML templates: Ranks output
@@ -130,8 +131,9 @@ issueArrayJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
 
 tocsHtml :: Template
 -- ^Full html document for table of contents selections
--- jsetTitle  : title of html document
--- jsetHeader : header for te journal set (number and date)
+-- meta       : leading meta data for the html document
+-- title      : <h1> title element for the ToC html document
+-- jsetHeader : header for the journal set (number and date)
 -- savePrefix : file name prefix for saving
 -- issues     : new issue elements for the 'journals' array
 -- tocs       : table of contents html for all issues
@@ -160,6 +162,14 @@ issueMissingLinkedHtml :: Template
 -- url   : url to the toc at the publisher's website.
 issueMissingLinkedHtml = parseTemplate' "res/html/tocs/issue_missing_linked.html"
                          $(MT.embedFile "res/html/tocs/issue_missing_linked.html")
+
+tocMetaHtml :: Template
+-- ^Meta data template for tables of contents html document output.
+-- title   : title of the journal set for the <title> tag
+-- version : version of JSets used to create the html document
+-- date    : date the ToC html document was created
+tocMetaHtml = parseTemplate' "res/html/tocs/meta.html"
+              $(MT.embedFile "res/html/tocs/meta.html")
 
 tocSaveInstrHtml :: Template
 -- ^Instructions for saving a selection file.
