@@ -1,5 +1,5 @@
 // =============================================================== //
-// Class definitions for HTML tables tables of contents
+// Class definitions for HTML tables of contents
 
 class JournalIssue {
     constructor(key, name, volume, issue, published){

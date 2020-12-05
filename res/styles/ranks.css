@@ -1,0 +1,11 @@
+body { background-color: white;
+       color: #101010;
+       font-family: sans-serif;
+       font-size: 100%; }
+a:link { color: #4682b4; }
+a:visited { color: #7eaacd; }
+input[type="text"] { width: 3.0em; }
+#inst { padding-left: 1.5em; }
+p { display: block;
+    padding-left: 3.5em;
+    text-indent: -2.7em; }

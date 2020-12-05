@@ -13,11 +13,13 @@ module View.Templates
     , parseTemplate
       -- CSS style templates
     , tocsCSS
+    , ranksCSS
       -- Javascript templates
     , tocsClassesJS
     , tocsGlobalsJS
     , tocsIssuesArrayJS
     , tocsFunctionsJS
+    , ranksFunctionsJS
       -- HTML templates: Tables of contents
     , tocsHtml
     , issueHtml
@@ -27,7 +29,8 @@ module View.Templates
     , tocSaveInstrHtml
     , tocInstrHtml
       -- HTML templates: Ranks output
-    , rankListHtml
+    , ranksHtml
+    , ranksMetaHtml
       -- HTML templates: General html elements
     , citationHtml
       -- Markdown templates
@@ -110,13 +113,19 @@ freeAt = do
          _        -> pure FreeAt
 
 -- =============================================================== -- 
---  CSS style templates
+-- CSS style templates
 
 tocsCSS :: Template
 -- ^CSS styles for journal set tables of contents documents
 -- This template has no variables.
 tocsCSS = parseTemplate' "res/styles/tocs.css"
           $(MT.embedFile "res/styles/tocs.css")
+
+ranksCSS :: Template
+-- ^CSS styles for citation rank-lists
+-- This template has no variables.
+ranksCSS = parseTemplate' "res/stiles/ranks.css"
+           $(MT.embedFile "res/styles/ranks.css")
 
 -- =============================================================== --
 -- Javascript templates
@@ -157,8 +166,18 @@ tocsIssuesArrayJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
 
 tocsFunctionsJS :: Template
 -- ^Javascript functions for html tables of contents
+-- This template has no variables.
 tocsFunctionsJS = parseTemplate' "res/scripts/tocs/functions.js"
                   $(MT.embedFile "res/scripts/tocs/functions.js")
+
+-- --------------------------------------------------------------- -- 
+-- Javascript to run the html rank-lists documents
+
+ranksFunctionsJS :: Template
+-- ^Javascript functions for html rank-lists
+-- This template has no variables.
+ranksFunctionsJS = parseTemplate' "res/scripts/ranks/functions.js"
+                   $(MT.embedFile "res/scripts/ranks/functions.js")
 
 -- =============================================================== --
 -- HTML templates
@@ -224,15 +243,25 @@ tocInstrHtml = parseTemplate' "res/html/tocs/general_instructions.html"
 ------------------------------------------------------------------ --
 -- Templates for ranks output
 
-rankListHtml :: Template
--- ^Full html template document for generating rankings for articles.
--- selected for review.
--- jsetTitle : Title of the journal set (e.g., Journal Set 6)
--- name      : Nickname of person to send rankings to
+ranksHtml :: Template
+-- ^Full html template document for generating citation rank-lists.
+-- meta      : html meta data
+-- styles    : css styles code
+-- script    : javascript to run the document
+-- title     : title of the journal set (e.g., Journal Set 6)
+-- citations : individual citations for ranking
+-- name      : name of the person to send rankings to
 -- email     : email string for person to send rankings to
--- citations : Individual citations for ranking.
-rankListHtml = parseTemplate' "res/html/ranks/rankList.html"
-               $(MT.embedFile "res/html/ranks/rankList.html")
+ranksHtml = parseTemplate' "res/html/ranks/ranks.html"
+            $(MT.embedFile "res/html/ranks/ranks.html")
+
+ranksMetaHtml :: Template
+-- ^HTML meta data for rank-list list documents
+-- title   : title of the journal set (e.g., Journal Set 6)
+-- version : version of JSets responsible for generating the document
+-- date    : date the rank-list document was generated
+ranksMetaHtml = parseTemplate' "res/html/ranks/meta.html"
+                $(MT.embedFile "res/html/ranks/meta.html")
 
 ------------------------------------------------------------------ --
 -- General html elements templates

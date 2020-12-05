@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+@{meta}
+<!-- ############################################################ -->
+<!-- STYLES -->
+
+<style>
+
+@{styles}
+</style>
+
+<!-- ############################################################ -->
+<!-- SCRIPTS -->
+
+<script>
+
+@{script}
+</script>
+
+    </head>
+
+<!-- ############################################################ -->
+<!-- CONTENT -->
+
+    <body>
+
+<!-- ============================================================ -->
+<!-- Rank-list -->
+
+        <h1>@{title}</h1>
+
+        <h2>Instructions</h2>
+
+        <ol>
+            <li>If you have no preferences, you can ignore this.</li>
+            <li><b>Rank your articles by entering a number in the adjacent text box.</b></li>
+            <li>Don't distinguish between long and short articles in your ranking.</li>
+            <li><b>More negative numbers indicate higher preference.</b></li>
+            <li>You can use any integers you want. Only the order matters.<br>
+                (But you might as well start with your most preferred at 1)</li>
+            <li><b>You can give articles equal rank or no rank at all.</b></li>
+            <li>Once you're done, click the button at the bottom.</li>
+            <li><b>Copy the resulting rank list and paste it into an email to @{name}.</b></li>
+            <li>If you want to redo your rankings, just refresh the web page.</li>
+        </ol>
+
+        <h2>Selection</h2>
+
+@{citations}
+<!-- ============================================================ -->
+<!-- Selection -->
+
+        <h2>Create your ranks and send them to @{name}!</h2>
+
+        <div id="inst">
+            Press the button to create your rank list and email it to @{email}.<br>
+            If you have no preferences, you don't need to do anything.<br>
+            <button type="button" id="rankBtn" onclick="createRanks()">
+                Create Ranks!
+            </button>
+            <b><span id="ranks"></span></b>
+        </div>
+    </body>
+</html>

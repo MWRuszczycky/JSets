@@ -2,7 +2,7 @@
 
 module View.Html
     ( tocsHtml
-    , rankList
+    , ranksHtml
     ) where
 
 import qualified Data.Text        as Tx
@@ -41,7 +41,7 @@ tocsHtml :: Maybe Text -> Maybe Text -> Day
             -> T.JSet T.Content -> T.Citations -> Text
 -- ^Generate the complete html web document for a table of contents.
 tocsHtml name email date jset@(T.JSet n tocs sel) cs =
-    let dict = [ ( "meta",       tocMeta n date                              )
+    let dict = [ ( "meta",       tocsMeta n date                             )
                , ( "styles",     fillNone Temp.tocsCSS                       )
                , ( "script",     tocsScript jset                             )
                , ( "title",      "Journal Set " <> C.tshow n                 )
@@ -54,9 +54,9 @@ tocsHtml name email date jset@(T.JSet n tocs sel) cs =
 -- --------------------------------------------------------------- --
 -- HTML meta data & fixed content for journal set tables of contents
 
-tocMeta :: Int -> Day -> Text
+tocsMeta :: Int -> Day -> Text
 -- ^HTML meta data at the top of the ToC html document.
-tocMeta setNo date = fill (Map.fromList dict) Temp.tocMetaHtml
+tocsMeta setNo date = fill (Map.fromList dict) Temp.tocMetaHtml
     where dict = [ ( "title",   "Journal Set " <> C.tshow setNo )
                  , ( "date",    Vc.dateN date                   )
                  , ( "version", H.version                       )
@@ -150,15 +150,29 @@ issuesArrayElement iss = fill xys Temp.tocsIssuesArrayJS
 -- =============================================================== --
 -- HTML compositors for rank-lists to specify article preferences
 
-rankList :: Maybe Text -> Maybe Text -> T.Citations -> T.JSet a -> Text
--- ^Construct html for the rank list of a journal set.
-rankList name email cs jset =
-    let dict = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
+ranksHtml :: Maybe Text -> Maybe Text -> Day -> T.Citations -> T.JSet a -> Text
+-- ^Construct html for the rank-list of a journal set.
+ranksHtml name email date cs jset@(T.JSet n _ _ ) =
+    let dict = [ ( "meta",      ranksMeta n date                         )
+               , ( "styles",    fillNone Temp.ranksCSS                   )
+               , ( "script",    fillNone Temp.ranksFunctionsJS           )
+               , ( "title",     "Journal Set " <> C.tshow (T.setNo jset) )
                , ( "name",      adminDefault name                        )
                , ( "email",     adminDefault  email                      )
                , ( "citations", rankListContents cs (T.selection jset)   )
                ]
-    in fill (Map.fromList dict) Temp.rankListHtml
+    in fill (Map.fromList dict) Temp.ranksHtml
+
+---------------------------------------------------------------------
+-- html meta data for rank-lists
+
+ranksMeta :: Int -> Day -> Text
+-- ^HTML meta data at the top of the rank-lists html document.
+ranksMeta setNo date = fill (Map.fromList dict) Temp.ranksMetaHtml
+    where dict = [ ( "title", "Journal Set " <> C.tshow setNo )
+                 , ( "date",  Vc.dateN date                   )
+                 , ("version", H.version                      )
+                 ]
 
 ---------------------------------------------------------------------
 -- html for the citations in a rank-list document
