@@ -42,13 +42,12 @@ tocsHtml :: Maybe Text -> Maybe Text -> Day
 -- ^Generate the complete html web document for a table of contents.
 tocsHtml name email date jset@(T.JSet n tocs sel) cs =
     let dict = [ ( "meta",       tocMeta n date                              )
+               , ( "styles",     fillNone Temp.tocsCSS                       )
+               , ( "script",     tocsScript jset                             )
                , ( "title",      "Journal Set " <> C.tshow n                 )
-               , ( "jsetHeader", Vc.jsetHeader jset                          )
-               , ( "savePrefix", savePrefix jset                             )
                , ( "instr",      fillNone Temp.tocInstrHtml                  )
-               , ( "saveinstr",  saveInstr name email                        )
-               , ( "issues",     issuesArray . T.issues $ jset               )
                , ( "tocs",       Tx.unlines . map (tocEntries cs sel) $ tocs )
+               , ( "saveinstr",  saveInstr name email                        )
                ]
     in fill (Map.fromList dict) Temp.tocsHtml
 
@@ -105,10 +104,27 @@ tocEntry cs sel pmid = maybe Tx.empty go . Map.lookup pmid $ cs
                | otherwise     = fill (citationDict    c) Temp.citationHtml
 
 -- --------------------------------------------------------------- --
--- CSS style code for the jset tables of contents html documents
-
--- --------------------------------------------------------------- --
 -- Javascript code for jset tables of contents html documents
+
+tocsScript :: T.HasIssue a => T.JSet a -> Text
+-- ^Generate javascript to run the html table of contents document
+tocsScript jset = Tx.unlines [ tocsClasses, tocsGlobals jset, tocsFunctions ]
+
+tocsClasses :: Text
+-- ^Javascript classes necessary to run the html table of contents
+tocsClasses = fillNone Temp.tocsClassesJS
+
+tocsFunctions :: Text
+-- ^Javascript functions necessary to run the html table of contents
+tocsFunctions = fillNone Temp.tocsFunctionsJS
+
+tocsGlobals :: T.HasIssue a => T.JSet a -> Text
+-- ^Javascript global variables for the html table of contents.
+tocsGlobals jset = fill xys Temp.tocsGlobalsJS
+    where xys = Map.fromList [ ( "jsetHeader", Vc.jsetHeader jset            )
+                             , ( "savePrefix", savePrefix jset               )
+                             , ( "issues",     issuesArray . T.issues $ jset )
+                             ]
 
 savePrefix :: T.HasIssue a => T.JSet a -> Text
 -- ^Filename prefix for the selection text file.
@@ -123,7 +139,7 @@ issuesArray = Tx.intercalate ",\n" . map issuesArrayElement
 issuesArrayElement :: T.HasIssue a => a -> Text
 -- ^Constructs each element of the JavaScrept 'issues' array. This is
 -- used to track the specified issue in the journal set.
-issuesArrayElement iss = fill xys Temp.issueArrayJS
+issuesArrayElement iss = fill xys Temp.tocsIssuesArrayJS
     where xys = Map.fromList [ ("class",  className            iss )
                              , ("title",  (T.abbr . T.journal) iss )
                              , ("vol",    (C.tshow . T.volNo)  iss )

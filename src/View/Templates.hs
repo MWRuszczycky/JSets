@@ -5,14 +5,19 @@ module View.Templates
     ( -- Local types
       TemplateText (..)
     , Template
-      -- Text interpolation for teemplate text strings
+      -- Text interpolation for template text strings
     , fill
     , fillNone
     , fillDef
       -- Template parsing
     , parseTemplate
+      -- CSS style templates
+    , tocsCSS
       -- Javascript templates
-    , issueArrayJS
+    , tocsClassesJS
+    , tocsGlobalsJS
+    , tocsIssuesArrayJS
+    , tocsFunctionsJS
       -- HTML templates: Tables of contents
     , tocsHtml
     , issueHtml
@@ -104,18 +109,45 @@ freeAt = do
          Just '{' -> empty
          _        -> pure FreeAt
 
--- ==================================================================
+-- =============================================================== -- 
+--  CSS style templates
+
+tocsCSS :: Template
+-- ^CSS styles for journal set tables of contents documents
+-- This template has no variables.
+tocsCSS = parseTemplate' "res/styles/tocs.css"
+          $(MT.embedFile "res/styles/tocs.css")
+
+-- =============================================================== --
 -- Javascript templates
 
-issueArrayJS :: Template
--- ^Element of the 'issues array' for html tables of contents
+-- --------------------------------------------------------------- --
+-- Javascript to run table of contents html documents
+
+tocsClassesJS :: Template
+-- ^Javascript classes for html tables of contents
+tocsClassesJS = parseTemplate' "res/scripts/tocs/classes.js"
+                $(MT.embedFile "res/scripts/tocs/classes.js")
+
+tocsGlobalsJS :: Template
+-- ^Javascript global variables for html tables of contents
+-- jsetHeader : String used to name the journal set (e.g., "22 | 2020-11-10")
+-- savePrefix : file name prefix for saving selections
+-- issues     : the issues array (see tocsIssuesArrayJS below).
+tocsGlobalsJS = parseTemplate' "res/scripts/tocs/globals.js"
+                $(MT.embedFile "res/scripts/tocs/globals.js")
+
+tocsIssuesArrayJS :: Template
+-- ^Element of the 'issues' for html tables of contents
+-- This is used to construct the issues variable in the globals
+-- script component. See tocsGlobalsJS above.
 -- class  : issue class
 -- title  : Journal title
 -- vol    : issue volume
 -- number : issue number
 -- date   : issue date
-issueArrayJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
-    where t = [ Tx.replicate 22 " "
+tocsIssuesArrayJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
+    where t = [ Tx.replicate 10 " "
               , "new JournalIssue(\"@{class}\","
               , "\"@{title}\","
               , "\"@{vol}\","
@@ -123,18 +155,23 @@ issueArrayJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
               , "\"@{date}\")"
               ]
 
--- ==================================================================
+tocsFunctionsJS :: Template
+-- ^Javascript functions for html tables of contents
+tocsFunctionsJS = parseTemplate' "res/scripts/tocs/functions.js"
+                  $(MT.embedFile "res/scripts/tocs/functions.js")
+
+-- =============================================================== --
 -- HTML templates
 
--- ------------------------------------------------------------------
+-- --------------------------------------------------------------- --
 -- Tables of contents
 
 tocsHtml :: Template
 -- ^Full html document for table of contents selections
 -- meta       : leading meta data for the html document
+-- styles     : css styles code
+-- script     : javascript script code
 -- title      : <h1> title element for the ToC html document
--- jsetHeader : header for the journal set (number and date)
--- savePrefix : file name prefix for saving
 -- issues     : new issue elements for the 'journals' array
 -- tocs       : table of contents html for all issues
 -- saveinstr  : save instructions
@@ -184,7 +221,7 @@ tocInstrHtml :: Template
 tocInstrHtml = parseTemplate' "res/html/tocs/general_instructions.html"
                $(MT.embedFile "res/html/tocs/general_instructions.html")
 
----------------------------------------------------------------------
+------------------------------------------------------------------ --
 -- Templates for ranks output
 
 rankListHtml :: Template
@@ -197,7 +234,7 @@ rankListHtml :: Template
 rankListHtml = parseTemplate' "res/html/ranks/rankList.html"
                $(MT.embedFile "res/html/ranks/rankList.html")
 
----------------------------------------------------------------------
+------------------------------------------------------------------ --
 -- General html elements templates
 
 citationHtml :: Template
