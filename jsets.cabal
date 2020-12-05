@@ -1,6 +1,6 @@
 name:                   jsets
  -- prefix version with '0.' to indicate development version
-version:                2.4.2
+version:                2.4.3
 homepage:               https://github.com/MWRuszczycky/JSets#readme
 license:                BSD3
 license-file:           LICENSE
