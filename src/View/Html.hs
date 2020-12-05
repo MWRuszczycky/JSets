@@ -72,7 +72,7 @@ issuesArray = Tx.intercalate ",\n" . map issueElement
 issueElement :: T.HasIssue a => a -> Text
 -- ^Constructs each element of the JavaScrept 'issues' array. This is
 -- used to track the specified issue in the journal set.
-issueElement iss = fill xys Temp.issueJS
+issueElement iss = fill xys Temp.issueArrayJS
     where xys = Map.fromList [ ("class",  className            iss )
                              , ("title",  (T.abbr . T.journal) iss )
                              , ("vol",    (C.tshow . T.volNo)  iss )
@@ -96,12 +96,12 @@ issueHeader iss = Tx.concat xs
 tocEntries :: T.Citations -> [T.PMID] -> T.Content -> Text
 -- ^Construct html for all citations in a Table of Contents.
 tocEntries _ _ (T.Content iss url [])
-    | Tx.null url = fill xys Temp.tocMissingHtml
-    | otherwise   = fill xys Temp.tocMissingUrlHtml
+    | Tx.null url = fill xys Temp.issueMissingHtml
+    | otherwise   = fill xys Temp.issueMissingLinkedHtml
     where xys = Map.fromList [ ("issue", issueHeader iss  )
                              , ("url",   "https://" <> url)
                              ]
-tocEntries cs sel (T.Content iss _ pmids) = fill xys Temp.tocHtml
+tocEntries cs sel (T.Content iss _ pmids) = fill xys Temp.issueHtml
     where cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
           xys   = Map.fromList [ ("issue",     issueHeader iss)
                                , ("citations", cstxt          )
@@ -172,7 +172,7 @@ savePrefix jset = "sel" <> C.tshow y <> "-" <> ( C.tshow . T.setNo $ jset )
     where y = T.year jset
 
 saveInstr :: Maybe Text -> Maybe Text -> Text
-saveInstr name email = fill (Map.fromList dict) Temp.saveInstrHtml
+saveInstr name email = fill (Map.fromList dict) Temp.tocSaveInstrHtml
     where dict = [ ( "name", adminDefault name   )
                  , ( "email", adminDefault email )
                  ]

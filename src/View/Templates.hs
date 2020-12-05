@@ -2,24 +2,29 @@
 {-# LANGUAGE TemplateHaskell   #-}
 
 module View.Templates
-    ( TemplateText (..)
+    ( -- Local types
+      TemplateText (..)
     , Template
+      -- Text interpolation for teemplate text strings
     , fill
     , fillNone
     , fillDef
+      -- Template parsing
     , parseTemplate
-      -- Templates
-      -- html/JavaScript
-    , citationHtml
-    , issueJS
+      -- Javascript templates
+    , issueArrayJS
+      -- HTML templates: Tables of contents
     , tocsHtml
-    , tocHtml
-    , tocMissingHtml
-    , tocMissingUrlHtml
-    , saveInstrHtml
+    , issueHtml
+    , issueMissingHtml
+    , issueMissingLinkedHtml
+    , tocSaveInstrHtml
     , tocInstrHtml
+      -- HTML templates: Ranks output
     , rankListHtml
-      -- markdown
+      -- HTML templates: General html elements
+    , citationHtml
+      -- Markdown templates
     , citationMkd
     ) where
 
@@ -38,7 +43,7 @@ data TemplateText = FreeAt | Var Text | Raw Text deriving ( Eq, Show )
 type Template = [TemplateText]
 
 -- =============================================================== --
--- Text interpolation for Templated Text strings
+-- Text interpolation for templated text strings
 
 fill :: Map.Map Text Text -> Template -> Text
 fill = fillDef Tx.empty
@@ -53,7 +58,7 @@ fillDef def dict = Tx.concat . map go
           go (Raw x) = x
 
 -- =============================================================== --
--- Parser
+-- Template parsing
 
 parseTemplate' :: String -> Text -> Template
 parseTemplate' fp = either error id . parseTemplate fp
@@ -98,11 +103,30 @@ freeAt = do
          Just '{' -> empty
          _        -> pure FreeAt
 
--- =============================================================== --
--- Templates
+-- ==================================================================
+-- Javascript templates
 
----------------------------------------------------------------------
--- html templates for building tables of contents web documents
+issueArrayJS :: Template
+-- ^Element of the 'issues array' for html tables of contents
+-- class  : issue class
+-- title  : Journal title
+-- vol    : issue volume
+-- number : issue number
+-- date   : issue date
+issueArrayJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
+    where t = [ Tx.replicate 22 " "
+              , "new JournalIssue(\"@{class}\","
+              , "\"@{title}\","
+              , "\"@{vol}\","
+              , "\"@{number}\","
+              , "\"@{date}\")"
+              ]
+
+-- ==================================================================
+-- HTML templates
+
+-- ------------------------------------------------------------------
+-- Tables of contents
 
 tocsHtml :: Template
 -- ^Full html document for table of contents selections
@@ -112,45 +136,59 @@ tocsHtml :: Template
 -- issues     : new issue elements for the 'journals' array
 -- tocs       : table of contents html for all issues
 -- saveinstr  : save instructions
-tocsHtml = parseTemplate' "res/html/tocs.html"
-           $(MT.embedFile "res/html/tocs.html")
+tocsHtml = parseTemplate' "res/html/tocs/tocs.html"
+           $(MT.embedFile "res/html/tocs/tocs.html")
 
-issueJS :: Template
--- ^Element of the 'issues array'
--- class  : issue class
--- title  : Journal title
--- vol    : issue volume
--- number : issue number
--- date   : issue date
-issueJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
-    where t = [ Tx.replicate 22 " "
-              , "new JournalIssue(\"@{class}\","
-              , "\"@{title}\","
-              , "\"@{vol}\","
-              , "\"@{number}\","
-              , "\"@{date}\")"
-              ]
-
-tocHtml :: Template
--- ^Table of contents for a given issue
+issueHtml :: Template
+-- ^Table of contents for a given issue found at PubMed
 -- issue    : issue header
 -- articles : html for all articles in the issue
-tocHtml = parseTemplate' "res/html/toc.html"
-          $(MT.embedFile "res/html/toc.html")
+issueHtml = parseTemplate' "res/html/tocs/issue.html"
+            $(MT.embedFile "res/html/tocs/issue.html")
 
-tocMissingHtml :: Template
--- ^Table of contents substitute when there are no PMIDs at PubMed
+issueMissingHtml :: Template
+-- ^Table of contents substitute when there are no PMIDs at PubMed,
+-- and there is no link to the ToC at the publishers website.
 -- issue : issue header
-tocMissingHtml = parseTemplate' "res/html/tocMissing.html"
-                 $(MT.embedFile "res/html/tocMissing.html")
+issueMissingHtml = parseTemplate' "res/html/tocs/issue_missing.html"
+                   $(MT.embedFile "res/html/tocs/issue_missing.html")
 
-tocMissingUrlHtml :: Template
--- ^Same as tocMissingHtml but with an alternate link to the table of
--- contents at the publisher's website.
+issueMissingLinkedHtml :: Template
+-- ^Table of contents substitute when there are no PMIDs at PubMed,
+-- but a link to the ToC at the publisher's website is available.
 -- issue : issue header
 -- url   : url to the toc at the publisher's website.
-tocMissingUrlHtml = parseTemplate' "res/html/tocMissingUrl.html"
-                    $(MT.embedFile "res/html/tocMissingUrl.html")
+issueMissingLinkedHtml = parseTemplate' "res/html/tocs/issue_missing_linked.html"
+                         $(MT.embedFile "res/html/tocs/issue_missing_linked.html")
+
+tocSaveInstrHtml :: Template
+-- ^Instructions for saving a selection file.
+-- name  : name of person to send selections to
+-- email : email string for person to send selections to
+tocSaveInstrHtml = parseTemplate' "res/html/tocs/save_instructions.html"
+                   $(MT.embedFile "res/html/tocs/save_instructions.html")
+
+tocInstrHtml :: Template
+-- ^General instructions for table of contents to be included at the
+-- top of the webpage.
+tocInstrHtml = parseTemplate' "res/html/tocs/general_instructions.html"
+               $(MT.embedFile "res/html/tocs/general_instructions.html")
+
+---------------------------------------------------------------------
+-- Templates for ranks output
+
+rankListHtml :: Template
+-- ^Full html template document for generating rankings for articles.
+-- selected for review.
+-- jsetTitle : Title of the journal set (e.g., Journal Set 6)
+-- name      : Nickname of person to send rankings to
+-- email     : email string for person to send rankings to
+-- citations : Individual citations for ranking.
+rankListHtml = parseTemplate' "res/html/ranks/rankList.html"
+               $(MT.embedFile "res/html/ranks/rankList.html")
+
+---------------------------------------------------------------------
+-- General html elements templates
 
 citationHtml :: Template
 -- ^Paragraph environment for a single article citation
@@ -165,33 +203,10 @@ citationHtml :: Template
 -- number   : issue number
 -- pages    : pages string
 -- pmid     : pubmed uid
-citationHtml = parseTemplate' "res/html/citation.html"
-               $(MT.embedFile "res/html/citation.html")
+citationHtml = parseTemplate' "res/html/elements/citation.html"
+               $(MT.embedFile "res/html/elements/citation.html")
 
-saveInstrHtml :: Template
--- ^Save instructions for Table of Contents with instructions.
--- name  : nickname of person to send selections to
--- email : email string for person to send selections to
-saveInstrHtml = parseTemplate' "res/html/saveInstr.html"
-                $(MT.embedFile "res/html/saveInstr.html")
-
-tocInstrHtml :: Template
--- ^General instructions for table of contents to be included at the
--- top of the webpage when the --instruct option is used.
-tocInstrHtml = parseTemplate' "res/html/tocInstr.html"
-               $(MT.embedFile "res/html/tocInstr.html")
-
-rankListHtml :: Template
--- ^Full html template document for generating rankings for articles.
--- selected for review.
--- jsetTitle : Title of the journal set (e.g., Journal Set 6)
--- name      : Nickname of person to send rankings to
--- email     : email string for person to send rankings to
--- citations : Individual citations for ranking.
-rankListHtml = parseTemplate' "res/html/rankList.html"
-               $(MT.embedFile "res/html/rankList.html")
-
----------------------------------------------------------------------
+-- =============================================================== --
 -- Markdown templates
 
 citationMkd :: Template
