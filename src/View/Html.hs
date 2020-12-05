@@ -21,10 +21,10 @@ import           View.Templates           ( fill, fillNone )
 
 className :: T.HasIssue a => a -> Text
 -- ^Generate a class name for a journal issue. The basic format is
--- _JournalName-Volume-Number
+-- JournalName-Volume-Number
 -- where the journal name has all spaces converted to underscores.
 className iss = Tx.intercalate "-" xs
-    where xs = [ ("_" <>) . Vc.spaceToUnder . T.abbr . T.journal $ iss
+    where xs = [ Vc.spaceToUnder . T.abbr . T.journal $ iss
                , C.tshow . T.volNo $ iss
                , C.tshow . T.issNo $ iss
                ]
