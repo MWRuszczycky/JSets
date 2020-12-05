@@ -40,14 +40,15 @@ module Model.Core.Types
     ) where
 
 import qualified Data.Text             as Tx
-import           Data.Time                   ( Day, toGregorian  )
-import           Data.Text                   ( Text              )
-import           Data.List                   ( foldl', nub       )
-import           Data.Monoid                 ( Endo              )
 import           Control.Monad.Except        ( ExceptT           )
 import           Control.Monad.Reader        ( ReaderT, Reader   )
 import           Control.Monad.Writer        ( WriterT           )
+import           Data.List                   ( foldl', nub       )
 import           Data.Map.Strict             ( Map               )
+import           Data.Monoid                 ( Endo              )
+import           Data.Text                   ( Text              )
+import           Data.Time                   ( Day, toGregorian
+                                             , fromGregorian     )
 
 -- =============================================================== --
 -- Classes
@@ -155,6 +156,7 @@ data Config = Config {
     , cSortJSets    :: Bool           -- sort issues by Journal in output
     , cShowVer      :: Bool           -- show version number flag
     , cMatchDetails :: Bool           -- show detailed match output
+    , cDate         :: Day            -- date when application started
     , cDelay        :: Integer        -- delay (sec) between PubMed requests
     , cReferences   :: [Issue]        -- reference issues
     } deriving ( Show )
@@ -171,6 +173,7 @@ defaultConfig = Config {
     , cSortJSets    = True
     , cShowVer      = False
     , cMatchDetails = False
+    , cDate         = fromGregorian 2020 1 1
     , cDelay        = 1
     , cReferences   = []
     }

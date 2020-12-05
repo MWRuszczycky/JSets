@@ -10,6 +10,7 @@ import qualified Data.Text             as Tx
 import qualified Model.Core.Types      as T
 import qualified Model.Core.CoreIO     as C
 import qualified Model.Core.Core       as C
+import qualified Model.Core.Dates      as Cd
 import qualified Model.Parsers.Config  as P
 import qualified System.Console.GetOpt as Opt
 import qualified View.Help             as H
@@ -43,9 +44,10 @@ initConfig :: T.ErrMonad T.Config
 initConfig = do
     path   <- ( <> "/.config/jsets/config" ) <$> liftIO getHomeDirectory
     exists <- liftIO . doesFileExist $ path
+    today  <- liftIO Cd.today
     if exists
-       then pure $ T.defaultConfig { T.cRefPath = Just path }
-       else pure $ T.defaultConfig
+       then pure $ T.defaultConfig { T.cRefPath = Just path, T.cDate = today }
+       else pure $ T.defaultConfig { T.cDate = today }
 
 configFromCommandLine :: T.Config -> T.ErrMonad ([String], T.Config)
 configFromCommandLine config = do
