@@ -137,7 +137,7 @@ issues = [
 <!-- BEGIN: Development code for res/html/tocs/issue_missing_linked.html -->
 
             <p><b>There are no articles listed for this issue at PubMed</b>. However, a table of contents can still be accessed by <a href="https://www.pnas.org/content/107/18" target="_blank">clicking here</a>.</p>
-            <p><b>How to select articles from this issue</b>. Click the "Select article from..." button and provide either the first few words of the title, its first page number (if unique) or its digital object identifier (most helpful). You can provide all three, but <b>only one of the three is required</b>. Click the "remove" button to deselect the article.</p>
+            <p><b>How to select articles from this issue</b>. Click the <b>Add article from...</b> button and provide either the first few words of the title, its first page number (if unique) or its digital object identifier (most helpful). You can provide all three, but <b>only one of the three is required</b>. Click the "remove" button to deselect the article.</p>
 
         <div id="PNAS-107-18-Add">
         </div>
@@ -188,9 +188,24 @@ issues = [
 
         <h2>Extra articles</h2>
 
-            <p><b>Extra articles can be specified here</b>. You only need the PubMed ID (<b>PMID</b>) or digital object identifier (<b>DOI</b>) or a direct link to the <i>abstract</i> (whatever follows https:// on the website). See the dropdown menu.</p>
-           <p><b>Make sure the article can be found!</b> Click the "check links" button and check whether the correct abstract opens in a new browser window. If it does, make sure everything is correct or try another identifier.</p>
-           <p><b>To remove a selected article:</b> Click the "remove" button.</p>
+           <p><b>Extra articles can be specified here.</b> First, click the <b>Add an extra article</b> button below. Next, use the drop-down to specify <b>one</b> of the following identifiers to find the <b>abstract</b> and enter its value in the adjacent text box:
+           <ul>
+               <li><p><b>PMID</b> (PubMed ID). This is usually an eight-digit number that can be found at the PubMed website. For example, only enter the red text of:<br>
+                    <b>PMID: <span class="entry">28874588</span></b></p></li>
+                <li>
+                <p><b>DOI</b> (the digital object identifier). For example, only enter the red text of:<br>
+                    <b>https://doi.org/<span class="entry">10.1073/pnas.1710496114</span></b></p>
+                    </li>
+                <li>
+                <p><b>LINK</b> (a direct link to the abstract). For example, only enter the red text of:<br>
+                    <b>https://<span class="entry">www.pnas.org/content/114/39/10408</span></b></p>
+                    </li>
+            </ul></p>
+
+
+           <p><b>Make sure the article can be found!</b> Click the <b>Check link</b> button and make sure the correct <b>abstract</b> opens in a new browser tab. If it does not, then make sure your identifier correctly matches one of the above patterns or try another identifier.</p>
+
+           <p><b>To remove a selected article:</b> Click the <b>Remove</b> button.</p>
 
         <div id="user-citation">
         </div>

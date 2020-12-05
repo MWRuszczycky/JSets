@@ -76,7 +76,9 @@ function userCitationHTML(citeId, citeClass, index) {
             content  =
             `<p id="${citeId}" class="${citeClass}">
                 <b><span class="${citeClass}-name">Article ${indexStr}</span></b>
-                <button type="button">Check Links</button>
+                <button type="button"
+                        onClick="checkUserCitation('${citeId}')">
+                    Check link</button>
                 <button type="button"
                         onClick="remUserCitation('${citeId}','${citeClass}')">
                     Remove</button></br>
@@ -84,7 +86,7 @@ function userCitationHTML(citeId, citeClass, index) {
                 <select name="${citeId}-refType" id="${citeId}-refType">
                     <option value="PMID">PMID</option>
                     <option value="DOI">DOI</option>
-                    <option value="LINK">https://</option>
+                    <option value="LINK">LINK</option>
                 </select>
                 <label for="${citeId}-ref">:</label>
                 <input type="text" id="${citeId}-ref"
@@ -104,16 +106,16 @@ function userCitationHTML(citeId, citeClass, index) {
                 <label for="${citeId}-page">Page</label>
                     <input type="text" id="${citeId}-page"
                            size="8" class="txtbox"><br>
-                <label for="${citeId}-doi">doi</label>
+                <label for="${citeId}-doi">DOI</label>
                     <input type="text" id="${citeId}-doi"
                            size="15" class="txtbox"
-                           style="margin-left: 1.0em;">
+                           style="margin-left: 0.6em;">
              </p>`;
     }; // switch on citeClass
 
     return content;
 
-}; // userCitationHTML
+};
 
 // ------------------------------------------------------------------
 function userCitation(citeClass) {
@@ -152,5 +154,34 @@ function remUserCitation(citeId, citeClass) {
     for (i = 0; i < xs.length; i++) {
         xs[i].innerHTML = "Article " + (i+1).toString();
     };
+
+};
+
+// ------------------------------------------------------------------
+function checkUserCitation(citeId) {
+// Attempt to open a link to a user-specified citation in a new tab.
+
+    var refType = document.getElementById(citeId + "-refType").value;
+    var ref     = document.getElementById(citeId + "-ref").value.trim();
+    var url     = "https://";
+
+    if (ref.length == 0) {
+        alert("A " + refType + " identifier must be provided!");
+        return;
+    };
+
+    switch(refType) {
+        case "PMID":
+            url += "pubmed.ncbi.nlm.nih.gov/" + ref;
+            break;
+        case "DOI":
+            url += "www.doi.org/" + ref;
+            break;
+        case "LINK":
+            url += ref;
+            break;
+    }; // switch on refType
+
+    window.open(url, "_blank");
 
 };
