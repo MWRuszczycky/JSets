@@ -35,7 +35,7 @@ adminDefault Nothing  = "the journal sets administrator"
 adminDefault (Just x) = x
 
 -- =============================================================== --
--- Exported html document compositors
+-- HTML component compositors for journal set tables of contents
 
 tocsHtml :: Maybe Text -> Maybe Text -> Day
             -> T.JSet T.Content -> T.Citations -> Text
@@ -52,37 +52,25 @@ tocsHtml name email date jset@(T.JSet n tocs sel) cs =
                ]
     in fill (Map.fromList dict) Temp.tocsHtml
 
-rankList :: Maybe Text -> Maybe Text -> T.Citations -> T.JSet a -> Text
--- ^Construct html for the rank list of a journal set.
-rankList name email cs jset =
-    let dict = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
-               , ( "name",      adminDefault name                        )
-               , ( "email",     adminDefault  email                      )
-               , ( "citations", rankListContents cs (T.selection jset)   )
-               ]
-    in fill (Map.fromList dict) Temp.rankListHtml
+-- --------------------------------------------------------------- --
+-- HTML meta data & fixed content for journal set tables of contents
 
--- =============================================================== --
--- html component compositors
+tocMeta :: Int -> Day -> Text
+-- ^HTML meta data at the top of the ToC html document.
+tocMeta setNo date = fill (Map.fromList dict) Temp.tocMetaHtml
+    where dict = [ ( "title",   "Journal Set " <> C.tshow setNo )
+                 , ( "date",    Vc.dateN date                   )
+                 , ( "version", H.version                       )
+                 ]
+
+saveInstr :: Maybe Text -> Maybe Text -> Text
+saveInstr name email = fill (Map.fromList dict) Temp.tocSaveInstrHtml
+    where dict = [ ( "name", adminDefault name   )
+                 , ( "email", adminDefault email )
+                 ]
 
 -- --------------------------------------------------------------- --
--- Javascript and issue components
-
-issuesArray :: T.HasIssue a => [a] -> Text
--- ^Constructs the JavaScript 'issues' array, which is used to track
--- each issue in the journal set.
-issuesArray = Tx.intercalate ",\n" . map issueElement
-
-issueElement :: T.HasIssue a => a -> Text
--- ^Constructs each element of the JavaScrept 'issues' array. This is
--- used to track the specified issue in the journal set.
-issueElement iss = fill xys Temp.issueArrayJS
-    where xys = Map.fromList [ ("class",  className            iss )
-                             , ("title",  (T.abbr . T.journal) iss )
-                             , ("vol",    (C.tshow . T.volNo)  iss )
-                             , ("number", (C.tshow . T.issNo)  iss )
-                             , ("date",   (C.tshow . T.date )  iss )
-                             ]
+-- Table of contents for each issue in the journal set
 
 issueHeader :: T.HasIssue a => a -> Text
 -- ^Construct html for the header of the ToC of the given issue.
@@ -93,9 +81,6 @@ issueHeader iss = Tx.concat xs
                , ":"
                , C.tshow . T.issNo $ iss
                ]
-
--- --------------------------------------------------------------- --
--- html of the citations in the Tables of Contents or Rank lists
 
 tocEntries :: T.Citations -> [T.PMID] -> T.Content -> Text
 -- ^Construct html for all citations in a Table of Contents.
@@ -119,12 +104,50 @@ tocEntry cs sel pmid = maybe Tx.empty go . Map.lookup pmid $ cs
     where go c | elem pmid sel = fill (citationDictSel c) Temp.citationHtml
                | otherwise     = fill (citationDict    c) Temp.citationHtml
 
+-- --------------------------------------------------------------- --
+-- CSS style code for the jset tables of contents html documents
+
+-- --------------------------------------------------------------- --
+-- Javascript code for jset tables of contents html documents
+
+savePrefix :: T.HasIssue a => T.JSet a -> Text
+-- ^Filename prefix for the selection text file.
+savePrefix jset = "sel" <> C.tshow y <> "-" <> ( C.tshow . T.setNo $ jset )
+    where y = T.year jset
+
+issuesArray :: T.HasIssue a => [a] -> Text
+-- ^Constructs the JavaScript 'issues' array, which is used to track
+-- each issue in the journal set.
+issuesArray = Tx.intercalate ",\n" . map issuesArrayElement
+
+issuesArrayElement :: T.HasIssue a => a -> Text
+-- ^Constructs each element of the JavaScrept 'issues' array. This is
+-- used to track the specified issue in the journal set.
+issuesArrayElement iss = fill xys Temp.issueArrayJS
+    where xys = Map.fromList [ ("class",  className            iss )
+                             , ("title",  (T.abbr . T.journal) iss )
+                             , ("vol",    (C.tshow . T.volNo)  iss )
+                             , ("number", (C.tshow . T.issNo)  iss )
+                             , ("date",   (C.tshow . T.date )  iss )
+                             ]
+
+-- =============================================================== --
+-- HTML compositors for rank-lists to specify article preferences
+
+rankList :: Maybe Text -> Maybe Text -> T.Citations -> T.JSet a -> Text
+-- ^Construct html for the rank list of a journal set.
+rankList name email cs jset =
+    let dict = [ ( "jsetTitle", "Journal Set " <> C.tshow (T.setNo jset) )
+               , ( "name",      adminDefault name                        )
+               , ( "email",     adminDefault  email                      )
+               , ( "citations", rankListContents cs (T.selection jset)   )
+               ]
+    in fill (Map.fromList dict) Temp.rankListHtml
+
 ---------------------------------------------------------------------
--- html for tables of contents with only selected citations
+-- html for the citations in a rank-list document
 
--- rankListContents :: [T.Content] -> Text
 rankListContents :: T.Citations -> [T.PMID] -> Text
-
 -- ^Construct html for all rank list elements in the content list.
 rankListContents cs = Tx.unlines . map (uncurry rankListElement)
                                  . zip [1..]
@@ -135,9 +158,6 @@ rankListElement :: Int -> Maybe T.Citation -> Text
 rankListElement _ Nothing  = Tx.empty
 rankListElement n (Just c) = fill (rankCitationDict n c) Temp.citationHtml
 
----------------------------------------------------------------------
--- html template dictionaries for citations
-
 rankCitationDict :: Int -> T.Citation -> Map.Map Text Text
 -- ^html template dictionary for rank list element.
 rankCitationDict index c = Map.union m . citationDict $ c
@@ -146,6 +166,9 @@ rankCitationDict index c = Map.union m . citationDict $ c
                            , ( "type",   "text"              )
                            , ( "class",  "_citation"         )
                            ]
+
+-- =============================================================== --
+-- html general template dictionaries for citations
 
 citationDictSel :: T.Citation -> Map.Map Text Text
 -- ^Basic html template for a selected citation.
@@ -166,25 +189,3 @@ citationDict c = Map.fromList xys
                 , ("pages",    C.tshow . T.pages   $ c           )
                 , ("pmid",     T.pmid c                          )
                 ]
-
--- --------------------------------------------------------------- --
--- Javascript elements for building the selection text file
-
-tocMeta :: Int -> Day -> Text
--- ^HTML meta data at the top of the ToC html document.
-tocMeta setNo date = fill (Map.fromList dict) Temp.tocMetaHtml
-    where dict = [ ( "title",   "Journal Set " <> C.tshow setNo )
-                 , ( "date",    Vc.dateN date                   )
-                 , ( "version", H.version                       )
-                 ]
-
-savePrefix :: T.HasIssue a => T.JSet a -> Text
--- ^Filename prefix for the selection text file.
-savePrefix jset = "sel" <> C.tshow y <> "-" <> ( C.tshow . T.setNo $ jset )
-    where y = T.year jset
-
-saveInstr :: Maybe Text -> Maybe Text -> Text
-saveInstr name email = fill (Map.fromList dict) Temp.tocSaveInstrHtml
-    where dict = [ ( "name", adminDefault name   )
-                 , ( "email", adminDefault email )
-                 ]
