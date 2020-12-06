@@ -219,6 +219,7 @@ issueMissingLinkedHtml :: Template
 -- issue : issue header
 -- url   : url to the toc at the publisher's website
 -- class : class name for the issue
+-- abbr  : issue abbreviation for the add citation button
 issueMissingLinkedHtml = parseTemplate' "res/html/tocs/issue_missing_linked.html"
                          $(MT.embedFile "res/html/tocs/issue_missing_linked.html")
 

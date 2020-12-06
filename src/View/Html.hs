@@ -82,14 +82,26 @@ issueHeader iss = Tx.concat xs
                , C.tshow . T.issNo $ iss
                ]
 
+issueHeaderAbbr :: T.HasIssue a => a -> Text
+-- ^Construct html for the abbreviated header the given issue.
+-- This is used for things like buttons.
+issueHeaderAbbr iss = Tx.concat xs
+    where xs = [ T.abbr . T.journal $ iss
+               , " "
+               , C.tshow . T.volNo $ iss
+               , ":"
+               , C.tshow . T.issNo $ iss
+               ]
+
 tocEntries :: T.Citations -> [T.PMID] -> T.Content -> Text
 -- ^Construct html for all citations in a Table of Contents.
 tocEntries _ _ (T.Content iss url [])
     | Tx.null url = fill xys Temp.issueMissingHtml
     | otherwise   = fill xys Temp.issueMissingLinkedHtml
-    where xys = Map.fromList [ ("issue", issueHeader iss  )
-                             , ("url",   "https://" <> url)
-                             , ("class", className iss    )
+    where xys = Map.fromList [ ("issue", issueHeader iss     )
+                             , ("url",   "https://" <> url   )
+                             , ("class", className iss       )
+                             , ("abbr",  issueHeaderAbbr iss )
                              ]
 tocEntries cs sel (T.Content iss _ pmids) = fill xys Temp.issueHtml
     where cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
