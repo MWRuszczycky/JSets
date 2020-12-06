@@ -111,6 +111,8 @@ function userCitationHTML(citeId, citeClass, index) {
 
 // ------------------------------------------------------------------
 function userCitation(citeClass) {
+// Create a new html element for entering a user-citation. Handles
+// citations from missing configured issues and extra citations.
 
     let n = 1;
     let citeId = citeClass + "-" + n.toString();
@@ -197,8 +199,10 @@ function readSelection() {
             let page  = document.getElementById(added[j].id + "-page").value;
 
             if (title.length + page.length + doi.length > 0) {
-                selected += "    add: " + title + "," + page + "," + doi + "\n";
                 count    += 1;
+                selected += "    add: " + title.replace(/\|/g, "<p>")
+                                  + "|" + page.replace(/\|/g, "<p>")
+                                  + "|" + doi.replace(/\|/g, "<p>") + "\n";
             } else {
                 alert( "A citation from " + key + " lacks an identifier\n"
                        + "(title, page or doi). It will not be recorded.");
