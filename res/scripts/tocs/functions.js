@@ -10,9 +10,9 @@ function isAlphaNum(x) {
         let isCap = (v > 64 && v < 91);
         let isLow = (v > 96 && v < 123);
         return isNum || isCap || isLow;
-    };
+    }
     return false;
-};
+}
 
 // --------------------------------------------------------------- // 
 function makeFileName(prefix, xs) {
@@ -21,13 +21,13 @@ function makeFileName(prefix, xs) {
     for (i = 0; i < xs.length; i++) {
         if (isAlphaNum(xs[i])) {
             suffix += xs[i];
-        };
-    };
+        }
+    }
     if (suffix) {
         return prefix + "-" + suffix + ".txt";
-    };
+    }
     return prefix + "-" + "none.txt";
-};
+}
 
 // --------------------------------------------------------------- //
 function userCitationLocator(citeId) {
@@ -39,7 +39,7 @@ function userCitationLocator(citeId) {
 
     if (ref.length == 0) {
         return { url: "", refType: refType, valid: false };
-    };
+    }
 
     switch(refType) {
         case "PMID":
@@ -51,11 +51,11 @@ function userCitationLocator(citeId) {
         case "LINK":
             url += ref;
             break;
-    }; // switch on refType
+    } // switch on refType
 
     return { url: url, refType: refType, ref: ref, valid: valid };
 
-};
+}
 
 // --------------------------------------------------------------- //
 function userCitationHTML(citeId, citeClass, index) {
@@ -103,11 +103,11 @@ function userCitationHTML(citeId, citeClass, index) {
                            size="15" class="txtbox"
                            style="margin-left: 0.6em;">
              </p>`;
-    }; // switch on citeClass
+    } // switch on citeClass
 
     return content;
 
-};
+}
 
 // ------------------------------------------------------------------
 function userCitation(citeClass) {
@@ -131,7 +131,7 @@ function userCitation(citeClass) {
 
     citeGroup.appendChild(userCite);
 
-};
+}
 
 // ------------------------------------------------------------------
 function remUserCitation(citeId, citeClass) {
@@ -146,9 +146,9 @@ function remUserCitation(citeId, citeClass) {
     let xs = document.getElementsByClassName(citeClass + "-name");
     for (i = 0; i < xs.length; i++) {
         xs[i].innerHTML = "Article " + (i+1).toString();
-    };
+    }
 
-};
+}
 
 // ------------------------------------------------------------------
 function checkUserCitation(citeId) {
@@ -159,11 +159,11 @@ function checkUserCitation(citeId) {
     if (!locator.valid) {
         alert("A " + locator.refType + " identifier is must be provided!");
         return;
-    };
+    }
 
     window.open(locator.url, "_blank");
 
-};
+}
 
 // --------------------------------------------------------------- //
 function readSelection() {
@@ -186,9 +186,9 @@ function readSelection() {
             if (citations[j].checked) {
                 selected += "    " + citations[j].id + "\n";
                 count    += 1;
-            };
+            }
 
-        };
+        }
 
         // Get articles selected from configured issues not indexed at PubMed
         let added = document.getElementsByClassName(key + "-Add");
@@ -206,11 +206,11 @@ function readSelection() {
             } else {
                 alert( "A citation from " + key + " lacks an identifier\n"
                        + "(title, page or doi). It will not be recorded.");
-            };
-        };
+            }
+        }
 
         selection += selected;
-    };
+    }
 
     // Get extra articles from non-configured issues
     let extras = document.getElementsByClassName("user-citation");
@@ -225,7 +225,7 @@ function readSelection() {
             alert( "There is an 'extra' article without an identifier.\n"
                    + "It will not be recorded." );
             continue;
-        };
+        }
 
         count += 1;
 
@@ -234,13 +234,13 @@ function readSelection() {
         } else {
             selection += "    " + locator.refType.toLowerCase()
                                 + ": " + locator.url + "\n";
-        };
+        }
 
-    };
+    }
 
     return { listing: selection, count: count };
 
-};
+}
 
 // --------------------------------------------------------------- // 
 function createSelection() {
@@ -264,7 +264,7 @@ function createSelection() {
     createWgt.style       = "display:none";
 
     console.log(selection.listing);
-};
+}
 
 // --------------------------------------------------------------- // 
 function resetSelection() {
@@ -281,4 +281,4 @@ function resetSelection() {
    saveWgt.style         = "display:none";
    createWgt.style       = "display.block;"
 
-};
+}
