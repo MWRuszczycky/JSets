@@ -9,6 +9,7 @@ import qualified Data.Text        as Tx
 import qualified Data.Map.Strict  as Map
 import qualified Model.Core.Types as T
 import qualified Model.Core.Core  as C
+import qualified Model.Journals   as J
 import qualified View.Help        as H
 import qualified View.Templates   as Temp
 import qualified View.Core        as Vc
@@ -94,7 +95,7 @@ issueHeaderAbbr iss = Tx.concat xs
                , C.tshow . T.issNo $ iss
                ]
 
-tocEntries :: T.Citations -> [T.PMID] -> T.Content -> Text
+tocEntries :: T.Citations -> [T.Selection] -> T.Content -> Text
 -- ^Construct html for all citations in a Table of Contents.
 tocEntries _ _ (T.Content iss url [])
     | Tx.null url = fill xys Temp.issueMissingHtml
@@ -105,7 +106,8 @@ tocEntries _ _ (T.Content iss url [])
                              , ("abbr",  issueHeaderAbbr iss )
                              ]
 tocEntries cs sel (T.Content iss _ pmids) = fill xys Temp.issueHtml
-    where cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
+    where sel'  = J.pmidsInSelection sel
+          cstxt = Tx.intercalate "\n" . map (tocEntry cs sel') $ pmids
           xys   = Map.fromList [ ("issue",     issueHeader iss)
                                , ("citations", cstxt          )
                                ]
@@ -192,11 +194,12 @@ ranksMeta setNo date = fill (Map.fromList dict) Temp.ranksMetaHtml
 ---------------------------------------------------------------------
 -- html for the citations in a rank-list document
 
-rankListContents :: T.Citations -> [T.PMID] -> Text
+rankListContents :: T.Citations -> [T.Selection] -> Text
 -- ^Construct html for all rank list elements in the content list.
 rankListContents cs = Tx.unlines . map (uncurry rankListElement)
                                  . zip [1..]
                                  . map (flip Map.lookup cs)
+                                 . J.pmidsInSelection
 
 rankListElement :: Int -> Maybe T.Citation -> Text
 -- ^Construct html for a citation element of a rank list.

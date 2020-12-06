@@ -4,18 +4,20 @@ module Model.Parsers.JournalSets
     ( parseJSets
     ) where
 
-import qualified Data.Text             as Tx
 import qualified Data.Attoparsec.Text  as At
+import qualified Data.Text             as Tx
 import qualified Model.Core.Types      as T
+import qualified Model.Journals        as J
 import qualified Model.Parsers.CSV     as CSV
 import qualified Model.Parsers.Core    as P
-import qualified Model.Journals        as J
-import           Data.Bifunctor               ( bimap              )
-import           Data.Text                    ( Text               )
-import           Model.Core.Core              ( readMaybeTxt       )
-import           Control.Applicative          ( some, many,  (<|>) )
+import           Control.Monad                ( when                 )
+import           Data.Bifunctor               ( bimap                )
 import           Data.Char                    ( isSpace, isDigit
-                                              , isAlphaNum         )
+                                              , isAlphaNum           )
+import           Data.Maybe                   ( catMaybes, isNothing )
+import           Data.Text                    ( Text                 )
+import           Control.Applicative          ( some, many,  (<|>)   )
+import           Model.Core.Core              ( readMaybeTxt         )
 
 -- =============================================================== --
 -- Main parsers
@@ -52,10 +54,15 @@ parseTxt refs t = let err = (<>) "Cannot parse selection: "
 -- Local helper types
 
 -- | Unvalidated JSet
-type JSet' = ( Int, [Issue'], [T.PMID] )
+type JSet' = ( Int, [(Issue', [Selection'])] )
 
--- | Unvalidated Issue: journal abbreviation, volume and issue.
+-- | Unvalidated Issue: journal abbreviation, volume, issue
 type Issue' = ( Text, Int, Int )
+
+-- | Unvalidated Selection: selection key, selection value
+-- The key is either empty (PMID), 'add' (value associated with issue)
+-- 'doi' (value is a DOI) or 'link' (value is a direct link)
+type Selection' = (Text, Text)
 
 ---------------------------------------------------------------------
 -- Validation
@@ -64,13 +71,29 @@ validate :: T.References -> [JSet'] -> Either T.ErrString (T.JSets T.Issue)
 validate refs js = mapM (validateJSet refs) js >>= packJSets
 
 validateJSet :: T.References -> JSet' -> Either T.ErrString (T.JSet T.Issue)
-validateJSet refs (n,xs,ids) = T.JSet <$> pure n
-                                      <*> mapM (validateIssue refs) xs
-                                      <*> pure ids
+validateJSet refs (n,xs) = do
+    (mbIss, sel) <- unzip <$> mapM (validateIssue refs) xs
+    pure $ T.JSet n (catMaybes mbIss) (concat sel)
 
-validateIssue :: T.References -> Issue' -> Either T.ErrString T.Issue
-validateIssue refs (j,v,n) = maybe err pure . J.lookupIssue refs j $ (v,n)
-    where err = Left $ invalidIssErr j v n
+validateIssue :: T.References -> (Issue', [Selection'])
+                 -> Either T.ErrString (Maybe T.Issue, [T.Selection])
+validateIssue _ ( ("Extra-Citations",_,_) , xs ) =
+    (,) Nothing <$> mapM (readSelection Nothing) xs
+validateIssue refs ( (j,v,n), xs ) = do
+    let iss = J.lookupIssue refs j (v,n)
+    when (isNothing iss) . Left $ invalidIssErr j v n
+    sel <- mapM (readSelection iss) xs
+    pure (iss, sel)
+
+readSelection :: Maybe T.Issue -> Selection' -> Either T.ErrString T.Selection
+readSelection (Just iss) ("add", x) = pure $ T.FromIssue iss x
+readSelection _          ("",    x) = pure $ T.ByPMID x
+readSelection _          ("doi", x) = pure $ T.ByDOI  x
+readSelection _          ("link",x) = pure $ T.ByLink x
+readSelection _          (y,     x) = Left err
+    where err = unwords [ "Unable to read selection.\nInvalid selector key '"
+                        , Tx.unpack y, "' with value '" <> Tx.unpack x <> "'."
+                        ]
 
 packJSets :: [T.JSet T.Issue]-> Either T.ErrString (T.JSets T.Issue)
 packJSets js
@@ -88,10 +111,10 @@ txtJSet :: At.Parser JSet'
 -- ^Single unvalidated JSet.
 txtJSet = do
     At.skipSpace
-    n <- setNumber
+    n  <- setNumber
     At.skipSpace
-    (xs,ids) <- unzip <$> many selection
-    pure (n, xs, concat ids)
+    xs <- many issueSelection
+    pure (n, xs)
 
 setNumber :: At.Parser Int
 setNumber = do
@@ -100,17 +123,17 @@ setNumber = do
     ( P.dateN *> pure () ) <|> P.spacesToEoL
     pure setNo
 
-selection :: At.Parser (Issue', [T.PMID])
--- ^An unvalidated Issue and associated PMIDs.
-selection = do
-    iss <- txtIssue
+issueSelection :: At.Parser (Issue', [Selection'])
+-- ^An unvalidated Issue and associated unvalidated selections.
+issueSelection = do
+    iss <- specificIssue <|> extraCitations
     P.spacesToEoL
-    ids <- indentedPMIDs
+    xs  <- indentedSelections
     At.skipSpace
-    pure (iss, ids)
+    pure (iss, xs)
 
-txtIssue :: At.Parser Issue'
-txtIssue = do
+specificIssue :: At.Parser Issue'
+specificIssue = do
     journal <- Tx.init <$> At.takeWhile1 ( not . isDigit )
     volNo <- P.unsigned'
     P.colon'
@@ -119,15 +142,23 @@ txtIssue = do
     ( P.dateP *> pure () ) <|> pure ()
     pure (journal, volNo, issNo)
 
-indentedPMIDs :: At.Parser [T.PMID]
-indentedPMIDs = At.option [] go
+extraCitations :: At.Parser Issue'
+extraCitations = (,,) <$> At.string "Extra-Citations" <*> pure 0 <*> pure 0
+
+indentedSelections :: At.Parser [(Text, Text)]
+indentedSelections = At.option [] go
     where go = do indent <- Tx.pack <$> some ( At.char ' ' )
-                  x      <- pmidToEoL
-                  xs     <- many $ At.string indent *> pmidToEoL
+                  x      <- selectionToEoL
+                  xs     <- many $ At.string indent *> selectionToEoL
                   pure $ x : xs
 
-pmidToEoL :: At.Parser T.PMID
-pmidToEoL = Tx.pack <$> some (At.satisfy isAlphaNum) <* P.spacesToEoL
+selectionToEoL :: At.Parser (Text, Text)
+selectionToEoL = keyed <|> unKeyed
+    where unKeyed = do pmid <- some (At.satisfy isAlphaNum) <* P.spacesToEoL
+                       pure (Tx.empty, Tx.pack pmid)
+          keyed   = do key <- some (At.satisfy isAlphaNum) <* P.colon'
+                       val <- At.takeTill At.isEndOfLine   <* At.endOfLine
+                       pure (Tx.pack key, val)
 
 -- =============================================================== --
 -- Component parsers for CSV
@@ -153,7 +184,10 @@ csvJSet :: [Text] -> [Text] -> Either T.ErrString JSet'
 -- ^Convert all csv cell Text values to a raw selection.
 -- The journal set must begin with a correctly formatted key.
 csvJSet _     []     = Left "Missing key for journal set."
-csvJSet abbrs (x:xs) = (,,) <$> csvSetNo x <*> csvIssue abbrs xs <*> pure []
+csvJSet abbrs (x:xs) = do
+    n   <- csvSetNo x
+    iss <- csvIssue abbrs xs
+    pure ( n, zip iss . repeat $ [] )
 
 ---------------------------------------------------------------------
 -- Individual journal sets and issues

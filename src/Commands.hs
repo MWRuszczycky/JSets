@@ -126,7 +126,7 @@ ranksCmd [] = throwError "Path(s) to journal set selection files required!"
 ranksCmd fps = do
     jsets     <- J.combineJSets <$> mapM A.readJSets fps
     jset      <- asks T.cJSetKey >>= A.getJSet jsets
-    citations <- A.downloadCitations . T.selection $ jset
+    citations <- A.downloadCitations . J.pmidsInSelection . T.selection $ jset
     C.putStrLnMIO "\nDone"
     V.runView ( V.viewRanks citations jset ) >>= display
 

@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Journals
-    ( -- Working with journal sets
-      pack
+    ( -- Working with citations and selections
+      isPMID
+    , pmidsInSelection
+      -- Working with journal sets
+    , pack
     , unpack
     , emptyJSets
     , lookupJSet
@@ -22,13 +25,26 @@ module Model.Journals
     , nextMonthly
     ) where
 
-import qualified Model.Core.Types     as T
-import qualified Model.Core.Dates     as D
 import qualified Model.Core.Core      as C
+import qualified Model.Core.Dates     as D
+import qualified Model.Core.Types     as T
 import qualified Data.Time            as Tm
-import           Data.Time                  ( Day  )
-import           Data.Text                  ( Text )
-import           Data.List                  ( find )
+import           Data.Maybe                 ( mapMaybe )
+import           Data.List                  ( find     )
+import           Data.Time                  ( Day      )
+import           Data.Text                  ( Text     )
+
+-- =============================================================== --
+-- Working with citations and selections
+
+isPMID :: T.Selection -> Bool
+isPMID (T.ByPMID _) = True
+isPMID _            = False
+
+pmidsInSelection :: [T.Selection] -> [T.PMID]
+pmidsInSelection = mapMaybe go
+    where go (T.ByPMID x) = Just x
+          go _            = Nothing
 
 -- =============================================================== --
 -- Working with journal sets

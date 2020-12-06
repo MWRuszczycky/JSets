@@ -227,11 +227,12 @@ viewRanks cs jset@(T.JSet _ _ sel) = do
     name  <- asks T.cUser
     email <- asks T.cEmail
     date  <- asks T.cDate
+    let pmids = J.pmidsInSelection sel
     let go = flip Map.lookup cs
     getFormat >>= \case
          T.HTML -> Vc.write . Html.ranksHtml name email date cs $ jset
-         T.MKD  -> Vc.separate Vc.newLine . map citationMkd . mapMaybe go $ sel
-         _      -> Vc.separate Vc.newLine . map citationTxt . mapMaybe go $ sel
+         T.MKD  -> Vc.separate Vc.newLine . map citationMkd . mapMaybe go $ pmids
+         _      -> Vc.separate Vc.newLine . map citationTxt . mapMaybe go $ pmids
 
 -- =============================================================== --
 -- Viewing issues

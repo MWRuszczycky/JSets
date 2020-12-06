@@ -31,6 +31,7 @@ module Model.Core.Types
     , Content           (..)
       -- Table of contents and citations
     , PMID
+    , Selection         (..)
     , Citation          (..)
     , Citations
     , PageNo            (..)
@@ -199,7 +200,7 @@ data Format =
 data JSet a = JSet {
       setNo     :: Int
     , issues    :: [a]
-    , selection :: [PMID]
+    , selection :: [Selection]
     } deriving Show
 
 instance HasDate a => HasDate (JSet a) where
@@ -210,7 +211,7 @@ instance MayMix a => MayMix (JSet a) where
         | n1 == n2  = pure $ JSet n1 i3 s3
         | otherwise = Nothing
         where i3 = stir $ i1 <> i2
-              s3 = nub  $ s1 <> s2
+              s3 = stir $ s1 <> s2
 
 -- |A Collection of journal sets
 newtype JSets a = JSets [JSet a]
@@ -295,6 +296,34 @@ instance MayMix Content where
 -- Citations
 
 type PMID = Text
+
+-- |Structured data type representing user citation selections.
+-- Normally the selection should be by PMID; however, in some cases
+-- the user may specify a doi, direct link or an issue with some
+-- identifying text (article title, page number, etc.). This last
+-- specification will need to be refined later.
+data Selection =
+      ByPMID    PMID
+    | ByDOI     Text
+    | ByLink    Text
+    | FromIssue Issue Text
+      deriving (Eq, Show)
+
+instance MayMix Selection where
+    mix (ByPMID x) (ByPMID y)
+        | x == y    = Just $ ByPMID x
+        | otherwise = Nothing
+    mix (ByDOI x) (ByDOI y)
+        | x == y    = Just $ ByDOI x
+        | otherwise = Nothing
+    mix (ByLink x) (ByLink y)
+        | x == y    = Just $ ByLink x
+        | otherwise = Nothing
+-- This will work, but it's ugly and will need to be redone.
+    mix (FromIssue x1 x2) (FromIssue y1 y2)
+        | x1 == y1 && x2 == y2 = Just $ FromIssue x1 x2
+        | otherwise            = Nothing
+    mix _ _ = Nothing
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {
