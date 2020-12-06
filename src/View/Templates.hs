@@ -25,9 +25,10 @@ module View.Templates
     , issueHtml
     , issueMissingHtml
     , issueMissingLinkedHtml
-    , tocMetaHtml
-    , tocSaveInstrHtml
-    , tocInstrHtml
+    , tocsExtraCitationHtml
+    , tocsMetaHtml
+    , tocsSaveInstrHtml
+    , tocsInstrHtml
       -- HTML templates: Ranks output
     , ranksHtml
     , ranksMetaHtml
@@ -193,6 +194,7 @@ tocsHtml :: Template
 -- title      : <h1> title element for the ToC html document
 -- issues     : new issue elements for the 'journals' array
 -- tocs       : table of contents html for all issues
+-- extra      : html for extra citations from unconfigured issues
 -- saveinstr  : save instructions
 tocsHtml = parseTemplate' "res/html/tocs/tocs.html"
            $(MT.embedFile "res/html/tocs/tocs.html")
@@ -215,30 +217,37 @@ issueMissingLinkedHtml :: Template
 -- ^Table of contents substitute when there are no PMIDs at PubMed,
 -- but a link to the ToC at the publisher's website is available.
 -- issue : issue header
--- url   : url to the toc at the publisher's website.
+-- url   : url to the toc at the publisher's website
+-- class : class name for the issue
 issueMissingLinkedHtml = parseTemplate' "res/html/tocs/issue_missing_linked.html"
                          $(MT.embedFile "res/html/tocs/issue_missing_linked.html")
 
-tocMetaHtml :: Template
+tocsExtraCitationHtml :: Template
+-- ^HTML for entering extra citations for non-configured journals
+-- This template has no variables.
+tocsExtraCitationHtml = parseTemplate' "res/html/tocs/extra_citations.html"
+                        $(MT.embedFile "res/html/tocs/extra_citations.html")
+
+tocsMetaHtml :: Template
 -- ^Meta data template for tables of contents html document output.
 -- title   : title of the journal set for the <title> tag
 -- version : version of JSets used to create the html document
 -- date    : date the ToC html document was created
-tocMetaHtml = parseTemplate' "res/html/tocs/meta.html"
-              $(MT.embedFile "res/html/tocs/meta.html")
+tocsMetaHtml = parseTemplate' "res/html/tocs/meta.html"
+               $(MT.embedFile "res/html/tocs/meta.html")
 
-tocSaveInstrHtml :: Template
+tocsSaveInstrHtml :: Template
 -- ^Instructions for saving a selection file.
 -- name  : name of person to send selections to
 -- email : email string for person to send selections to
-tocSaveInstrHtml = parseTemplate' "res/html/tocs/save_instructions.html"
-                   $(MT.embedFile "res/html/tocs/save_instructions.html")
+tocsSaveInstrHtml = parseTemplate' "res/html/tocs/save_instructions.html"
+                    $(MT.embedFile "res/html/tocs/save_instructions.html")
 
-tocInstrHtml :: Template
+tocsInstrHtml :: Template
 -- ^General instructions for table of contents to be included at the
 -- top of the webpage.
-tocInstrHtml = parseTemplate' "res/html/tocs/general_instructions.html"
-               $(MT.embedFile "res/html/tocs/general_instructions.html")
+tocsInstrHtml = parseTemplate' "res/html/tocs/general_instructions.html"
+                $(MT.embedFile "res/html/tocs/general_instructions.html")
 
 ------------------------------------------------------------------ --
 -- Templates for ranks output

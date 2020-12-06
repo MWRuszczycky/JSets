@@ -1,5 +1,12 @@
         <h2>@{issue}</h2>
 
             <p><b>There are no articles listed for this issue at PubMed</b>. However, a table of contents can still be accessed by <a href="@{url}" target="_blank">clicking here</a>.</p>
-            <p><b>To select articles from this issue</b>: provide an issue identifier (e.g., the journal name and issue number) and the first page numbers of all the articles you want to select in the body of your response email. Alternatively, you can look up the PMIDs and include those in your response email instead.</p>
-            <p><b>Selections from all other issues should be still be made in the typical way</b>, and the selection file that you generate below should not be edited.</p>
+
+            <p><b>How to select articles from this issue</b>. Click the <b>Add article from...</b> button and provide either the first few words of the title, its first page number (if unique) or its digital object identifier (most helpful). You can provide all three, but <b>only one of the three is required</b>. Click the "remove" button to deselect the article.</p>
+
+        <div id="@{class}-Add">
+        </div>
+
+        <button type="button" onclick="userCitation('@{class}-Add')">
+            Add an article from @{issue}
+        </button>

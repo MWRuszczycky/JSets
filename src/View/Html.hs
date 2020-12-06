@@ -45,8 +45,9 @@ tocsHtml name email date jset@(T.JSet n tocs sel) cs =
                , ( "styles",     fillNone Temp.tocsCSS                       )
                , ( "script",     tocsScript jset                             )
                , ( "title",      "Journal Set " <> C.tshow n                 )
-               , ( "instr",      fillNone Temp.tocInstrHtml                  )
+               , ( "instr",      fillNone Temp.tocsInstrHtml                 )
                , ( "tocs",       Tx.unlines . map (tocEntries cs sel) $ tocs )
+               , ( "extra",      fillNone Temp.tocsExtraCitationHtml         )
                , ( "saveinstr",  saveInstr name email                        )
                ]
     in fill (Map.fromList dict) Temp.tocsHtml
@@ -56,14 +57,14 @@ tocsHtml name email date jset@(T.JSet n tocs sel) cs =
 
 tocsMeta :: Int -> Day -> Text
 -- ^HTML meta data at the top of the ToC html document.
-tocsMeta setNo date = fill (Map.fromList dict) Temp.tocMetaHtml
+tocsMeta setNo date = fill (Map.fromList dict) Temp.tocsMetaHtml
     where dict = [ ( "title",   "Journal Set " <> C.tshow setNo )
                  , ( "date",    Vc.dateN date                   )
                  , ( "version", H.version                       )
                  ]
 
 saveInstr :: Maybe Text -> Maybe Text -> Text
-saveInstr name email = fill (Map.fromList dict) Temp.tocSaveInstrHtml
+saveInstr name email = fill (Map.fromList dict) Temp.tocsSaveInstrHtml
     where dict = [ ( "name", adminDefault name   )
                  , ( "email", adminDefault email )
                  ]
@@ -88,6 +89,7 @@ tocEntries _ _ (T.Content iss url [])
     | otherwise   = fill xys Temp.issueMissingLinkedHtml
     where xys = Map.fromList [ ("issue", issueHeader iss  )
                              , ("url",   "https://" <> url)
+                             , ("class", className iss    )
                              ]
 tocEntries cs sel (T.Content iss _ pmids) = fill xys Temp.issueHtml
     where cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
