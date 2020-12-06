@@ -48,7 +48,7 @@ tocsHtml name email date jset@(T.JSet n tocs sel) cs =
                , ( "instr",      fillNone Temp.tocsInstrHtml                 )
                , ( "tocs",       Tx.unlines . map (tocEntries cs sel) $ tocs )
                , ( "extra",      fillNone Temp.tocsExtraCitationHtml         )
-               , ( "saveinstr",  saveInstr name email                        )
+               , ( "saveinstr",  tocsCreateSave name email                   )
                ]
     in fill (Map.fromList dict) Temp.tocsHtml
 
@@ -63,8 +63,9 @@ tocsMeta setNo date = fill (Map.fromList dict) Temp.tocsMetaHtml
                  , ( "version", H.version                       )
                  ]
 
-saveInstr :: Maybe Text -> Maybe Text -> Text
-saveInstr name email = fill (Map.fromList dict) Temp.tocsSaveInstrHtml
+tocsCreateSave :: Maybe Text -> Maybe Text -> Text
+-- ^HTML widgets for creating and saving the selection file.
+tocsCreateSave name email = fill (Map.fromList dict) Temp.tocsCreateSaveHtml
     where dict = [ ( "name", adminDefault name   )
                  , ( "email", adminDefault email )
                  ]

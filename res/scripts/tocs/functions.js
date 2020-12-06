@@ -238,24 +238,39 @@ function readSelection() {
 function createSelection() {
 // Create selection content for saving and update page.
 
-    let inst          = document.getElementById('inst');
-    let saveLink      = document.getElementById('saveLink');
-    let createWgt     = document.getElementById('createWgt');
-    let initials      = document.getElementById('initials');
-    let fileNameWgt   = document.getElementById('fileNameWgt');
-    let countWgt      = document.getElementById('count');
+    let saveWgt     = document.getElementById('saveWgt');
+    let saveLink    = document.getElementById('saveLink');
+    let createWgt   = document.getElementById('createWgt');
+    let initials    = document.getElementById('initials');
+    let fileNameWgt = document.getElementById('fileNameWgt');
+    let countWgt    = document.getElementById('count');
+    let selection   = readSelection();
+    let payload     = encodeURIComponent(selection.listing);
+    let fileName    = makeFileName(savePrefix, initials.value);
 
-    let selection     = readSelection();
-    let payload       = encodeURIComponent(selection.listing);
-    let fileName      = makeFileName(savePrefix, initials.value);
-
-    saveLink.href     = "data:text/plain;charset=utf-8," + payload;
-    saveLink.download = fileName;
-
+    saveLink.href         = "data:text/plain;charset=utf-8," + payload;
+    saveLink.download     = fileName;
     fileNameWgt.innerHTML = fileName;
     countWgt.innerHTML    = selection.count;
-    inst.style            = "display:block";
+    saveWgt.style         = "display:block";
     createWgt.style       = "display:none";
 
     console.log(selection.listing);
+};
+
+// --------------------------------------------------------------- // 
+function resetSelection() {
+// Reset selection without deleting anything the user has entered.
+
+   let saveLink    = document.getElementById('saveLink');
+   let countWgt    = document.getElementById('count');
+   let fileNameWgt = document.getElementById('fileNameWgt');
+
+   saveLink.href         = "";
+   saveLink.download     = "";
+   fileNameWgt.innerHTML = "";
+   countWgt.innerHTML    = "";
+   saveWgt.style         = "display:none";
+   createWgt.style       = "display.block;"
+
 };

@@ -27,7 +27,7 @@ module View.Templates
     , issueMissingLinkedHtml
     , tocsExtraCitationHtml
     , tocsMetaHtml
-    , tocsSaveInstrHtml
+    , tocsCreateSaveHtml
     , tocsInstrHtml
       -- HTML templates: Ranks output
     , ranksHtml
@@ -237,12 +237,12 @@ tocsMetaHtml :: Template
 tocsMetaHtml = parseTemplate' "res/html/tocs/meta.html"
                $(MT.embedFile "res/html/tocs/meta.html")
 
-tocsSaveInstrHtml :: Template
--- ^Instructions for saving a selection file.
+tocsCreateSaveHtml :: Template
+-- ^Widgets for creating and saving the selection file.
 -- name  : name of person to send selections to
 -- email : email string for person to send selections to
-tocsSaveInstrHtml = parseTemplate' "res/html/tocs/save_instructions.html"
-                    $(MT.embedFile "res/html/tocs/save_instructions.html")
+tocsCreateSaveHtml = parseTemplate' "res/html/tocs/create_save_widgets.html"
+                     $(MT.embedFile "res/html/tocs/create_save_widgets.html")
 
 tocsInstrHtml :: Template
 -- ^General instructions for table of contents to be included at the
