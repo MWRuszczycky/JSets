@@ -53,7 +53,7 @@ function userCitationLocator(citeId) {
             break;
     }; // switch on refType
 
-    return { url: url, refType: refType, valid: valid };
+    return { url: url, refType: refType, ref: ref, valid: valid };
 
 };
 
@@ -215,6 +215,8 @@ function readSelection() {
     // Get extra articles from non-configured issues
     let extras = document.getElementsByClassName("user-citation");
 
+    selection += "Extra-Citations\n";
+
     for (i = 0; i < extras.length; i++) {
 
         let locator = userCitationLocator(extras[i].id);
@@ -225,8 +227,14 @@ function readSelection() {
             continue;
         };
 
-        selection += "    " + locator.refType + ": " + locator.url + "\n";
-        count     += 1;
+        count += 1;
+
+        if (locator.refType == "PMID") {
+            selection += "    " + locator.ref + "\n";
+        } else {
+            selection += "    " + locator.refType.toLowerCase()
+                                + ": " + locator.url + "\n";
+        };
 
     };
 
