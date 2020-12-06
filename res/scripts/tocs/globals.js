@@ -1,9 +1,9 @@
 // =============================================================== // 
 // Global variables for HTML table of contents
 
-jsetHeader = "@{jsetHeader}";
-savePrefix = "@{savePrefix}";
+const jsetHeader = "@{jsetHeader}";
+const savePrefix = "@{savePrefix}";
 
-issues = [
+const issues = [
 @{issues}
-         ];
+];
