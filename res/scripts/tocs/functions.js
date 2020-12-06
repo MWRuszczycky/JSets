@@ -5,10 +5,10 @@
 function isAlphaNum(x) {
 // Determine if character is alpha-numeric.
     if (x.length === 1) {
-        var v     = x.charCodeAt(0);
-        var isNum = (v > 47 && v < 58);
-        var isCap = (v > 64 && v < 91);
-        var isLow = (v > 96 && v < 123);
+        let v     = x.charCodeAt(0);
+        let isNum = (v > 47 && v < 58);
+        let isCap = (v > 64 && v < 91);
+        let isLow = (v > 96 && v < 123);
         return isNum || isCap || isLow;
     };
     return false;
@@ -17,7 +17,7 @@ function isAlphaNum(x) {
 // --------------------------------------------------------------- // 
 function makeFileName(prefix, xs) {
 // Generate a file name for the selection.
-    var suffix = "";
+    let suffix = "";
     for (i = 0; i < xs.length; i++) {
         if (isAlphaNum(xs[i])) {
             suffix += xs[i];
@@ -29,47 +29,39 @@ function makeFileName(prefix, xs) {
     return prefix + "-" + "none.txt";
 };
 
-// --------------------------------------------------------------- // 
-function createSelection() {
-// Create selection content for saving and update page.
-    var selection = jsetHeader + "\n";
-    var count     = 0;
-    for (i = 0; i < issues.length; i++ ){
-        selection += issues[i].header() + "\n";
-        var xs = document.getElementsByClassName(issues[i].key);
-        var pmids = ""
-        for (j = 0; j < xs.length; j++){
-            if (xs[j].checked) {
-                pmids += "    " + xs[j].id + "\n";
-                count += 1;
-            };
-        };
-        selection += pmids;
+// --------------------------------------------------------------- //
+function userCitationLocator(citeId) {
+
+    let refType = document.getElementById(citeId + "-refType").value;
+    let ref     = document.getElementById(citeId + "-ref").value.trim();
+    let url     = "https://";
+    let valid   = true;
+
+    if (ref.length == 0) {
+        return { url: "", refType: refType, valid: false };
     };
 
-    var inst          = document.getElementById('inst');
-    var saveLink      = document.getElementById('saveLink');
-    var createWgt     = document.getElementById('createWgt');
-    var initials      = document.getElementById('initials');
-    var fileNameWgt   = document.getElementById('fileNameWgt');
-    var countWgt      = document.getElementById('count');
-    var payload       = encodeURIComponent(selection);
-    var fileName      = makeFileName(savePrefix, initials.value);
+    switch(refType) {
+        case "PMID":
+            url += "pubmed.ncbi.nlm.nih.gov/" + ref;
+            break;
+        case "DOI":
+            url += "www.doi.org/" + ref;
+            break;
+        case "LINK":
+            url += ref;
+            break;
+    }; // switch on refType
 
-    saveLink.href     = "data:text/plain;charset=utf-8," + payload;
-    saveLink.download = fileName;
+    return { url: url, refType: refType, valid: valid };
 
-    fileNameWgt.innerHTML = fileName;
-    countWgt.innerHTML    = count;
-    inst.style            = "display:block";
-    createWgt.style       = "display:none";
 };
 
-// ------------------------------------------------------------------
+// --------------------------------------------------------------- //
 function userCitationHTML(citeId, citeClass, index) {
 
-    var indexStr = index.toString();
-    var content  = "";
+    let indexStr = index.toString();
+    let content  = "";
 
     switch(citeClass) {
         case "user-citation":
@@ -120,24 +112,23 @@ function userCitationHTML(citeId, citeClass, index) {
 // ------------------------------------------------------------------
 function userCitation(citeClass) {
 
-    var n = 1;
-    var citeId = citeClass + "-" + n.toString();
+    let n = 1;
+    let citeId = citeClass + "-" + n.toString();
 
     while ( document.getElementById(citeId) ) {
         ++n;
         citeId = citeClass + "-" + n.toString();
     }
 
-    var count     = document.getElementsByClassName(citeClass).length
-    var citeGroup = document.getElementById(citeClass);
-    var userCite  = document.createElement("div");
-
-console.log("count = ", count);
+    let count     = document.getElementsByClassName(citeClass).length
+    let citeGroup = document.getElementById(citeClass);
+    let userCite  = document.createElement("div");
 
     userCite.id        = citeId;
     userCite.innerHTML = userCitationHTML(citeId, citeClass, count + 1);
 
     citeGroup.appendChild(userCite);
+
 };
 
 // ------------------------------------------------------------------
@@ -147,10 +138,10 @@ function remUserCitation(citeId, citeClass) {
 // numbers associated with the user-citation names are unrelated to
 // their ids, which remain unchanged after creation.
 
-    var toRemove = document.getElementById(citeId);
+    let toRemove = document.getElementById(citeId);
     toRemove.remove();
 
-    var xs = document.getElementsByClassName(citeClass + "-name");
+    let xs = document.getElementsByClassName(citeClass + "-name");
     for (i = 0; i < xs.length; i++) {
         xs[i].innerHTML = "Article " + (i+1).toString();
     };
@@ -161,27 +152,106 @@ function remUserCitation(citeId, citeClass) {
 function checkUserCitation(citeId) {
 // Attempt to open a link to a user-specified citation in a new tab.
 
-    var refType = document.getElementById(citeId + "-refType").value;
-    var ref     = document.getElementById(citeId + "-ref").value.trim();
-    var url     = "https://";
+    let locator = userCitationLocator(citeId);
 
-    if (ref.length == 0) {
-        alert("A " + refType + " identifier must be provided!");
+    if (!locator.valid) {
+        alert("A " + locator.refType + " identifier is must be provided!");
         return;
     };
 
-    switch(refType) {
-        case "PMID":
-            url += "pubmed.ncbi.nlm.nih.gov/" + ref;
-            break;
-        case "DOI":
-            url += "www.doi.org/" + ref;
-            break;
-        case "LINK":
-            url += ref;
-            break;
-    }; // switch on refType
+    window.open(locator.url, "_blank");
 
-    window.open(url, "_blank");
+};
 
+// --------------------------------------------------------------- //
+function readSelection() {
+// Read the user's selections.
+
+    let selection = jsetHeader + "\n";
+    let count     = 0;
+
+    for (i = 0; i < issues.length; i++ ) {
+
+        let key       = issues[i].key;
+        let selected  = "";
+
+        selection += issues[i].header() + "\n";
+
+        // Get articles selected from configured issues indexed at PubMed
+        let citations = document.getElementsByClassName(key);
+
+        for (j = 0; j < citations.length; j++) {
+            if (citations[j].checked) {
+                selected += "    " + citations[j].id + "\n";
+                count    += 1;
+            };
+
+        };
+
+        // Get articles selected from configured issues not indexed at PubMed
+        let added = document.getElementsByClassName(key + "-Add");
+
+        for (j = 0; j < added.length; j++) {
+            let title = document.getElementById(added[j].id + "-title").value;
+            let doi   = document.getElementById(added[j].id + "-doi").value;
+            let page  = document.getElementById(added[j].id + "-page").value;
+
+            if (title.length + page.length + doi.length > 0) {
+                selected += "    add: " + title + "," + page + "," + doi + "\n";
+                count    += 1;
+            } else {
+                alert( "A citation from " + key + " lacks an identifier\n"
+                       + "(title, page or doi). It will not be recorded.");
+            };
+        };
+
+        selection += selected;
+    };
+
+    // Get extra articles from non-configured issues
+    let extras = document.getElementsByClassName("user-citation");
+
+    for (i = 0; i < extras.length; i++) {
+
+        let locator = userCitationLocator(extras[i].id);
+
+        if (!locator.valid) {
+            alert( "There is an 'extra' article without an identifier.\n"
+                   + "It will not be recorded." );
+            continue;
+        };
+
+        selection += "    " + locator.refType + ": " + locator.url + "\n";
+        count     += 1;
+
+    };
+
+    return { listing: selection, count: count };
+
+};
+
+// --------------------------------------------------------------- // 
+function createSelection() {
+// Create selection content for saving and update page.
+
+    let inst          = document.getElementById('inst');
+    let saveLink      = document.getElementById('saveLink');
+    let createWgt     = document.getElementById('createWgt');
+    let initials      = document.getElementById('initials');
+    let fileNameWgt   = document.getElementById('fileNameWgt');
+    let countWgt      = document.getElementById('count');
+
+    let selection     = readSelection();
+    let payload       = encodeURIComponent(selection.listing);
+    let fileName      = makeFileName(savePrefix, initials.value);
+
+    saveLink.href     = "data:text/plain;charset=utf-8," + payload;
+    saveLink.download = fileName;
+
+    fileNameWgt.innerHTML = fileName;
+    countWgt.innerHTML    = selection.count;
+    inst.style            = "display:block";
+    createWgt.style       = "display:none";
+
+    console.log(selection.listing);
 };
