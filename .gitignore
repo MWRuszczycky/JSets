@@ -4,3 +4,4 @@ Setup.hs
 stack.yaml.lock
 *.nix
 result
+tests/Mock/html/toc-mock.html
