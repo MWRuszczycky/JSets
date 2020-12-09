@@ -76,13 +76,13 @@ jsonCmd xs
     | length xs < 3 = throwError "Invalid number of arguments (should be 3)!"
     | otherwise     = do
         let abbr = Tx.pack $ xs !! 0
-        v   <- maybe (throwError "invalid volume!")   pure . readMaybe $ xs !! 1
-        n   <- maybe (throwError "invalid number!") pure . readMaybe $ xs !! 2
-        iss <- A.getIssue abbr v n
-        esearch <- lift . C.webRequest (PM.tocESearchQuery iss) $ PM.eSearchUrl
+        v <- maybe (throwError "invalid volume!")   pure . readMaybe $ xs !! 1
+        n <- maybe (throwError "invalid number!") pure . readMaybe $ xs !! 2
+        query <- PM.eSearchQuery =<< A.getIssue abbr v n
+        esearch <- lift . C.webRequest query $ PM.eSearchUrl
         lift . C.writeFileErr "esearch.json" $ esearch
         pmids <- liftEither . P.parsePMIDs $ esearch
-        esummary <- lift . C.webRequest (PM.tocESumQuery pmids) $ PM.eSummaryUrl
+        esummary <- lift . C.webRequest (PM.eSummaryQuery pmids) $ PM.eSummaryUrl
         lift . C.writeFileErr "esummary.json" $ esummary
 
 ---------------------------------------------------------------------

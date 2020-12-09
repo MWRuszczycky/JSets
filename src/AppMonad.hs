@@ -120,9 +120,8 @@ resolveIssue x = references >>= pure . maybe x id . go
 -- Core pipeline functions
 
 downloadPMIDs :: C.WebRequest -> T.Issue -> T.AppMonad [T.PMID]
--- ^Download the PubMed IDs (PMIDs) associated with a given issue.
 downloadPMIDs wreq iss = do
-    let query = PM.tocESearchQuery iss
+    query <- PM.eSearchQuery iss
     C.putTxtMIO $ "Downloading " <> V.showIssue iss <> " PMIDs..."
     result <- liftIO . runExceptT . wreq query $ PM.eSearchUrl
     case result >>= P.parsePMIDs of
@@ -146,7 +145,7 @@ downloadCitations' :: C.WebRequest -> Maybe T.Issue -> [T.PMID]
 downloadCitations' _    _     []    = pure Map.empty
 downloadCitations' wreq mbIss pmids = do
     C.putTxtMIO "Downloading Citations..."
-    let query = PM.tocESumQuery pmids
+    let query = PM.eSummaryQuery pmids
     result <- liftIO . runExceptT . wreq query $ PM.eSummaryUrl
     case result >>= P.parseCitations (T.issue <$> mbIss) pmids of
          Left  err     -> C.putStrMIO err  *> pure Map.empty

@@ -248,6 +248,12 @@ data QueryTerm =
     | VolumeQry  Int
       deriving ( Eq, Show )
 
+instance CanQuery a => CanQuery [a] where
+    query = concat . map query
+
+instance CanQuery QueryTerm where
+    query = (:[])
+
 -- =============================================================== --
 -- Journals
 

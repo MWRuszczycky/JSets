@@ -54,8 +54,9 @@ library jsets-internal
   build-depends:        base >= 4.7 && < 5
                       , attoparsec
                       , bytestring
-                      , directory
                       , containers
+                      , directory
+                      , http-client
                       , microlens
                       , mtl
                       , template-haskell
