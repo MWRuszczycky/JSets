@@ -7,6 +7,7 @@ module Model.Core.Types
     , MayMix            (..)
     , stirIn
     , stir
+    , CanQuery          (..)
       --State
     , ErrString
     , ErrMonad
@@ -23,6 +24,10 @@ module Model.Core.Types
     , JSet              (..)
     , JSets             (..)
     , References
+      -- PubMed
+    , Query
+    , ESearchTerm
+    , QueryTerm         (..)
       -- Journals
     , Journal           (..)
     , Frequency         (..)
@@ -119,6 +124,12 @@ stir :: MayMix a => [a] -> [a]
 --     stir ( stir xs <> ys ) == stir ( xs <> ys ) == stir ( xs <> stir ys )
 -- because mix is associative.
 stir = foldl' stirIn []
+
+---------------------------------------------------------------------
+-- Things that can be queried at PubMed
+
+class CanQuery a where
+    query :: a -> Query
 
 -- =============================================================== --
 -- State
@@ -220,6 +231,24 @@ newtype JSets a = JSets [JSet a]
 type References = [Issue]
 
 -- =============================================================== --
+-- PubMed
+
+type Query = [QueryTerm]
+
+type ESearchTerm = Text
+
+data QueryTerm =
+      TitleQry   Text
+    | PageQry    PageNo
+    | DOIQry     Text
+    | JournalQry Text
+    | WildQry    Text
+    | YearQry    Int
+    | NumberQry  Int
+    | VolumeQry  Int
+      deriving ( Eq, Show )
+
+-- =============================================================== --
 -- Journals
 
 -- |Information about a journal
@@ -268,6 +297,12 @@ instance MayMix Issue where
     mix i1 i2
         | i1 == i2  = Just i1
         | otherwise = Nothing
+
+instance CanQuery Issue where
+    query iss = [ JournalQry . pubmed . journal $ iss
+                , YearQry . year $ iss
+                , NumberQry . issNo $ iss
+                ]
 
 ---------------------------------------------------------------------
 

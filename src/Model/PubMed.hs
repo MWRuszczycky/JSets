@@ -29,6 +29,23 @@ import           Lens.Micro                   ( (.~), (&) )
 -- https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESummary
 -- https://www.ncbi.nlm.nih.gov/books/NBK25500/#chapter1.Searching_a_Database
 
+-- =============================================================== --
+-- Classes and local types
+
+---------------------------------------------------------------------
+-- Things that can be quieried at PubMed
+
+eSearchTerm' :: T.Query -> T.ESearchTerm
+eSearchTerm' = Tx.intercalate " AND " . map go
+    where go (T.TitleQry   x) = "\"" <> x <> "\"[title]"
+          go (T.PageQry    x) = C.tshow x <> "[page]"
+          go (T.DOIQry     x) = x         <> "[doi]"
+          go (T.JournalQry x) = "\"" <> x <> "\"[journal]"
+          go (T.WildQry    x) = "\"" <> x <> "\"[ALL fields]"
+          go (T.YearQry    x) = C.tshow x <> "[ppdat]"
+          go (T.NumberQry  x) = C.tshow x <> "[issue]"
+          go (T.VolumeQry  x) = C.tshow x <> "[volume]"
+
 eUtilsUrl :: String
 eUtilsUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 
