@@ -114,6 +114,12 @@ resolveIssue x = references >>= pure . maybe x id . go
                      pure $ x { T.pubIssue = iss }
 
 -- =============================================================== --
+-- Rank matching
+
+runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
+runMatch ranklists (title, indices) = pure $ Mt.match title indices ranklists
+
+-- =============================================================== --
 -- PubMed Pipeline
 
 ---------------------------------------------------------------------
@@ -190,7 +196,20 @@ handleMissingPMIDs iss = do
     pure $ (Map.empty, T.Content iss url [])
 
 -- =============================================================== --
--- Rank matching
+-- Refactor
 
-runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
-runMatch ranklists (title, indices) = pure $ Mt.match title indices ranklists
+requestPMIDs :: T.CanQuery a => Maybe C.WebRequest -> a
+                -> T.AppMonad (Either T.ErrString Text)
+requestPMIDs mbWreq x = do
+    wreq   <- maybe getWreqSession pure mbWreq
+    query  <- PM.eSearchQuery x
+    liftIO . runExceptT . wreq query $ PM.eSearchUrl
+
+requestCitations :: Maybe C.WebRequest -> [T.PMID]
+                    -> T.AppMonad (Either T.ErrString Text)
+requestCitations mbWreq pmids = do
+    wreq <- maybe getWreqSession pure mbWreq
+    liftIO . runExceptT . wreq (PM.eSummaryQuery pmids) $ PM.eSummaryUrl
+
+getWreqSession :: T.AppMonad C.WebRequest
+getWreqSession = C.webRequestIn <$> liftIO newSession
