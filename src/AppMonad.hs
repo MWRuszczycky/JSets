@@ -198,16 +198,28 @@ handleMissingPMIDs iss = do
 -- =============================================================== --
 -- Refactor
 
-requestPMIDs :: T.CanQuery a => Maybe C.WebRequest -> a
-                -> T.AppMonad (Either T.ErrString Text)
-requestPMIDs mbWreq x = do
-    wreq   <- maybe getWreqSession pure mbWreq
-    query  <- PM.eSearchQuery x
+eSearch :: T.CanQuery a => Maybe C.WebRequest -> a
+           -> T.AppMonad (Either T.ErrString Text)
+-- ^Submit an ESearch request to PubMed for the given queriable
+-- value. The ESearch response is returned as json.
+eSearch mbWreq x = do
+    wreq  <- maybe getWreqSession pure mbWreq
+    query <- PM.eSearchQuery x
     liftIO . runExceptT . wreq query $ PM.eSearchUrl
 
-requestCitations :: Maybe C.WebRequest -> [T.PMID]
-                    -> T.AppMonad (Either T.ErrString Text)
-requestCitations mbWreq pmids = do
+requestPMIDs :: T.CanQuery a => Maybe C.WebRequest -> a
+                -> T.AppMonad (Either T.ErrString [T.PMID])
+-- ^Submit an ESearch request to PubMed for the given queriable value
+-- and attempt to parse the resulting json to a list of PMIDs.
+requestPMIDs mbWreq x = (>>= P.parsePMIDs) <$> eSearch mbWreq x
+
+---------------------------------------------------------------------
+
+eSummary :: Maybe C.WebRequest -> [T.PMID]
+            -> T.AppMonad (Either T.ErrString Text)
+-- ^Submit an ESummary requst to PubMed for the given list of PMIDs.
+-- The ESummary response is return as json.
+eSummary mbWreq pmids = do
     wreq <- maybe getWreqSession pure mbWreq
     liftIO . runExceptT . wreq (PM.eSummaryQuery pmids) $ PM.eSummaryUrl
 
