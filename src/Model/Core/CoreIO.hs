@@ -5,6 +5,7 @@ module Model.Core.CoreIO
     , putTxtLnMIO
     , putStrMIO
     , putStrLnMIO
+    , timeIt
     , writeFileErr
     , readFileErr
     , WebRequest
@@ -14,6 +15,7 @@ module Model.Core.CoreIO
 
 import qualified Data.Text.IO           as Tx
 import qualified Model.Core.Types       as T
+import qualified Model.Core.Dates       as D
 import qualified Network.Wreq           as Wreq
 import qualified Network.Wreq.Session   as WreqS
 import qualified Data.ByteString.Lazy   as BSL
@@ -48,6 +50,17 @@ putStrMIO s = do
 
 putStrLnMIO :: MonadIO m => String -> m ()
 putStrLnMIO = liftIO . putStrLn
+
+-- =============================================================== --
+-- Timed IO processes
+
+timeIt :: MonadIO m => m a -> m ( Integer, a )
+-- ^Time how long a MonadIO transformer action takes.
+timeIt axn = do
+    start  <- liftIO D.readClock
+    result <- axn
+    delta  <- liftIO . D.deltaClock $ start
+    pure (delta, result)
 
 -- =============================================================== --
 -- File IO management

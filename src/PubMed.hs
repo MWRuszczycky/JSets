@@ -166,6 +166,8 @@ eSearch wreq x = do
     liftIO . runExceptT . wreq query $ eSearchUrl
 
 getPMIDs :: T.CanQuery a => C.WebRequest -> a -> T.AppMonad [T.PMID]
+-- ^Submit ESearch request to PubMed for a queriable value and parse
+-- the resulting json response to PubMed IDs.
 getPMIDs wreq x = do
     result <- eSearch wreq x
     case result >>= P.parsePMIDs of
@@ -200,10 +202,8 @@ downloadCitations wreq pmids = do
     let (ns,ps) = unzip pmids
         (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
     C.putTxtMIO $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
-    start  <- liftIO D.readClock
-    result <- eSummary wreq ps
-    delta  <- liftIO . D.deltaClock $ start
-    let timeMsg = "(" <> Vc.showPicoSec delta <> ")"
+    (t, result) <- C.timeIt $ eSummary wreq ps
+    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parseCitations ps of
          Left  _       -> do C.putTxtLnMIO $ "Failed " <> timeMsg
                              pure ( [], Map.empty )
@@ -217,11 +217,9 @@ getContent :: C.WebRequest -> T.Issue -> T.AppMonad T.Content
 -- ^Get the citations asssociated with a given journal issue and
 -- return the corresponding Content.
 getContent wreq iss = do
-    start <- liftIO D.readClock
     C.putTxtMIO $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
-    result <- eSearch wreq iss
-    delta  <- liftIO . D.deltaClock $ start
-    let timeMsg = "(" <> Vc.showPicoSec delta <> ")"
+    (t, result) <- C.timeIt $ eSearch wreq iss
+    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parsePMIDs of
          Left  _     -> do C.putTxtLnMIO $ "Failed " <> timeMsg
                            pure ( T.Content iss Tx.empty [] )
