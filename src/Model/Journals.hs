@@ -4,6 +4,7 @@ module Model.Journals
     ( -- Working with citations and selections
       isPMID
     , pmidsInSelection
+    , splitOnPMID
       -- Working with journal sets
     , pack
     , unpack
@@ -45,6 +46,9 @@ pmidsInSelection :: [T.Selection] -> [T.PMID]
 pmidsInSelection = mapMaybe go
     where go (T.ByPMID x) = Just x
           go _            = Nothing
+
+splitOnPMID :: [T.Selection] -> ([T.PMID], [T.Selection])
+splitOnPMID xs = ( pmidsInSelection xs, filter (not . isPMID) xs )
 
 -- =============================================================== --
 -- Working with journal sets

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase        #-}
 
 module PubMed
     ( -- URLs
@@ -31,15 +32,18 @@ import qualified Model.Core.Core      as C
 import qualified Model.Core.CoreIO    as C
 import qualified Model.Core.Dates     as D
 import qualified Model.Core.Types     as T
+import qualified Model.Journals       as J
 import qualified Model.Parsers.PubMed as P
 import qualified Network.Wreq         as Wreq
 import qualified View.View            as V
 import qualified View.Core            as Vc
 import           Data.Text                    ( Text       )
+import           Data.List                    ( nub        )
 import           Lens.Micro                   ( (.~), (&)  )
 import           Network.Wreq.Session         ( newSession )
 import           Control.Monad.Reader         ( asks, when )
 import           Control.Monad.Except         ( liftIO
+                                              , throwError
                                               , runExceptT )
 
 -- =============================================================== --
@@ -81,6 +85,7 @@ eSearchTerm = Tx.intercalate " AND " . map go . T.query
           go (T.DOIQry     x) = x         <> "[doi]"
           go (T.JournalQry x) = "\"" <> x <> "\"[journal]"
           go (T.WildQry    x) = "\"" <> x <> "\"[ALL fields]"
+          go (T.PMIDQry    x) = x         <> "[pmid]"
           go (T.YearQry    x) = C.tshow x <> "[ppdat]"
           go (T.NumberQry  x) = C.tshow x <> "[issue]"
           go (T.VolumeQry  x) = C.tshow x <> "[volume]"
@@ -105,12 +110,6 @@ eSummaryQuery pmids = let idstr = Tx.intercalate "," pmids
 
 -- =============================================================== --
 -- PubMed web interface: AppMonad functions
-
--- TODO
--- 1. Need to add loggers for messages and errors
--- 2. Resolve Issues in citations
--- 3. Make json an option based on output format.
--- 4. Lookup Extra citations and other user-added citations.
 
 ---------------------------------------------------------------------
 -- Helper functions for making PubMed requests
@@ -240,20 +239,42 @@ handleMissingContent iss = do
     url <- Tx.strip . Tx.pack <$> liftIO getLine
     pure $ T.Content iss url []
 
-getToCs :: [T.Issue] -> T.AppMonad (T.Citations, [T.Content])
--- ^Request tables of contents for a batch of issues. This essentially
+getToCs :: T.JSet T.Issue -> T.AppMonad (T.Citations, T.JSet T.Content)
+-- ^Request tables of contents for a Journal Set. This essentially
 -- wraps the getContent and downloadCitations functions for each
 -- issue and tries to download everything as efficiently as possible
 -- without getting the IP address blocked by PubMed.
-getToCs issues = do
+getToCs (T.JSet n issues sel) = do
     wreq <- getWreqSession
-    xs   <- delayMapM (getContent wreq) issues
-    let pmids = zip [1..] . concatMap T.contents $ xs
+    -- First get any PMIDs that are part of the user selection. Some
+    -- of these may require an eSearch query be requested.
+    C.putTxtLnMIO "Resolving selection.."
+    let (wID, woID) = J.splitOnPMID sel
+    selIDs <- nub . (<> wID) . concat <$> delayMapM (getSelection' wreq) woID
+    -- Get all the PMIDs associated with each issues' table contents.
+    C.putTxtLnMIO "Requesting PMIDs per issue (eSearch).."
+    xs <- delayMapM (getContent wreq) issues
+    let pmids = zip [1..] . C.addUnique selIDs . concatMap T.contents $ xs
+    -- Once we have all the PMIDs, we can place the eSummary requests
+    -- to get the associated citations. However, PubMed will not allow
+    -- too many eSummary PMIDs to be queried in a single request. So,
+    -- we have to break up the requests into chunks.
+    -- (Still need to figure out what the PMID limit per request is.)
     C.putTxtLnMIO $ "There are " <> C.tshow (length pmids) <> " PMIDs:"
-    -- PubMed will not allow us to download all the PMIDs at once (too many).
-    -- So, we break them into chunks with delays between every other request.
     (ms,cs) <- fmap unzip . delayMapM (downloadCitations wreq)
                           . C.chunksOf 100 $ pmids
     handleMissingCitations . concat $ ms
     rcs <- mapM (A.resolveIssueWith issues) . mconcat $ cs
-    pure (rcs, xs)
+    pure ( rcs, T.JSet n xs (map T.ByPMID selIDs) )
+
+getSelection' :: C.WebRequest -> T.Selection -> T.AppMonad [T.PMID]
+getSelection' _ (T.ByPMID p) = pure [p]
+getSelection' _ (T.ByLink l) =
+    throwError $ "Unresolved link: " <> Tx.unpack l
+getSelection' wreq x = do
+    let noneMsg = "No PMID found for " <> show x
+        manyMsg = "Multiple PMIDs found for " <> show x <> ", skipping."
+    getPMIDs wreq x >>= \case
+        []   -> C.putStrLnMIO noneMsg *> pure []
+        x:[] -> pure [x]
+        _    -> C.putStrLnMIO manyMsg *> pure []

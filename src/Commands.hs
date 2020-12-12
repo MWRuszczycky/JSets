@@ -165,10 +165,9 @@ tocHelp = (s, H.tocHelp)
 tocCmd :: [FilePath] -> T.AppMonad ()
 tocCmd []  = throwError "Path(s) to journal sets files are required!"
 tocCmd fps = do
-    jsets   <- J.combineJSets <$> mapM A.readJSets fps
-    jset    <- asks T.cJSetKey >>= A.getJSet jsets
-    (cs,xs) <- PM.getToCs (T.issues jset)
-    V.runView ( V.viewToCs cs $ jset { T.issues = xs } ) >>= display
+    jsets     <- J.combineJSets <$> mapM A.readJSets fps
+    (cs,jset) <- asks T.cJSetKey >>= A.getJSet jsets >>= PM.getToCs
+    V.runView ( V.viewToCs cs jset ) >>= display
 
 ---------------------------------------------------------------------
 -- Construct journal set collections by year

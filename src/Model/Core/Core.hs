@@ -13,6 +13,7 @@ module Model.Core.Core
     , shuffleIn
     , shuffleInAt
     , zipLists
+    , addUnique
     , splitMaybe
     , choice
     ) where
@@ -118,6 +119,13 @@ zipLists :: [[a]] -> [[a]] -> [[a]]
 zipLists [] _          = []
 zipLists _  []         = []
 zipLists (x:xs) (y:ys) = (x <> y) : zipLists xs ys
+
+addUnique :: Eq a => [a] -> [a] -> [a]
+-- ^Union where the second list is known to contain no duplicates.
+addUnique []     xs = xs
+addUnique (y:ys) xs
+    | elem y xs = addUnique ys xs
+    | otherwise = addUnique ys (y:xs)
 
 ---------------------------------------------------------------------
 -- Decomposing lists

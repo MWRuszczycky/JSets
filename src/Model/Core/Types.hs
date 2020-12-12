@@ -243,6 +243,7 @@ data QueryTerm =
     | DOIQry     Text
     | JournalQry Text
     | WildQry    Text
+    | PMIDQry    Text
     | YearQry    Int
     | NumberQry  Int
     | VolumeQry  Int
@@ -365,6 +366,12 @@ instance MayMix Selection where
         | x1 == y1 && x2 == y2 = Just $ FromIssue x1 x2
         | otherwise            = Nothing
     mix _ _ = Nothing
+
+instance CanQuery Selection where
+      query (ByPMID p     ) = [PMIDQry p]
+      query (ByDOI  d     ) = [DOIQry  d]
+      query (ByLink l     ) = [WildQry l]
+      query (FromIssue i t) = WildQry t : query i
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {
