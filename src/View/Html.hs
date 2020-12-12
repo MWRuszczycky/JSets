@@ -39,7 +39,7 @@ adminDefault (Just x) = x
 -- HTML component compositors for journal set tables of contents
 
 tocsHtml :: Maybe Text -> Maybe Text -> Day
-            -> T.JSet T.Content -> T.Citations -> Text
+            -> T.JSet T.ToC -> T.Citations -> Text
 -- ^Generate the complete html web document for a table of contents.
 tocsHtml name email date jset@(T.JSet n tocs sel) cs =
     let dict = [ ( "meta",       tocsMeta n date                             )
@@ -95,9 +95,9 @@ issueHeaderAbbr iss = Tx.concat xs
                , C.tshow . T.issNo $ iss
                ]
 
-tocEntries :: T.Citations -> [T.Selection] -> T.Content -> Text
+tocEntries :: T.Citations -> [T.Selection] -> T.ToC -> Text
 -- ^Construct html for all citations in a Table of Contents.
-tocEntries _ _ (T.Content iss url [])
+tocEntries _ _ (T.ToC iss url [])
     | Tx.null url = fill xys Temp.issueMissingHtml
     | otherwise   = fill xys Temp.issueMissingLinkedHtml
     where xys = Map.fromList [ ("issue", issueHeader iss     )
@@ -105,7 +105,7 @@ tocEntries _ _ (T.Content iss url [])
                              , ("class", className iss       )
                              , ("abbr",  issueHeaderAbbr iss )
                              ]
-tocEntries cs sel (T.Content iss _ pmids) = fill xys Temp.issueHtml
+tocEntries cs sel (T.ToC iss _ pmids) = fill xys Temp.issueHtml
     where sel'  = J.pmidsInSelection sel
           cstxt = Tx.intercalate "\n" . map (tocEntry cs sel') $ pmids
           xys   = Map.fromList [ ("issue",     issueHeader iss)

@@ -184,7 +184,7 @@ jsetMkd jset = do
 -- =============================================================== --
 -- Viewing tables of contents
 
-viewToCs :: T.Citations -> T.JSet T.Content -> T.ViewMonad ()
+viewToCs :: T.Citations -> T.JSet T.ToC -> T.ViewMonad ()
 viewToCs cs jset = do
     name  <- asks T.cUser
     email <- asks T.cEmail
@@ -197,14 +197,14 @@ viewToCs cs jset = do
 ---------------------------------------------------------------------
 -- As Text
 
-jsetContentTxt :: T.Citations -> T.JSet T.Content -> T.ViewMonad ()
+jsetContentTxt :: T.Citations -> T.JSet T.ToC -> T.ViewMonad ()
 jsetContentTxt cs (T.JSet _ xs _) =
     Vc.separate Vc.newLine . map (contentTxt cs) $ xs
 
 ---------------------------------------------------------------------
 -- As Markdown
 
-jsetContentMkd :: T.Citations -> T.JSet T.Content -> T.ViewMonad ()
+jsetContentMkd :: T.Citations -> T.JSet T.ToC -> T.ViewMonad ()
 jsetContentMkd cs (T.JSet setNo xs _) = do
     Vc.write "# Journal Set "
     Vc.writeLn . C.tshow $ setNo
@@ -215,7 +215,7 @@ jsetContentMkd cs (T.JSet setNo xs _) = do
 -- As HTML
 
 jsetContentHtml :: Maybe Text -> Maybe Text -> Day -> T.Citations
-                   -> T.JSet T.Content -> T.ViewMonad ()
+                   -> T.JSet T.ToC -> T.ViewMonad ()
 jsetContentHtml name email date cs jset =
     Vc.write . Html.tocsHtml name email date jset $ cs
 
@@ -274,16 +274,16 @@ issuesCsv x abbr = do
 ---------------------------------------------------------------------
 -- Views of Contents
 
-contentTxt :: T.Citations -> T.Content -> T.ViewMonad ()
-contentTxt cs (T.Content x _ pmids) = do
+contentTxt :: T.Citations -> T.ToC -> T.ViewMonad ()
+contentTxt cs (T.ToC x _ pmids) = do
     issueTxt x
     replicateM_ 2 Vc.newLine
     Vc.separate Vc.newLine . map citationTxt
                            . mapMaybe (flip Map.lookup cs)
                            $ pmids
 
-contentMkd :: T.Citations -> T.Content -> T.ViewMonad ()
-contentMkd cs (T.Content x _ pmids) = do
+contentMkd :: T.Citations -> T.ToC -> T.ViewMonad ()
+contentMkd cs (T.ToC x _ pmids) = do
     Vc.write "## " *> issueMkd x
     replicateM_ 2 Vc.newLine
     if null cs

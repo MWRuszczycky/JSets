@@ -33,7 +33,7 @@ module Model.Core.Types
     , Frequency         (..)
       -- Journal issues
     , Issue             (..)
-    , Content           (..)
+    , ToC               (..)
       -- Table of contents and citations
     , PMID
     , Selection         (..)
@@ -279,7 +279,7 @@ data Frequency =
 -- Journal Issues
 
 -- An Issue is the base description of a published issue of a journal.
--- A Content is essentially the table of contents associated witha an
+-- A ToC is essentially the table of contents associated with an
 -- Issue. It provides all the PubMed IDs of citations in the issue as
 -- well a possible URL where the ToC can be found at the publisher's
 -- website if necessary.
@@ -314,19 +314,19 @@ instance CanQuery Issue where
 ---------------------------------------------------------------------
 
 -- |Table of contents for an issue of a journal
-data Content = Content {
+data ToC = ToC {
       theIssue :: Issue  -- The issue the contents reflect.
     , tocURL   :: Text   -- URL to the online ToC at the publisher's website.
     , contents :: [PMID] -- PubMed IDs for all articles in the issue.
     } deriving ( Show )
 
-instance HasIssue Content where
+instance HasIssue ToC where
     issue = theIssue
 
-instance HasDate Content where
+instance HasDate ToC where
     date = theDate . theIssue
 
-instance MayMix Content where
+instance MayMix ToC where
     mix c1 c2
         | issue c1 == issue c2 = Just c1 { tocURL = u, contents = xs }
         | otherwise            = Nothing
