@@ -35,7 +35,6 @@ function userCitationLocator(citeId) {
     let refType = document.getElementById(citeId + "-refType").value;
     let ref     = document.getElementById(citeId + "-ref").value.trim();
     let url     = "https://";
-    let valid   = true;
 
     if (ref.length == 0) {
         return { url: "", refType: refType, valid: false };
@@ -46,14 +45,16 @@ function userCitationLocator(citeId) {
             url += "pubmed.ncbi.nlm.nih.gov/" + ref;
             break;
         case "DOI":
+            ref = ref.replace(/.*doi\.org\//,"");
             url += "www.doi.org/" + ref;
             break;
-        case "LINK":
+        case "WEB":
+            ref = ref.replace("https://","")
             url += ref;
             break;
     } // switch on refType
 
-    return { url: url, refType: refType, ref: ref, valid: valid };
+    return { url: url, refType: refType, ref: ref, valid: true };
 
 }
 
@@ -77,7 +78,7 @@ function userCitationHTML(citeId, citeClass, index) {
                 <label for="${citeId}-refType">Address</label>
                 <select name="${citeId}-refType" id="${citeId}-refType">
                     <option value="DOI">DOI</option>
-                    <option value="LINK">LINK</option>
+                    <option value="WEB">WEB</option>
                     <option value="PMID">PMID</option>
                 </select>
                 <label for="${citeId}-ref">:</label>
@@ -233,7 +234,7 @@ function readSelection() {
             selection += "    " + locator.ref + "\n";
         } else {
             selection += "    " + locator.refType.toLowerCase()
-                                + ": " + locator.url + "\n";
+                                + ": " + locator.ref + "\n";
         }
 
     }
