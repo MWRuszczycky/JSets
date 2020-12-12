@@ -76,9 +76,9 @@ function userCitationHTML(citeId, citeClass, index) {
                     Remove</button></br>
                 <label for="${citeId}-refType">Address</label>
                 <select name="${citeId}-refType" id="${citeId}-refType">
-                    <option value="PMID">PMID</option>
                     <option value="DOI">DOI</option>
                     <option value="LINK">LINK</option>
+                    <option value="PMID">PMID</option>
                 </select>
                 <label for="${citeId}-ref">:</label>
                 <input type="text" id="${citeId}-ref"

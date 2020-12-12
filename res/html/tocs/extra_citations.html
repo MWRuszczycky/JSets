@@ -1,23 +1,47 @@
         <h2>Extra articles</h2>
 
-           <p><b>Extra articles can be specified here.</b> First, click the <b>Add an extra article</b> button below. Next, use the drop-down to specify <b>one</b> of the following identifiers to find the <b>abstract</b> and enter its value in the adjacent text box:</p>
+            @{citations}
 
-           <ul>
-                <li><p><b>PMID</b> (PubMed ID). This is usually an eight-digit number that can be found at the PubMed website. For example, only enter the red text of:<br>
-                    <b>PMID: <span class="entry">28874588</span></b></p></li>
-                <li><p><b>DOI</b> (the digital object identifier). For example, only enter the red text of:<br>
-                    <b>https://doi.org/<span class="entry">10.1073/pnas.1710496114</span></b></p></li>
-                <li><p><b>LINK</b> (a direct link to the abstract). For example, only enter the red text of:<br>
-                    <b>https://<span class="entry">www.pnas.org/content/114/39/10408</span></b></p></li>
-           </ul>
+            <p><b>Additional articles can be specified here.</b> First, click the <b>Add an extra article</b> button below. Next, use the drop-down to specify a locator (i.e., DOI, direct LINK or PubMed ID) to find the <b>abstract</b> and enter its value in the adjacent text box.</p>
 
-           <p><b>Make sure the article can be found!</b> Click the <b>Check link</b> button and make sure the correct <b>abstract</b> opens in a new browser tab. If it does not, then make sure your identifier correctly matches one of the above patterns or try another identifier.</p>
+            <details>
+                <summary>Click the triangle for examples how
+                    <a href="https://www.pnas.org/content/114/39/10408" target="_blank">
+                        this article</a>
+                    could be located.
+                    <a href="https://pubmed.ncbi.nlm.nih.gov/28874588" target="_blank">
+                        Click here</a>
+                        for the example abstract at PubMed.
+                </summary>
+                <ul>
+                    <li><p><b>DOI</b> (the digital object identifier).
+                        Any of the following would work for the example,<br>
+                        <span class="locator">
+                        https://doi.org/10.1073/pnas.1710496114<br>
+                        doi.org/10.1073/pnas.1710496114<br>
+                        10.1073/pnas.1710496114</span></p></li>
 
-           <p><b>To remove a selected article:</b> Click the <b>Remove</b> button.</p>
+                    <li><p><b>LINK</b> (a direct link to the abstract).
+                        Any of the following would work for the example,<br>
+                        <span class="locator">
+                        https://www.pnas.org/content/114/39/10408<br>
+                        www.pnas.org/content/114/39/10408</span></p></li>
 
-        <div id="user-citation">
-        </div>
+                    <li><p><b>PMID</b> (PubMed ID).
+                        This is usually an eight-digit number that can be found
+                        at the PubMed website. So, this would work for the example,<br>
+                        <span class="locator">28874588</span></p></li>
+                </ul>
+            </details>
 
-        <button type="button" onclick="userCitation('user-citation')">
-            Add an extra article
-        </button>
+            <p><b>Check to see if the article can be found.</b> Click the <b>Check link</b> button and make sure the correct <b>abstract</b> opens in a new browser tab. If it does not, then make sure your locator is correct or try another.<br>
+            <b>However, even if your locator does not work, it will still be recorded.</b></p>
+
+            <p><b>To remove a selected article:</b> Click the <b>Remove</b> button.</p>
+
+            <div id="user-citation">
+            </div>
+
+            <p><button type="button" onclick="userCitation('user-citation')">
+                Add an extra article
+            </button></p>
