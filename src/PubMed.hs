@@ -21,7 +21,7 @@ module PubMed
     , eSummary
     , getCitations
       -- PubMed web interface: tables of contents
-    , getContent
+    , getToC
     , getToCs
     ) where
 
@@ -76,7 +76,7 @@ eSummaryUrl = eUtilsUrl <> "esummary.fcgi?db=pubmed"
 -- Constructing web requests to query PubMed
 
 ---------------------------------------------------------------------
--- ESearch requests for PMIDs
+-- Terms & options for construction of ESearch requests to get PMIDs
 
 eSearchTerm :: T.CanQuery a => a -> T.ESearchTerm
 eSearchTerm = Tx.intercalate " AND " . map go . T.query
@@ -98,15 +98,14 @@ eSearchQuery x = do
                          & Wreq.param "term"   .~ [ eSearchTerm x ]
 
 ---------------------------------------------------------------------
--- ESummary requests for citations
+-- Options for construction of ESummary requests to get citations
 
 eSummaryQuery :: [T.PMID] -> Wreq.Options
 -- ^Build an E-Utilities query to obtain the document summaries from
--- the PubMed database for the indicated PMIDs.
+-- the PubMed for the indicated PMIDs. These provide citations.
 eSummaryQuery pmids = let idstr = Tx.intercalate "," pmids
                       in  Wreq.defaults & Wreq.param "retmode" .~ [ "json" ]
                                         & Wreq.param "id"      .~ [ idstr  ]
-
 
 -- =============================================================== --
 -- PubMed web interface: AppMonad functions
@@ -114,14 +113,10 @@ eSummaryQuery pmids = let idstr = Tx.intercalate "," pmids
 ---------------------------------------------------------------------
 -- Helper functions for making PubMed requests
 
--- Exported
-
 getWreqSession :: T.AppMonad C.WebRequest
 -- ^Create a new Wreq session that can be used between requests to
 -- PubMed to make them more efficient.
 getWreqSession = C.webRequestIn <$> liftIO newSession
-
--- Unexported
 
 delayMapM :: (a -> T.AppMonad b) -> [a] -> T.AppMonad [b]
 -- ^PubMed only allows 3 requests per second or you risk getting your
@@ -149,8 +144,8 @@ delay = do d <- asks $ (* 10^12) . T.cDelay
 -- Handler functions for missing PMIDs and citations
 
 handleMissingCitations :: [T.PMID] -> T.AppMonad ()
--- ^Handler for massing PMIDs in ESummary requests that do not return
--- a citation at PubMed
+-- ^Handler for missing PMIDs in ESummary requests that do not return
+-- a citation from PubMed.
 handleMissingCitations [] = C.putTxtLnMIO "No missing citations."
 handleMissingCitations _  = C.putTxtLnMIO "There were missing citations!"
 
@@ -175,6 +170,8 @@ getPMIDs wreq x = do
          Right ps -> pure ps
 
 getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
+-- ^Convert selections to PMIDs. If not already provided as PMID, the
+-- selection is used to query PubMed via an eSearch request.
 getSelection _    (T.ByBndPMID  i p) = pure [T.ByBndPMID i p]
 getSelection _    (T.ByPMID       p) = pure [T.ByPMID      p]
 getSelection _    (T.ByLink       l) = throwError $ "Unresolved: " <> Tx.unpack l
@@ -182,6 +179,7 @@ getSelection wreq x@(T.ByBndDOI i _) = map (T.ByBndPMID i) <$> getPMIDs wreq x
 getSelection wreq x                  = map T.ByPMID        <$> getPMIDs wreq x
 
 getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
+-- ^Same as getSelection, but allow no more than one PMID.
 getOneSelection wreq x = do
     let noneMsg = "No PMID found for " <> show x
         manyMsg = "Multiple PMIDs found for " <> show x <> ", skipping."
@@ -194,15 +192,16 @@ getOneSelection wreq x = do
 -- Downloading Citations via ESummary requests
 
 eSummary :: C.WebRequest -> [T.PMID] -> T.AppMonad (Either T.ErrString Text)
--- ^Submit an ESummary requst to PubMed for the given list of PMIDs.
--- The ESummary response is returned as json.
+-- ^Submit an ESummary request to PubMed with given list of PMIDs.
+-- The document summaries are returned as json and describe the
+-- associated citations indexed by the PMIDs.
 eSummary wreq pmids =
     liftIO . runExceptT . wreq (eSummaryQuery pmids) $ eSummaryUrl
 
 getCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
 -- ^Download the citations associated with a list of PMIDs. This is
 -- the interface function for placing ESummary requests where the
--- citations are requested but not the json. It wraps the
+-- citations are desired but not the json. It wraps the
 -- downloadCitations function.
 getCitations wreq pmids = do
     (ms,cs) <- downloadCitations wreq . zip [1..] $ pmids
@@ -230,10 +229,10 @@ downloadCitations wreq pmids = do
 ---------------------------------------------------------------------
 -- Downloading issue content
 
-getContent :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
--- ^Get the citations asssociated with a given journal issue and
--- return the corresponding Content.
-getContent wreq iss = do
+getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
+-- ^Get the all citations asssociated with a given journal issue and
+-- return the corresponding ToC.
+getToC wreq iss = do
     C.putTxtMIO $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
     (t, result) <- C.timeIt $ eSearch wreq iss
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
@@ -246,9 +245,9 @@ getContent wreq iss = do
                            pure $ T.ToC iss Tx.empty pmids
 
 handleMissingContent :: T.Issue -> T.AppMonad T.ToC
--- ^Handler for the event that the content of a given journal issue
+-- ^Handler for the event that the ToC of a given journal issue
 -- cannot be found at PMID. This allows the user to enter an alternate
--- url to the table of contents at the publisher's website.
+-- url to the ToC at the publisher's website if available.
 handleMissingContent iss = do
     C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue iss
     C.putTxtLnMIO $ "  Enter an alternate URL or just press enter to continue:"
@@ -257,41 +256,39 @@ handleMissingContent iss = do
     pure $ T.ToC iss url []
 
 getToCs :: T.JSet T.Issue -> T.AppMonad (T.Citations, T.JSet T.ToC)
--- ^Request tables of contents for a Journal Set. This essentially
--- wraps the getContent and downloadCitations functions for each
--- issue and tries to download everything as efficiently as possible
--- without getting the IP address blocked by PubMed.
+-- ^Request tables of contents for a Journal Set and the citations.
+-- Delays are used to avoid exceeding the request limit at PubMed.
 getToCs (T.JSet n issues sel) = do
     wreq <- getWreqSession
-    -- First get any PMIDs that are part of the user selection. Some
-    -- of these may require an eSearch query be requested. These are
-    -- Selections so that we can bind them to an issue if necessary.
+    -- First, the PMIDs from the user selection. Some of these may
+    -- require an eSearch query to PubMed. The PMIDs are wrapped as
+    -- Selections in order to bind them to issues as necessary.
     C.putTxtLnMIO "Resolving selection.."
     let (wID, woID) = C.splitOn J.isPMID sel
     selIDs <- nub . (<> wID) . concat <$> delayMapM (getOneSelection wreq) woID
-    -- Get all the PMIDs associated with each issues' ToC.
+    -- Get all the PMIDs associated with each issue's ToC. We need an
+    -- extra delay here to ensure that the last two requests are not
+    -- in the same second of time as the next two.
     delay
     C.putTxtLnMIO "Requesting PMIDs per issue (eSearch).."
-    xs <- delayMapM (getContent wreq) issues
+    xs <- delayMapM (getToC wreq) issues
     let pmids = zip [1..] . C.addUnique (J.pmidsInSelection selIDs)
                           . concatMap T.contents $ xs
     -- Once we have all the PMIDs, we can place the eSummary requests
     -- to get the associated citations. However, PubMed will not allow
     -- too many eSummary PMIDs to be queried in a single request. So,
-    -- we have to break up the requests into chunks. We also need an
-    -- extra delay here so that the last two PMID requests are not in
-    -- the same second as the first two citation requests.
+    -- we have to break up the requests into chunks.
     -- (Still need to figure out what the PMID limit per request is.)
     delay
     C.putTxtLnMIO $ "There are " <> C.tshow (length pmids) <> " PMIDs:"
     (ms,cs) <- fmap unzip . delayMapM (downloadCitations wreq)
                           . C.chunksOf 100 $ pmids
     -- Clean up: 1. Inform user of any missing citations.
-    --           2. Correct parsed issue info with configured issue info.
-    --           3. Place user added selection PMIDs with appropriate ToC.
-    --              This is required if the issue is not indexed at PubMed,
-    --              but the ToC and PMIDs can be found by direct searches.
     handleMissingCitations . concat $ ms
+    -- 2. Correct parsed issues with configured issues if possible.
     rcs <- mapM (A.resolveIssueWith issues) . mconcat $ cs
+    -- 3. Update ToCs with any PMIDs that were user-specified.
+    --    This may be required if the issue itself is not indexed at
+    --    PubMed, but the citations are present as 'ahead of print'.
     let xsFinal = map (J.updateContent selIDs) xs
     pure ( rcs, T.JSet n xsFinal selIDs )
