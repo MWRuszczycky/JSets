@@ -24,6 +24,7 @@ module PubMed
     , getToCs
     ) where
 
+import qualified AppMonad             as A
 import qualified Data.Text            as Tx
 import qualified Data.Map.Strict      as Map
 import qualified Model.Core.Core      as C
@@ -254,4 +255,5 @@ getToCs issues = do
     (ms,cs) <- fmap unzip . delayMapM (downloadCitations wreq)
                           . C.chunksOf 100 $ pmids
     handleMissingCitations . concat $ ms
-    pure (mconcat cs, xs)
+    rcs <- mapM (A.resolveIssueWith issues) . mconcat $ cs
+    pure (rcs, xs)

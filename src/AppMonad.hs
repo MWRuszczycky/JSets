@@ -10,6 +10,7 @@ module AppMonad
       -- Working with configured reference issues
     , references
     , getIssue
+    , resolveIssueWith
     , resolveIssue
       -- Running rank matchings
     , runMatch
@@ -86,6 +87,17 @@ getIssue abbr v n = references >>= maybe err pure . go
     where issMsg = Tx.unpack abbr <> " " <> show v <> ":" <> show n
           err    = throwError $ "Invalid issue: " <> issMsg
           go rs  = J.lookupIssue rs abbr (v,n)
+
+resolveIssueWith :: [T.Issue] -> T.Citation -> T.AppMonad T.Citation
+-- ^Attempt to resolve the issue of a citation to a configured issue;
+-- however, first check that the issues is not already provided in
+-- the list of likely candidates. If it is not found in the candidate
+-- list, then try to look it up from scratch (see resolveIssue).
+resolveIssueWith refs x = maybe (resolveIssue x) res . find go $ refs
+        where res i = pure $ x { T.pubIssue = i }
+              go  i = (T.pubmed . T.journal) i == (T.pubmed . T.journal) x
+                      && T.year  i == T.year  x
+                      && T.issNo i == T.issNo x
 
 resolveIssue :: T.Citation -> T.AppMonad T.Citation
 -- ^Attempt to resolve the issue of a citation to a configured issue.
