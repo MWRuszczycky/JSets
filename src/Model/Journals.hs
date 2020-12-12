@@ -5,6 +5,7 @@ module Model.Journals
       isPMID
     , pmidsInSelection
     , splitOnPMID
+    , updateContent
       -- Working with journal sets
     , pack
     , unpack
@@ -26,14 +27,15 @@ module Model.Journals
     , nextMonthly
     ) where
 
+import qualified Data.Map.Strict      as Map
 import qualified Model.Core.Core      as C
 import qualified Model.Core.Dates     as D
 import qualified Model.Core.Types     as T
 import qualified Data.Time            as Tm
-import           Data.Maybe                 ( mapMaybe )
-import           Data.List                  ( find     )
-import           Data.Time                  ( Day      )
-import           Data.Text                  ( Text     )
+import           Data.Maybe                  ( mapMaybe     )
+import           Data.List                   ( find, foldl' )
+import           Data.Time                   ( Day          )
+import           Data.Text                   ( Text         )
 
 -- =============================================================== --
 -- Working with citations and selections
@@ -49,6 +51,17 @@ pmidsInSelection = mapMaybe go
 
 splitOnPMID :: [T.Selection] -> ([T.PMID], [T.Selection])
 splitOnPMID xs = ( pmidsInSelection xs, filter (not . isPMID) xs )
+
+updateContent :: T.Citations -> [T.PMID] -> T.Content -> T.Content
+-- ^Update an issue's content with additional PMIDs if they are in
+-- that issue but not already in its contents. This function is a
+-- helper for when contents cannot be found at PubMed via a search on
+-- the entire issue, but can be found on a citation-by-citation basis.
+updateContent cs pmids x = x { T.contents = foldl' go (T.contents x) pmids }
+    where go  ps p   = maybe ps (chk ps p) $ T.issue <$> Map.lookup p cs
+          chk ps p i | i /= T.issue x = ps
+                     | elem p ps      = ps
+                     | otherwise      = p:ps
 
 -- =============================================================== --
 -- Working with journal sets

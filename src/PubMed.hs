@@ -263,9 +263,15 @@ getToCs (T.JSet n issues sel) = do
     C.putTxtLnMIO $ "There are " <> C.tshow (length pmids) <> " PMIDs:"
     (ms,cs) <- fmap unzip . delayMapM (downloadCitations wreq)
                           . C.chunksOf 100 $ pmids
+    -- Clean up: 1. Inform user of any missing citations.
+    --           2. Correct parsed issue info with configured issue info.
+    --           3. Place user added selection PMIDs with appropriate ToC.
+    --              This is required if the issue is not indexed at PubMed,
+    --              but the ToC and PMIDs can be found by direct searches.
     handleMissingCitations . concat $ ms
     rcs <- mapM (A.resolveIssueWith issues) . mconcat $ cs
-    pure ( rcs, T.JSet n xs (map T.ByPMID selIDs) )
+    let xsFinal = map (J.updateContent rcs selIDs) xs
+    pure ( rcs, T.JSet n xsFinal (map T.ByPMID selIDs) )
 
 getSelection' :: C.WebRequest -> T.Selection -> T.AppMonad [T.PMID]
 getSelection' _ (T.ByPMID p) = pure [p]
