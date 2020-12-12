@@ -14,6 +14,7 @@ module Model.Core.Core
     , shuffleInAt
     , zipLists
     , addUnique
+    , splitOn
     , splitMaybe
     , choice
     ) where
@@ -129,6 +130,13 @@ addUnique (y:ys) xs
 
 ---------------------------------------------------------------------
 -- Decomposing lists
+
+splitOn :: (a -> Bool) -> [a] -> ([a],[a])
+splitOn _ [] = ([],[])
+splitOn f (x:xs)
+    | f x       = (x:us, vs)
+    | otherwise = (us, x:vs)
+    where (us,vs) = splitOn f xs
 
 splitMaybe :: [(a, Maybe b)] -> ([(a,b)], [a])
 splitMaybe = foldr go ([],[])

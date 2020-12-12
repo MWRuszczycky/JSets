@@ -37,14 +37,14 @@ import qualified Model.Parsers.PubMed as P
 import qualified Network.Wreq         as Wreq
 import qualified View.View            as V
 import qualified View.Core            as Vc
-import           Data.Text                    ( Text       )
-import           Data.List                    ( nub        )
-import           Lens.Micro                   ( (.~), (&)  )
-import           Network.Wreq.Session         ( newSession )
-import           Control.Monad.Reader         ( asks, when )
-import           Control.Monad.Except         ( liftIO
+import           Data.Text                    ( Text         )
+import           Data.List                    ( nub          )
+import           Lens.Micro                   ( (.~), (&)    )
+import           Network.Wreq.Session         ( newSession   )
+import           Control.Monad.Reader         ( asks, when   )
+import           Control.Monad.Except         ( liftIO, lift
                                               , throwError
-                                              , runExceptT )
+                                              , runExceptT   )
 
 -- =============================================================== --
 -- PubMed interface
@@ -174,12 +174,14 @@ getPMIDs wreq x = do
          Left _   -> C.putTxtLnMIO "Failed!" *> pure []
          Right ps -> pure ps
 
-getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.PMID]
-getSelection _    (T.ByPMID p) = pure [p]
-getSelection _    (T.ByLink l) = throwError $ "Unresolved link: " <> Tx.unpack l
-getSelection wreq x            = getPMIDs wreq x
+getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
+getSelection _    (T.ByBndPMID  i p) = pure [T.ByBndPMID i p]
+getSelection _    (T.ByPMID       p) = pure [T.ByPMID      p]
+getSelection _    (T.ByLink       l) = throwError $ "Unresolved: " <> Tx.unpack l
+getSelection wreq x@(T.ByBndDOI i _) = map (T.ByBndPMID i) <$> getPMIDs wreq x
+getSelection wreq x                  = map T.ByPMID        <$> getPMIDs wreq x
 
-getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.PMID]
+getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
 getOneSelection wreq x = do
     let noneMsg = "No PMID found for " <> show x
         manyMsg = "Multiple PMIDs found for " <> show x <> ", skipping."
@@ -219,7 +221,8 @@ downloadCitations wreq pmids = do
     (t, result) <- C.timeIt $ eSummary wreq ps
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parseCitations ps of
-         Left  _       -> do C.putTxtLnMIO $ "Failed " <> timeMsg
+         Left  err     -> do C.putTxtLnMIO $ "Failed " <> timeMsg
+                             lift . C.writeFileErr "jsets-error.log" . Tx.pack $ err
                              pure ( [], Map.empty )
          Right (ms,cs) -> do C.putTxtLnMIO $ "OK " <> timeMsg
                              pure ( ms, cs        )
@@ -261,19 +264,25 @@ getToCs :: T.JSet T.Issue -> T.AppMonad (T.Citations, T.JSet T.ToC)
 getToCs (T.JSet n issues sel) = do
     wreq <- getWreqSession
     -- First get any PMIDs that are part of the user selection. Some
-    -- of these may require an eSearch query be requested.
+    -- of these may require an eSearch query be requested. These are
+    -- Selections so that we can bind them to an issue if necessary.
     C.putTxtLnMIO "Resolving selection.."
-    let (wID, woID) = J.splitOnPMID sel
+    let (wID, woID) = C.splitOn J.isPMID sel
     selIDs <- nub . (<> wID) . concat <$> delayMapM (getOneSelection wreq) woID
-    -- Get all the PMIDs associated with each issues' table contents.
+    -- Get all the PMIDs associated with each issues' ToC.
+    delay
     C.putTxtLnMIO "Requesting PMIDs per issue (eSearch).."
     xs <- delayMapM (getContent wreq) issues
-    let pmids = zip [1..] . C.addUnique selIDs . concatMap T.contents $ xs
+    let pmids = zip [1..] . C.addUnique (J.pmidsInSelection selIDs)
+                          . concatMap T.contents $ xs
     -- Once we have all the PMIDs, we can place the eSummary requests
     -- to get the associated citations. However, PubMed will not allow
     -- too many eSummary PMIDs to be queried in a single request. So,
-    -- we have to break up the requests into chunks.
+    -- we have to break up the requests into chunks. We also need an
+    -- extra delay here so that the last two PMID requests are not in
+    -- the same second as the first two citation requests.
     -- (Still need to figure out what the PMID limit per request is.)
+    delay
     C.putTxtLnMIO $ "There are " <> C.tshow (length pmids) <> " PMIDs:"
     (ms,cs) <- fmap unzip . delayMapM (downloadCitations wreq)
                           . C.chunksOf 100 $ pmids
@@ -284,5 +293,5 @@ getToCs (T.JSet n issues sel) = do
     --              but the ToC and PMIDs can be found by direct searches.
     handleMissingCitations . concat $ ms
     rcs <- mapM (A.resolveIssueWith issues) . mconcat $ cs
-    let xsFinal = map (J.updateContent rcs selIDs) xs
-    pure ( rcs, T.JSet n xsFinal (map T.ByPMID selIDs) )
+    let xsFinal = map (J.updateContent selIDs) xs
+    pure ( rcs, T.JSet n xsFinal selIDs )

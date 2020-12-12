@@ -4,7 +4,6 @@ module Model.Journals
     ( -- Working with citations and selections
       isPMID
     , pmidsInSelection
-    , splitOnPMID
     , updateContent
       -- Working with journal sets
     , pack
@@ -27,7 +26,6 @@ module Model.Journals
     , nextMonthly
     ) where
 
-import qualified Data.Map.Strict      as Map
 import qualified Model.Core.Core      as C
 import qualified Model.Core.Dates     as D
 import qualified Model.Core.Types     as T
@@ -41,27 +39,21 @@ import           Data.Text                   ( Text         )
 -- Working with citations and selections
 
 isPMID :: T.Selection -> Bool
-isPMID (T.ByPMID _) = True
-isPMID _            = False
+isPMID (T.ByBndPMID _ _) = True
+isPMID (T.ByPMID      _) = True
+isPMID _                 = False
 
 pmidsInSelection :: [T.Selection] -> [T.PMID]
 pmidsInSelection = mapMaybe go
-    where go (T.ByPMID x) = Just x
-          go _            = Nothing
+    where go (T.ByBndPMID _ x) = Just x
+          go (T.ByPMID      x) = Just x
+          go _                 = Nothing
 
-splitOnPMID :: [T.Selection] -> ([T.PMID], [T.Selection])
-splitOnPMID xs = ( pmidsInSelection xs, filter (not . isPMID) xs )
-
-updateContent :: T.Citations -> [T.PMID] -> T.ToC -> T.ToC
--- ^Update an issue's content with additional PMIDs if they are in
--- that issue but not already in its contents. This function is a
--- helper for when ToCs cannot be found at PubMed via a search on the
--- entire issue, but can be found on a citation-by-citation basis.
-updateContent cs pmids x = x { T.contents = foldl' go (T.contents x) pmids }
-    where go  ps p   = maybe ps (chk ps p) $ T.issue <$> Map.lookup p cs
-          chk ps p i | i /= T.issue x = ps
-                     | elem p ps      = ps
-                     | otherwise      = p:ps
+updateContent :: [T.Selection] -> T.ToC -> T.ToC
+updateContent sel x = x { T.contents = foldl' go (T.contents x) sel }
+    where go ps (T.ByBndPMID i p) | i == T.issue x && (not . elem p ) ps = p:ps
+                                  | otherwise                            = ps
+          go ps _                 = ps
 
 -- =============================================================== --
 -- Working with journal sets

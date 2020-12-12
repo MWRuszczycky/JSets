@@ -345,31 +345,40 @@ type PMID = Text
 -- identifying text (article title, page number, etc.). This last
 -- specification will need to be refined later.
 data Selection =
-      ByPMID    PMID
-    | ByDOI     Text
-    | ByLink    Text
-    | FromIssue Issue Text
+      ByBndPMID Issue PMID -- PubMed ID that should be bound to an issue
+    | ByPMID          PMID -- PubMed ID that is not associated issue
+    | ByBndDOI  Issue Text -- DOI that should be bound to an issue
+    | ByDOI           Text -- DOI that is not associated issue
+    | ByLink          Text       -- A free html link
+    | FromIssue Issue Text -- Text identifier associated with an known issue
       deriving (Eq, Show)
 
 instance MayMix Selection where
+    mix (ByBndPMID x1 x2) (ByBndPMID y1 y2)
+        | x1 == y1 && x2 == y2 = Just $ ByBndPMID x1 x2
+        | otherwise            = Nothing
     mix (ByPMID x) (ByPMID y)
-        | x == y    = Just $ ByPMID x
-        | otherwise = Nothing
+        | x == y               = Just $ ByPMID x
+        | otherwise            = Nothing
+    mix (ByBndDOI x1 x2) (ByBndDOI y1 y2)
+        | x1 == y1 && x2 == y2 = Just $ ByBndDOI x1 x2
+        | otherwise            = Nothing
     mix (ByDOI x) (ByDOI y)
-        | x == y    = Just $ ByDOI x
-        | otherwise = Nothing
+        | x == y               = Just $ ByDOI x
+        | otherwise            = Nothing
     mix (ByLink x) (ByLink y)
-        | x == y    = Just $ ByLink x
-        | otherwise = Nothing
--- This will work, but it's ugly and will need to be redone.
+        | x == y               = Just $ ByLink x
+        | otherwise            = Nothing
     mix (FromIssue x1 x2) (FromIssue y1 y2)
         | x1 == y1 && x2 == y2 = Just $ FromIssue x1 x2
         | otherwise            = Nothing
     mix _ _ = Nothing
 
 instance CanQuery Selection where
-      query (ByPMID p     ) = [PMIDQry p]
-      query (ByDOI  d     ) = [DOIQry  d]
+      query (ByBndPMID _ p) = [PMIDQry p]
+      query (ByPMID      p) = [PMIDQry p]
+      query (ByBndDOI  _ d) = [DOIQry  d]
+      query (ByDOI       d) = [DOIQry  d]
       query (ByLink l     ) = [WildQry l]
       query (FromIssue i t) = WildQry t : query i
 

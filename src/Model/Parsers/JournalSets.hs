@@ -87,9 +87,11 @@ validateIssue refs ( (j,v,n), xs ) = do
 
 readSelection :: Maybe T.Issue -> Selection' -> Either T.ErrString T.Selection
 readSelection (Just iss) ("add", x) = pure $ T.FromIssue iss x
-readSelection _          ("",    x) = pure $ T.ByPMID x
-readSelection _          ("doi", x) = pure $ T.ByDOI  x
-readSelection _          ("link",x) = pure $ T.ByLink x
+readSelection (Just iss) ("",    x) = pure $ T.ByBndPMID iss x
+readSelection (Just iss) ("doi", x) = pure $ T.ByBndDOI  iss x
+readSelection _          ("link",x) = pure $ T.ByLink        x
+readSelection _          ("",    x) = pure $ T.ByPMID        x
+readSelection _          ("doi", x) = pure $ T.ByDOI         x
 readSelection _          (y,     x) = Left err
     where err = unwords [ "Unable to read selection.\nInvalid selector key '"
                         , Tx.unpack y, "' with value '" <> Tx.unpack x <> "'."
