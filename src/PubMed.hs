@@ -9,12 +9,18 @@ module PubMed
     , eSearchTerm
     , eSearchQuery
     , eSummaryQuery
-      -- PubMed web interface
+      -- PubMed web interface: helper functions
     , getWreqSession
+    , delayMapM
     , handleMissingCitations
+      -- PubMed web interface: eSearch & PMID requests
     , eSearch
+    , getPMIDs
+      -- PubMed web interface: eSummary & citation requests
     , eSummary
     , getCitations
+      -- PubMed web interface: tables of contents
+    , getContent
     , getToCs
     ) where
 
@@ -108,6 +114,15 @@ eSummaryQuery pmids = let idstr = Tx.intercalate "," pmids
 ---------------------------------------------------------------------
 -- Helper functions for making PubMed requests
 
+-- Exported
+
+getWreqSession :: T.AppMonad C.WebRequest
+-- ^Create a new Wreq session that can be used between requests to
+-- PubMed to make them more efficient.
+getWreqSession = C.webRequestIn <$> liftIO newSession
+
+-- Unexported
+
 delayMapM :: (a -> T.AppMonad b) -> [a] -> T.AppMonad [b]
 -- ^PubMed only allows 3 requests per second or you risk getting your
 -- IP address bloced. This function is the same as mapM with the
@@ -130,11 +145,6 @@ delay = do d <- asks $ (* 10^12) . T.cDelay
            liftIO . D.wait $ d
            C.putTxtMIO "\ESC[2K\ESC[0G"
 
-getWreqSession :: T.AppMonad C.WebRequest
--- ^Create a new Wreq session that can be used between requests to
--- PubMed to make them more efficient.
-getWreqSession = C.webRequestIn <$> liftIO newSession
-
 ---------------------------------------------------------------------
 -- Handler functions for missing PMIDs and citations
 
@@ -143,17 +153,6 @@ handleMissingCitations :: [T.PMID] -> T.AppMonad ()
 -- a citation at PubMed
 handleMissingCitations [] = C.putTxtLnMIO "No missing citations."
 handleMissingCitations _  = C.putTxtLnMIO "There were missing citations!"
-
-handleMissingContent :: T.Issue -> T.AppMonad T.Content
--- ^Handler for the event that the content of a given journal issue
--- cannot be found at PMID. This allows the user to enter an alternate
--- url to the table of contents at the publisher's website.
-handleMissingContent iss = do
-    C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue iss
-    C.putTxtLnMIO $ "  Enter an alternate URL or just press enter to continue:"
-    C.putTxtMIO   $ "    https://"
-    url <- Tx.strip . Tx.pack <$> liftIO getLine
-    pure $ T.Content iss url []
 
 ---------------------------------------------------------------------
 -- Downloading PMIDs via ESearch requests
@@ -166,25 +165,12 @@ eSearch wreq x = do
     query <- eSearchQuery x
     liftIO . runExceptT . wreq query $ eSearchUrl
 
--- getPMIDs :: C.WebRequest -> T.AppMonad [T.PMID]
--- Needs to be written.
-
-getContent :: C.WebRequest -> T.Issue -> T.AppMonad T.Content
--- ^Get the citations asssociated with a given journal issue and
--- return the corresponding Content.
-getContent wreq iss = do
-    start <- liftIO D.readClock
-    C.putTxtMIO $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
-    result <- eSearch wreq iss
-    delta  <- liftIO . D.deltaClock $ start
-    let timeMsg = "(" <> Vc.showPicoSec delta <> ")"
+getPMIDs :: T.CanQuery a => C.WebRequest -> a -> T.AppMonad [T.PMID]
+getPMIDs wreq x = do
+    result <- eSearch wreq x
     case result >>= P.parsePMIDs of
-         Left  _     -> do C.putTxtLnMIO $ "Failed " <> timeMsg
-                           pure ( T.Content iss Tx.empty [] )
-         Right []    -> do C.putTxtLnMIO $ "No PMIDs " <> timeMsg
-                           handleMissingContent iss
-         Right pmids -> do C.putTxtLnMIO $ "OK " <> timeMsg
-                           pure $ T.Content iss Tx.empty pmids
+         Left _   -> C.putTxtLnMIO "Failed!" *> pure []
+         Right ps -> pure ps
 
 ---------------------------------------------------------------------
 -- Downloading Citations via ESummary requests
@@ -226,6 +212,34 @@ downloadCitations wreq pmids = do
 
 ---------------------------------------------------------------------
 -- Downloading issue content
+
+getContent :: C.WebRequest -> T.Issue -> T.AppMonad T.Content
+-- ^Get the citations asssociated with a given journal issue and
+-- return the corresponding Content.
+getContent wreq iss = do
+    start <- liftIO D.readClock
+    C.putTxtMIO $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
+    result <- eSearch wreq iss
+    delta  <- liftIO . D.deltaClock $ start
+    let timeMsg = "(" <> Vc.showPicoSec delta <> ")"
+    case result >>= P.parsePMIDs of
+         Left  _     -> do C.putTxtLnMIO $ "Failed " <> timeMsg
+                           pure ( T.Content iss Tx.empty [] )
+         Right []    -> do C.putTxtLnMIO $ "No PMIDs " <> timeMsg
+                           handleMissingContent iss
+         Right pmids -> do C.putTxtLnMIO $ "OK " <> timeMsg
+                           pure $ T.Content iss Tx.empty pmids
+
+handleMissingContent :: T.Issue -> T.AppMonad T.Content
+-- ^Handler for the event that the content of a given journal issue
+-- cannot be found at PMID. This allows the user to enter an alternate
+-- url to the table of contents at the publisher's website.
+handleMissingContent iss = do
+    C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue iss
+    C.putTxtLnMIO $ "  Enter an alternate URL or just press enter to continue:"
+    C.putTxtMIO   $ "    https://"
+    url <- Tx.strip . Tx.pack <$> liftIO getLine
+    pure $ T.Content iss url []
 
 getToCs :: [T.Issue] -> T.AppMonad (T.Citations, [T.Content])
 -- ^Request tables of contents for a batch of issues. This essentially
