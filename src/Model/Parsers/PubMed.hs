@@ -26,26 +26,25 @@ parsePMIDs json = JS.parse json >>= maybe err pure . go
 -- =============================================================== --
 -- Parsing PubMed Entrez ESummary results
 
-parseCitations :: Maybe T.Issue -> [T.PMID] -> Text
-                  -> Either T.ErrString ([T.PMID], T.Citations)
--- ^Parse esummary json from PubMed to construct citations. If any
+parseCitations :: [T.PMID] -> Text -> Either T.ErrString ([T.PMID], T.Citations)
+-- ^Parse eSummary json from PubMed to construct citations. If any
 -- pmids are indexed in the json but do not have corresponding
--- document summaries, these pmids are also returned; however, this
--- should never happen unless PubMed is not working correctly.
-parseCitations mbIssue pmids txt = do
+-- document summaries, these pmids are also returned. These represent
+-- requested PMIDs that were not found (e.g., if incorrect).
+parseCitations pmids txt = do
     json  <- JS.parse txt
-    let (cs, missing) = C.splitMaybe . map (getCitation mbIssue json) $ pmids
+    let (cs, missing) = C.splitMaybe . map (getCitation json) $ pmids
     pure (missing, Map.fromList cs)
 
 ---------------------------------------------------------------------
 -- Components
 
-getCitation :: Maybe T.Issue -> JS.JSON -> T.PMID -> (T.PMID, Maybe T.Citation)
-getCitation mbIssue json pmid = (pmid, c)
+getCitation :: JS.JSON -> T.PMID -> (T.PMID, Maybe T.Citation)
+getCitation json pmid = (pmid, c)
     where c = do doc <- JS.lookupWith [ "result", pmid ] pure json
                  T.Citation <$> JS.lookupWith [ "title" ] JS.str doc
                             <*> getAuthors doc
-                            <*> ( mbIssue <|> getIssue doc )
+                            <*> getIssue   doc
                             <*> getPages   doc
                             <*> getDoi     doc
                             <*> pure       pmid

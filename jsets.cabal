@@ -34,7 +34,6 @@ library jsets-internal
                       , Model.Core.Dates
                       , Model.Journals
                       , Model.Matching
-                      , Model.PubMed
                       , Model.Parsers.Config
                       , Model.Parsers.Core
                       , Model.Parsers.CSV
@@ -42,6 +41,7 @@ library jsets-internal
                       , Model.Parsers.JournalSets
                       , Model.Parsers.PubMed
                       , Model.Parsers.Rankings
+                      , PubMed
                       , View.Core
                       , View.Help
                       , View.Html

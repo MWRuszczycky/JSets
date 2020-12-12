@@ -16,7 +16,7 @@ import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
 import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.Rankings    as P
-import qualified Model.PubMed              as PM
+import qualified PubMed                    as PM
 import qualified View.View                 as V
 import qualified View.Help                 as H
 import           Data.Text                          ( Text           )
@@ -109,9 +109,9 @@ pmidHelp = (s, H.pmidHelp)
 pmidCmd :: [String] -> T.AppMonad ()
 pmidCmd [] = throwError "One or more PMIDs must be provided!"
 pmidCmd xs = do
-    fromPubMed <- A.downloadCitations . map Tx.pack $ xs
-    citations  <- mapM A.resolveIssue . Map.elems $ fromPubMed
-    C.putStrLnMIO "\n"
+    wreq <- PM.getWreqSession
+    cs   <- PM.getCitations wreq . map Tx.pack $ xs
+    citations <- mapM A.resolveIssue . Map.elems $ cs
     V.runView ( V.viewCitations citations ) >>= display
 
 ---------------------------------------------------------------------
@@ -126,7 +126,8 @@ ranksCmd [] = throwError "Path(s) to journal set selection files required!"
 ranksCmd fps = do
     jsets     <- J.combineJSets <$> mapM A.readJSets fps
     jset      <- asks T.cJSetKey >>= A.getJSet jsets
-    citations <- A.downloadCitations . J.pmidsInSelection . T.selection $ jset
+    wreq      <- PM.getWreqSession
+    citations <- PM.getCitations wreq . J.pmidsInSelection . T.selection $ jset
     C.putStrLnMIO "\nDone"
     V.runView ( V.viewRanks citations jset ) >>= display
 
@@ -166,7 +167,7 @@ tocCmd []  = throwError "Path(s) to journal sets files are required!"
 tocCmd fps = do
     jsets   <- J.combineJSets <$> mapM A.readJSets fps
     jset    <- asks T.cJSetKey >>= A.getJSet jsets
-    (cs,xs) <- A.downloadToCs (T.issues jset)
+    (cs,xs) <- PM.getToCs (T.issues jset)
     V.runView ( V.viewToCs cs $ jset { T.issues = xs } ) >>= display
 
 ---------------------------------------------------------------------

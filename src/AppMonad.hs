@@ -11,34 +11,21 @@ module AppMonad
     , references
     , getIssue
     , resolveIssue
-      -- Internet requests
-    , downloadCitations
-    , downloadContent
-    , downloadToCs
       -- Running rank matchings
     , runMatch
     ) where
 
-import qualified Data.Map.Strict           as Map
 import qualified Data.Text                 as Tx
 import qualified Model.Core.CoreIO         as C
-import qualified Model.Core.Dates          as D
 import qualified Model.Core.Types          as T
 import qualified Model.Journals            as J
 import qualified Model.Matching            as Mt
 import qualified Model.Parsers.JournalSets as P
-import qualified Model.Parsers.PubMed      as P
-import qualified Model.PubMed              as PM
-import qualified View.Core                 as Vc
-import qualified View.View                 as V
-import           Data.List                          ( find           )
-import           Data.Text                          ( Text           )
-import           Network.Wreq.Session               ( newSession     )
-import           Control.Monad.Reader               ( asks           )
-import           Control.Monad.Except               ( liftIO
-                                                    , runExceptT
-                                                    , lift
-                                                    , throwError     )
+import           Data.List                          ( find       )
+import           Data.Text                          ( Text       )
+import           Control.Monad.Reader               ( asks       )
+import           Control.Monad.Except               ( lift
+                                                    , throwError )
 
 -- =============================================================== --
 -- Data structure construction & acquisition
@@ -118,110 +105,3 @@ resolveIssue x = references >>= pure . maybe x id . go
 
 runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
 runMatch ranklists (title, indices) = pure $ Mt.match title indices ranklists
-
--- =============================================================== --
--- PubMed Pipeline
-
----------------------------------------------------------------------
--- Core pipeline functions
-
-downloadPMIDs :: C.WebRequest -> T.Issue -> T.AppMonad [T.PMID]
-downloadPMIDs wreq iss = do
-    query <- PM.eSearchQuery iss
-    C.putTxtMIO $ "Downloading " <> V.showIssue iss <> " PMIDs..."
-    result <- liftIO . runExceptT . wreq query $ PM.eSearchUrl
-    case result >>= P.parsePMIDs of
-         Left err    -> C.putStrMIO err                    *> pure []
-         Right []    -> C.putStrMIO "None found at PubMed" *> pure []
-         Right pmids -> C.putStrMIO "OK "                  *> pure pmids
-
-downloadCitations :: [T.PMID] -> T.AppMonad T.Citations
--- ^Download citations based on their PubMed IDs.
-downloadCitations pmids = downloadCitations' C.webRequest Nothing pmids
-
-downloadCitations' :: C.WebRequest -> Maybe T.Issue -> [T.PMID]
-                     -> T.AppMonad T.Citations
--- ^Download citations bosed on their PubMed IDs using a given web
--- request sesion. If all the PMIDs are known to be associated with
--- a specific issue, this can be provided and will be used to assign
--- the issue rather than trying to parse it from the downloaded JSON.
--- This is useful, because Issues computed from the configuration
--- have more information (e.g., the Journal publication frequency)
--- that is not available from PubMed.
-downloadCitations' _    _     []    = pure Map.empty
-downloadCitations' wreq mbIss pmids = do
-    C.putTxtMIO "Downloading Citations..."
-    let query = PM.eSummaryQuery pmids
-    result <- liftIO . runExceptT . wreq query $ PM.eSummaryUrl
-    case result >>= P.parseCitations (T.issue <$> mbIss) pmids of
-         Left  err     -> C.putStrMIO err  *> pure Map.empty
-         Right ([],cs) -> C.putStrMIO "OK" *> pure cs
-         Right (ms,cs) -> let msg = Tx.unwords $ "Missing PMIDS:" : ms
-                          in  C.putTxtMIO msg *> pure cs
-
----------------------------------------------------------------------
--- Downloading issue content
-
-downloadContent :: C.WebRequest -> T.Issue -> T.AppMonad (T.Citations, T.Content)
-downloadContent wreq iss = do
-    start <- liftIO D.readClock
-    pmids <- downloadPMIDs wreq iss
-    cites <- downloadCitations' wreq (Just iss) pmids
-    delta <- liftIO . D.deltaClock $ start
-    C.putTxtLnMIO $ " (" <> Vc.showPicoSec delta <> ")"
-    -- Delay by at least one second or risk being cutoff by PubMed.
-    delay <- asks T.cDelay
-    liftIO . D.wait $ delay * 10^12
-    if null pmids
-       then handleMissingPMIDs iss
-       else pure $ (cites, T.Content iss Tx.empty pmids)
-
-downloadToCs :: [T.Issue] -> T.AppMonad (T.Citations, [T.Content])
--- ^PubMed has a limit on the length of a request. Too many PMIDs
--- requested will generate a 414 error. So, it is best to request the
--- citations for each issue separately then combine them rather than
--- collecting all the PMIDs for all issues into a single request.
-downloadToCs xs = do
-    wreq          <- C.webRequestIn <$> liftIO newSession
-    (cites,conts) <- unzip <$> mapM (downloadContent wreq) xs
-    C.putTxtLnMIO "Done"
-    pure (mconcat cites, conts)
-
-handleMissingPMIDs :: T.Issue -> T.AppMonad (T.Citations, T.Content)
-handleMissingPMIDs iss = do
-    C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue iss
-    C.putTxtLnMIO $ "  Enter an alternate URL or just press enter to continue:"
-    C.putTxtMIO   $ "    https://"
-    url <- Tx.strip . Tx.pack <$> liftIO getLine
-    pure $ (Map.empty, T.Content iss url [])
-
--- =============================================================== --
--- Refactor
-
-eSearch :: T.CanQuery a => Maybe C.WebRequest -> a
-           -> T.AppMonad (Either T.ErrString Text)
--- ^Submit an ESearch request to PubMed for the given queriable
--- value. The ESearch response is returned as json.
-eSearch mbWreq x = do
-    wreq  <- maybe getWreqSession pure mbWreq
-    query <- PM.eSearchQuery x
-    liftIO . runExceptT . wreq query $ PM.eSearchUrl
-
-requestPMIDs :: T.CanQuery a => Maybe C.WebRequest -> a
-                -> T.AppMonad (Either T.ErrString [T.PMID])
--- ^Submit an ESearch request to PubMed for the given queriable value
--- and attempt to parse the resulting json to a list of PMIDs.
-requestPMIDs mbWreq x = (>>= P.parsePMIDs) <$> eSearch mbWreq x
-
----------------------------------------------------------------------
-
-eSummary :: Maybe C.WebRequest -> [T.PMID]
-            -> T.AppMonad (Either T.ErrString Text)
--- ^Submit an ESummary requst to PubMed for the given list of PMIDs.
--- The ESummary response is return as json.
-eSummary mbWreq pmids = do
-    wreq <- maybe getWreqSession pure mbWreq
-    liftIO . runExceptT . wreq (PM.eSummaryQuery pmids) $ PM.eSummaryUrl
-
-getWreqSession :: T.AppMonad C.WebRequest
-getWreqSession = C.webRequestIn <$> liftIO newSession
