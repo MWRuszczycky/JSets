@@ -174,6 +174,20 @@ getPMIDs wreq x = do
          Left _   -> C.putTxtLnMIO "Failed!" *> pure []
          Right ps -> pure ps
 
+getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.PMID]
+getSelection _    (T.ByPMID p) = pure [p]
+getSelection _    (T.ByLink l) = throwError $ "Unresolved link: " <> Tx.unpack l
+getSelection wreq x            = getPMIDs wreq x
+
+getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.PMID]
+getOneSelection wreq x = do
+    let noneMsg = "No PMID found for " <> show x
+        manyMsg = "Multiple PMIDs found for " <> show x <> ", skipping."
+    getSelection wreq x >>= \case
+        []   -> C.putStrLnMIO noneMsg *> pure []
+        x:[] -> pure [x]
+        _    -> C.putStrLnMIO manyMsg *> pure []
+
 ---------------------------------------------------------------------
 -- Downloading Citations via ESummary requests
 
@@ -250,7 +264,7 @@ getToCs (T.JSet n issues sel) = do
     -- of these may require an eSearch query be requested.
     C.putTxtLnMIO "Resolving selection.."
     let (wID, woID) = J.splitOnPMID sel
-    selIDs <- nub . (<> wID) . concat <$> delayMapM (getSelection' wreq) woID
+    selIDs <- nub . (<> wID) . concat <$> delayMapM (getOneSelection wreq) woID
     -- Get all the PMIDs associated with each issues' table contents.
     C.putTxtLnMIO "Requesting PMIDs per issue (eSearch).."
     xs <- delayMapM (getContent wreq) issues
@@ -272,15 +286,3 @@ getToCs (T.JSet n issues sel) = do
     rcs <- mapM (A.resolveIssueWith issues) . mconcat $ cs
     let xsFinal = map (J.updateContent rcs selIDs) xs
     pure ( rcs, T.JSet n xsFinal (map T.ByPMID selIDs) )
-
-getSelection' :: C.WebRequest -> T.Selection -> T.AppMonad [T.PMID]
-getSelection' _ (T.ByPMID p) = pure [p]
-getSelection' _ (T.ByLink l) =
-    throwError $ "Unresolved link: " <> Tx.unpack l
-getSelection' wreq x = do
-    let noneMsg = "No PMID found for " <> show x
-        manyMsg = "Multiple PMIDs found for " <> show x <> ", skipping."
-    getPMIDs wreq x >>= \case
-        []   -> C.putStrLnMIO noneMsg *> pure []
-        x:[] -> pure [x]
-        _    -> C.putStrLnMIO manyMsg *> pure []
