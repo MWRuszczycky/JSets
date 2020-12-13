@@ -22,6 +22,8 @@ import           Data.List                    ( intercalate            )
 import           Data.Text                    ( pack                   )
 import           System.Directory             ( getHomeDirectory
                                               , doesFileExist          )
+import           System.IO                    ( stdout
+                                              , hIsTerminalDevice      )
 import           System.Environment           ( getArgs                )
 import           Text.Read                    ( readMaybe              )
 
@@ -45,9 +47,13 @@ initConfig = do
     path   <- ( <> "/.config/jsets/config" ) <$> liftIO getHomeDirectory
     exists <- liftIO . doesFileExist $ path
     today  <- liftIO Cd.today
+    isTerm <- liftIO . hIsTerminalDevice $ stdout
     if exists
-       then pure $ T.defaultConfig { T.cRefPath = Just path, T.cDate = today }
-       else pure $ T.defaultConfig { T.cDate = today }
+       then pure $ T.defaultConfig { T.cRefPath      = Just path
+                                   , T.cDate         = today
+                                   , T.cStdOutIsTerm = isTerm }
+       else pure $ T.defaultConfig { T.cDate         = today
+                                   , T.cStdOutIsTerm = isTerm }
 
 configFromCommandLine :: T.Config -> T.ErrMonad ([String], T.Config)
 configFromCommandLine config = do
@@ -114,13 +120,17 @@ options =
       ( Opt.NoArg ( \ s -> pure $ s { T.cShowVer = True } ) )
       "Just show the version number and quit."
 
+    , Opt.Option "" [ "match-details" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cMatchDetails = True } ) )
+      "Provide detailed match output."
+
     , Opt.Option "" [ "no-sort" ]
       ( Opt.NoArg ( \ s -> pure $ s { T.cSortJSets = False } ) )
       "Do not sort journal set issues."
 
-    , Opt.Option "" [ "match-details" ]
-      ( Opt.NoArg ( \ s -> pure $ s { T.cMatchDetails = True } ) )
-      "Provide detailed match output."
+    , Opt.Option "t" [ "terse" ]
+      ( Opt.NoArg ( \ s -> pure $ s { T.cTerse = True } ) )
+      "Do not display messages & accept all defaults."
     ]
 
 configKey :: String -> T.Config -> T.ErrMonad T.Config

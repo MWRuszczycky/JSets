@@ -30,7 +30,6 @@ import qualified Data.Text            as Tx
 import qualified Data.Map.Strict      as Map
 import qualified Model.Core.Core      as C
 import qualified Model.Core.CoreIO    as C
-import qualified Model.Core.Dates     as D
 import qualified Model.Core.Types     as T
 import qualified Model.Journals       as J
 import qualified Model.Parsers.PubMed as P
@@ -41,8 +40,8 @@ import           Data.Text                    ( Text         )
 import           Data.List                    ( nub          )
 import           Lens.Micro                   ( (.~), (&)    )
 import           Network.Wreq.Session         ( newSession   )
-import           Control.Monad.Reader         ( asks, when   )
-import           Control.Monad.Except         ( liftIO, lift
+import           Control.Monad.Reader         ( when         )
+import           Control.Monad.Except         ( liftIO
                                               , throwError
                                               , runExceptT   )
 
@@ -128,17 +127,9 @@ delayMapM _ [] = pure []
 delayMapM f xs = do
     let (ys, rest) = splitAt 2 xs
     us <- mapM f ys
-    when (not . null $ rest) delay
+    when (not . null $ rest) A.delay
     vs <- delayMapM f rest
     pure $ us <> vs
-
-delay :: T.AppMonad ()
--- ^Cause a delay of at least 1 second in a sequenced AppMonad action.
--- The delay is specified by the cDelay configuration value.
-delay = do d <- asks $ (* 10^12) . T.cDelay
-           C.putTxtMIO $ "Delay " <> Vc.showPicoSec d <> " between requests.."
-           liftIO . D.wait $ d
-           C.putTxtMIO "\ESC[2K\ESC[0G"
 
 ---------------------------------------------------------------------
 -- Handler functions for missing PMIDs and citations
@@ -146,8 +137,11 @@ delay = do d <- asks $ (* 10^12) . T.cDelay
 handleMissingCitations :: [T.PMID] -> T.AppMonad ()
 -- ^Handler for missing PMIDs in ESummary requests that do not return
 -- a citation from PubMed.
-handleMissingCitations [] = C.putTxtLnMIO "No missing citations."
-handleMissingCitations _  = C.putTxtLnMIO "There were missing citations!"
+handleMissingCitations [] = A.logMessage "No missing citations.\n"
+handleMissingCitations ms =
+    A.logError "There were missing citations!"
+               "The following PMIDs were requested but not found:"
+               $ Tx.unlines ms
 
 ---------------------------------------------------------------------
 -- Downloading PMIDs via ESearch requests
@@ -166,8 +160,11 @@ getPMIDs :: T.CanQuery a => C.WebRequest -> a -> T.AppMonad [T.PMID]
 getPMIDs wreq x = do
     result <- eSearch wreq x
     case result >>= P.parsePMIDs of
-         Left _   -> C.putTxtLnMIO "Failed!" *> pure []
-         Right ps -> pure ps
+         Right ps  -> pure ps
+         Left  err -> let msg = "Failed!"
+                          hdr = "Unable to download or parse eSearch JSON:"
+                      in  (A.logError msg hdr . Tx.pack) err
+                          *> pure []
 
 getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
 -- ^Convert selections to PMIDs. If not already provided as PMID, the
@@ -181,12 +178,15 @@ getSelection wreq x                  = map T.ByPMID        <$> getPMIDs wreq x
 getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
 -- ^Same as getSelection, but allow no more than one PMID.
 getOneSelection wreq x = do
-    let noneMsg = "No PMID found for " <> show x
-        manyMsg = "Multiple PMIDs found for " <> show x <> ", skipping."
+    let noneMsg = "No PMID found for " <> C.tshow x <> ", skipping..\n"
     getSelection wreq x >>= \case
-        []   -> C.putStrLnMIO noneMsg *> pure []
-        x:[] -> pure [x]
-        _    -> C.putStrLnMIO manyMsg *> pure []
+        []   -> A.logMessage noneMsg *> pure []
+        p:[] -> pure [p]
+        ps   -> let manyHdr = "Multiple PMIDs found for " <> C.tshow x
+                    manyMsg = manyHdr <> ", skipping.."
+                    manyErr = Tx.unlines . J.pmidsInSelection $ ps
+                in  A.logError manyMsg manyHdr manyErr
+                    *> pure []
 
 ---------------------------------------------------------------------
 -- Downloading Citations via ESummary requests
@@ -216,15 +216,16 @@ downloadCitations _    []    = pure ([], Map.empty)
 downloadCitations wreq pmids = do
     let (ns,ps) = unzip pmids
         (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
-    C.putTxtMIO $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
+    A.logMessage $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
     (t, result) <- C.timeIt $ eSummary wreq ps
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parseCitations ps of
-         Left  err     -> do C.putTxtLnMIO $ "Failed " <> timeMsg
-                             lift . C.writeFileErr "jsets-error.log" . Tx.pack $ err
+         Right (ms,cs) -> do A.logMessage $ "OK " <> timeMsg <> "\n"
+                             pure ( ms, cs )
+         Left  err     -> do A.logError ( "Failed " <> timeMsg )
+                                        "Failed to download or parse eSummary"
+                                        ( Tx.pack err )
                              pure ( [], Map.empty )
-         Right (ms,cs) -> do C.putTxtLnMIO $ "OK " <> timeMsg
-                             pure ( ms, cs        )
 
 ---------------------------------------------------------------------
 -- Downloading issue content
@@ -233,25 +234,29 @@ getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
 -- ^Get the all citations asssociated with a given journal issue and
 -- return the corresponding ToC.
 getToC wreq iss = do
-    C.putTxtMIO $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
+    A.logMessage $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
     (t, result) <- C.timeIt $ eSearch wreq iss
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parsePMIDs of
-         Left  _     -> do C.putTxtLnMIO $ "Failed " <> timeMsg
-                           pure ( T.ToC iss Tx.empty [] )
-         Right []    -> do C.putTxtLnMIO $ "No PMIDs " <> timeMsg
+         Right []    -> do A.logMessage $ "No PMIDs " <> timeMsg <> "\n"
                            handleMissingContent iss
-         Right pmids -> do C.putTxtLnMIO $ "OK " <> timeMsg
+         Right pmids -> do A.logMessage $ "OK " <> timeMsg <> "\n"
                            pure $ T.ToC iss Tx.empty pmids
+         Left  err   -> do A.logError ( "Failed " <> timeMsg         )
+                                      ( "Failed to obtain PMIDs for"
+                                        <> V.showIssue iss           )
+                                      ( Tx.pack err                  )
+                           pure ( T.ToC iss Tx.empty [] )
 
 handleMissingContent :: T.Issue -> T.AppMonad T.ToC
 -- ^Handler for the event that the ToC of a given journal issue
 -- cannot be found at PMID. This allows the user to enter an alternate
 -- url to the ToC at the publisher's website if available.
 handleMissingContent iss = do
-    C.putTxtLnMIO $ "  No articles were found at PubMed for " <> V.showIssue iss
-    C.putTxtLnMIO $ "  Enter an alternate URL or just press enter to continue:"
-    C.putTxtMIO   $ "    https://"
+    let issName = V.showIssue iss
+    A.logMessage $ "  No articles were found at PubMed for " <> issName <> "\n"
+    A.logMessage $ "  Enter an alternate URL or just press enter to continue:\n"
+    A.logMessage $ "    https://"
     url <- Tx.strip . Tx.pack <$> liftIO getLine
     pure $ T.ToC iss url []
 
@@ -263,14 +268,14 @@ getToCs (T.JSet n issues sel) = do
     -- First, the PMIDs from the user selection. Some of these may
     -- require an eSearch query to PubMed. The PMIDs are wrapped as
     -- Selections in order to bind them to issues as necessary.
-    C.putTxtLnMIO "Resolving selection.."
+    A.logMessage "Resolving selection..\n"
     let (wID, woID) = C.splitOn J.isPMID sel
     selIDs <- nub . (<> wID) . concat <$> delayMapM (getOneSelection wreq) woID
     -- Get all the PMIDs associated with each issue's ToC. We need an
     -- extra delay here to ensure that the last two requests are not
     -- in the same second of time as the next two.
-    delay
-    C.putTxtLnMIO "Requesting PMIDs per issue (eSearch).."
+    A.delay
+    A.logMessage "Requesting PMIDs per issue (eSearch)..\n"
     tocs <- delayMapM (getToC wreq) issues
     let pmids = zip [1..] . C.addUnique (J.pmidsInSelection selIDs)
                           . concatMap T.contents $ tocs
@@ -279,8 +284,8 @@ getToCs (T.JSet n issues sel) = do
     -- too many eSummary PMIDs to be queried in a single request. So,
     -- we have to break up the requests into chunks.
     -- (Still need to figure out what the PMID limit per request is.)
-    delay
-    C.putTxtLnMIO $ "There are " <> C.tshow (length pmids) <> " PMIDs:"
+    A.delay
+    A.logMessage $ "There are " <> C.tshow (length pmids) <> " PMIDs:\n"
     (missing,cites) <- fmap unzip . delayMapM (downloadCitations wreq)
                                   . C.chunksOf 100 $ pmids
     -- Clean up: 1. Inform user of any missing citations.

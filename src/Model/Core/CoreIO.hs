@@ -8,6 +8,7 @@ module Model.Core.CoreIO
     , timeIt
     , writeFileErr
     , readFileErr
+    , logFileErr
     , WebRequest
     , webRequest
     , webRequestIn
@@ -78,6 +79,13 @@ readFileErr p = ExceptT $ catch ( pure <$> Tx.readFile p ) hndlErr
     where hndlErr :: IOException -> IO ( Either T.ErrString Text )
           hndlErr = pure . Left . (msg <>) . displayException
           msg     = "Unable to read file: " <> p <> ". Details:\n"
+
+logFileErr :: FilePath -> Text -> T.ErrMonad ()
+-- ^Appends text to log a file.
+logFileErr p t = ExceptT $ catch ( pure <$> Tx.appendFile p t ) hndlErr
+    where hndlErr :: IOException -> IO ( Either T.ErrString () )
+          hndlErr = pure . Left . (msg <>) . displayException
+          msg     = "Unable to append to file: " <> p <> ". Details:\n"
 
 -- =============================================================== --
 -- Internet IO management

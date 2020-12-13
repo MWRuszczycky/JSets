@@ -12,18 +12,26 @@ module AppMonad
     , getIssue
       -- Running rank matchings
     , runMatch
+      -- Interactions and timing
+    , delay
+      -- Logging messages and errors
+    , logMessage
+    , logError
     ) where
 
 import qualified Data.Text                 as Tx
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Core.Types          as T
+import qualified Model.Core.Dates          as D
 import qualified Model.Journals            as J
 import qualified Model.Matching            as Mt
 import qualified Model.Parsers.JournalSets as P
-import           Data.Text                          ( Text       )
-import           Control.Monad.Reader               ( asks       )
-import           Control.Monad.Except               ( lift
-                                                    , throwError )
+import qualified View.Core                 as Vc
+import           Data.Text                          ( Text         )
+import           Control.Monad                      ( when         )
+import           Control.Monad.Reader               ( asks         )
+import           Control.Monad.Except               ( lift, liftIO
+                                                    , throwError   )
 
 -- =============================================================== --
 -- Data structure construction & acquisition
@@ -90,3 +98,35 @@ getIssue abbr v n = references >>= maybe err pure . go
 
 runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
 runMatch ranklists (title, indices) = pure $ Mt.match title indices ranklists
+
+-- =============================================================== --
+-- Interactions and timing
+
+delay :: T.AppMonad ()
+-- ^Cause a delay of at least 1 second in a sequenced AppMonad action.
+-- The delay is specified by the cDelay configuration value.
+delay = do duration <- asks $ (* 10^12) . T.cDelay
+           isTerm   <- asks T.cStdOutIsTerm
+           when isTerm . logMessage $
+               "Delay " <> Vc.showPicoSec duration <> " between requests.."
+           liftIO . D.wait $ duration
+           when isTerm . logMessage $ "\ESC[2K\ESC[0G"
+
+-- =============================================================== --
+-- Logging messages and recoverable error information
+
+logMessage :: Text -> T.AppMonad ()
+logMessage msg = do
+    let msgNoEsc = Tx.map ( \ x -> if x == '\ESC' then 'E' else x ) msg
+    isTerse <- asks T.cTerse
+    isTerm  <- asks T.cStdOutIsTerm
+    case ( isTerse, isTerm ) of
+         ( True,    _      ) -> pure ()
+         ( _,       True   ) -> C.putTxtMIO msg
+         ( _,       _      ) -> C.putTxtMIO msgNoEsc
+
+logError :: Text -> Text -> Text -> T.AppMonad ()
+logError msg hdr err = do
+    logPath <- asks T.cErrorLog
+    lift . C.logFileErr logPath $ "Error: " <> hdr <> "\n" <> err <> "\n"
+    logMessage $ msg <> " (see " <> Tx.pack logPath <> ")\n"

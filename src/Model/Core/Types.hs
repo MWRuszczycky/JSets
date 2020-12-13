@@ -193,7 +193,7 @@ defaultConfig = Config {
     , cShowVer      = False
     , cMatchDetails = False
     , cTerse        = False
-    , cStdOutIsTerm = False
+    , cStdOutIsTerm = True
     }
 
 data Command = Command {
