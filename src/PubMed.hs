@@ -42,7 +42,6 @@ import           Lens.Micro                   ( (.~), (&)    )
 import           Network.Wreq.Session         ( newSession   )
 import           Control.Monad.Reader         ( when         )
 import           Control.Monad.Except         ( liftIO
-                                              , throwError
                                               , runExceptT   )
 
 -- =============================================================== --
@@ -169,11 +168,16 @@ getPMIDs wreq x = do
 getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
 -- ^Convert selections to PMIDs. If not already provided as PMID, the
 -- selection is used to query PubMed via an eSearch request.
-getSelection _    (T.ByBndPMID  i p) = pure [T.ByBndPMID i p]
-getSelection _    (T.ByPMID       p) = pure [T.ByPMID      p]
-getSelection _    (T.ByLink       l) = throwError $ "Unresolved: " <> Tx.unpack l
-getSelection wreq x@(T.ByBndDOI i _) = map (T.ByBndPMID i) <$> getPMIDs wreq x
-getSelection wreq x                  = map T.ByPMID        <$> getPMIDs wreq x
+getSelection _      (T.ByBndPMID i p) = pure [T.ByBndPMID i p]
+getSelection _      (T.ByPMID      p) = pure [T.ByPMID      p]
+getSelection wreq x@(T.ByBndDOI  i _) = map  (T.ByBndPMID i) <$> getPMIDs wreq x
+getSelection wreq x@(T.ByDOI       _) = map   T.ByPMID       <$> getPMIDs wreq x
+getSelection _      (T.ByWeb       x) = do
+    let msg = Tx.concat
+              [ "  Cannot resolve web locator: \ESC[33m" <> x <> "\ESC[0m\n"
+              , "    Enter PMID or blank to skip: " ]
+    A.request msg >>= \case ""   -> pure []
+                            pmid -> pure [T.ByPMID pmid]
 
 getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
 -- ^Same as getSelection, but allow no more than one PMID.
@@ -257,8 +261,7 @@ handleMissingContent iss = do
               [ "  \ESC[33mNo articles were found at PubMed for "
               , V.showIssue iss <> "\ESC[0m"
               , "\n  Enter an alternate URL or just press enter to ignore:\n"
-              , "    https://"
-              ]
+              , "    https://" ]
     url <- A.request msg
     pure $ T.ToC iss url []
 

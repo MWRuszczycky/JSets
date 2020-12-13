@@ -298,7 +298,12 @@ data Issue = Issue {
     , theVolNo   :: Int
     , theIssNo   :: Int
     , theJournal :: Journal
-    } deriving ( Show, Eq )
+    } deriving ( Eq )
+
+instance Show Issue where
+    show x = (Tx.unpack . abbr . theJournal) x
+             <> (show . theVolNo) x <> ":"
+             <> (show . theIssNo) x
 
 instance HasDate Issue where
     date = theDate
@@ -355,9 +360,15 @@ data Selection =
     | ByPMID          PMID -- PubMed ID that is not associated issue
     | ByBndDOI  Issue Text -- DOI that should be bound to an issue
     | ByDOI           Text -- DOI that is not associated issue
-    | ByLink          Text       -- A free html link
-    | FromIssue Issue Text -- Text identifier associated with an known issue
-      deriving (Eq, Show)
+    | ByWeb           Text -- Some text identifier to help locate the selection
+      deriving ( Eq )
+
+instance Show Selection where
+    show (ByBndPMID i x) = "pmid: " <> Tx.unpack x <> " bound to " <> show i
+    show (ByPMID      x) = "pmid: " <> Tx.unpack x <> " (unbound)"
+    show (ByBndDOI  i x) = "doi: "  <> Tx.unpack x <> " bound to " <> show i
+    show (ByDOI       x) = "doi: "  <> Tx.unpack x <> " (unbound)"
+    show (ByWeb       x) = "web: "  <> Tx.unpack x
 
 instance MayMix Selection where
     mix (ByBndPMID x1 x2) (ByBndPMID y1 y2)
@@ -372,11 +383,8 @@ instance MayMix Selection where
     mix (ByDOI x) (ByDOI y)
         | x == y               = Just $ ByDOI x
         | otherwise            = Nothing
-    mix (ByLink x) (ByLink y)
-        | x == y               = Just $ ByLink x
-        | otherwise            = Nothing
-    mix (FromIssue x1 x2) (FromIssue y1 y2)
-        | x1 == y1 && x2 == y2 = Just $ FromIssue x1 x2
+    mix (ByWeb x) (ByWeb y)
+        | x == y               = Just $ ByWeb x
         | otherwise            = Nothing
     mix _ _ = Nothing
 
@@ -385,8 +393,7 @@ instance CanQuery Selection where
       query (ByPMID      p) = [PMIDQry p]
       query (ByBndDOI  _ d) = [DOIQry  d]
       query (ByDOI       d) = [DOIQry  d]
-      query (ByLink l     ) = [WildQry l]
-      query (FromIssue i t) = WildQry t : query i
+      query (ByWeb       l) = [WildQry l]
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {
