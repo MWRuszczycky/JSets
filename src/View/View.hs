@@ -53,7 +53,6 @@ import           Data.Maybe               ( mapMaybe             )
 import           Data.Monoid              ( Endo (..), appEndo   )
 import           Data.Ord                 ( comparing            )
 import           Data.Text                ( Text                 )
-import           Data.Time                ( Day                  )
 import           View.Templates           ( fill                 )
 
 -- =============================================================== --
@@ -185,14 +184,10 @@ jsetMkd jset = do
 -- Viewing tables of contents
 
 viewToCs :: T.Citations -> T.JSet T.ToC -> T.ViewMonad ()
-viewToCs cs jset = do
-    name  <- asks T.cUser
-    email <- asks T.cEmail
-    date  <- asks T.cDate
-    getFormat >>= \case
-        T.HTML -> jsetContentHtml name email date cs jset
-        T.MKD  -> jsetContentMkd                  cs jset
-        _      -> jsetContentTxt                  cs jset
+viewToCs cs jset = getFormat >>= \case
+                       T.HTML -> jsetContentHtml cs jset
+                       T.MKD  -> jsetContentMkd  cs jset
+                       _      -> jsetContentTxt  cs jset
 
 ---------------------------------------------------------------------
 -- As Text
@@ -214,9 +209,11 @@ jsetContentMkd cs (T.JSet setNo xs _) = do
 ---------------------------------------------------------------------
 -- As HTML
 
-jsetContentHtml :: Maybe Text -> Maybe Text -> Day -> T.Citations
-                   -> T.JSet T.ToC -> T.ViewMonad ()
-jsetContentHtml name email date cs jset =
+jsetContentHtml :: T.Citations -> T.JSet T.ToC -> T.ViewMonad ()
+jsetContentHtml cs jset = do
+    name  <- asks T.cUser
+    email <- asks T.cEmail
+    date  <- asks T.cDate
     Vc.write . Html.tocsHtml name email date jset $ cs
 
 -- ==================================================================
