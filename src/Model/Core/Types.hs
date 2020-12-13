@@ -164,13 +164,16 @@ data Config = Config {
     , cRefPath      :: Maybe FilePath -- path to the references file
     , cJSetKey      :: Maybe Int      -- journal set key
     , cFormat       :: Maybe Format   -- explicit output format
+    , cErrorLog     :: FilePath       -- where to send detailed error info
+    , cDate         :: Day            -- date when application started
+    , cDelay        :: Integer        -- delay (sec) between PubMed requests
+    , cReferences   :: [Issue]        -- reference issues
     , cHelp         :: Bool           -- user requested help
     , cSortJSets    :: Bool           -- sort issues by Journal in output
     , cShowVer      :: Bool           -- show version number flag
     , cMatchDetails :: Bool           -- show detailed match output
-    , cDate         :: Day            -- date when application started
-    , cDelay        :: Integer        -- delay (sec) between PubMed requests
-    , cReferences   :: [Issue]        -- reference issues
+    , cTerse        :: Bool           -- do not produce messages
+    , cStdOutIsTerm :: Bool           -- stdout is the terminal
     } deriving ( Show )
 
 defaultConfig :: Config
@@ -181,13 +184,16 @@ defaultConfig = Config {
     , cRefPath      = Nothing
     , cJSetKey      = Nothing
     , cFormat       = Nothing
+    , cErrorLog     = "jsets-errors.log"
+    , cDate         = fromGregorian 2020 1 1
+    , cDelay        = 1
+    , cReferences   = []
     , cHelp         = False
     , cSortJSets    = True
     , cShowVer      = False
     , cMatchDetails = False
-    , cDate         = fromGregorian 2020 1 1
-    , cDelay        = 1
-    , cReferences   = []
+    , cTerse        = False
+    , cStdOutIsTerm = False
     }
 
 data Command = Command {
