@@ -87,7 +87,7 @@ function userCitationHTML(citeId, citeClass, index) {
 }
 
 // ------------------------------------------------------------------
-function userCitation(citeClass) {
+function newUserCitation(citeClass) {
 // Create a new html element for entering a user-citation. Handles
 // citations from missing configured issues and extra citations.
 
@@ -195,7 +195,7 @@ function readSelection() {
         }
 
         // Get articles not indexed at PubMed for the issue
-        let userCitations = readUserCitations(key + "-Add");
+        let userCitations = readUserCitations(key + "-add");
         count += userCitations.length;
         for (let j = 0; j < userCitations.length; j++) {
             selection += "    " + userCitations[j] + "\n";
@@ -203,7 +203,7 @@ function readSelection() {
     }
 
     // Get extra articles from non-configured issues
-    let extras = readUserCitations("user-citation");
+    let extras = readUserCitations("extra-citations-add");
 
     selection += "Extra-Citations\n";
     count     += extras.length;

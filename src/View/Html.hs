@@ -23,7 +23,7 @@ import           View.Templates           ( fill, fillNone )
 citationClass :: T.Citation -> Text
 -- ^Generate a class name for a citation. If the issue is an extra
 -- citation, then it gets the class name
---     extra-citation
+--     extra-citations
 -- Otherwise, it gets the class name of the issue.
 citationClass c
     | T.isExtra c = "extra-citations"
