@@ -15,7 +15,7 @@ import qualified Model.Parsers.Config  as P
 import qualified System.Console.GetOpt as Opt
 import qualified View.Help             as H
 import           Commands                     ( runCommands, commands  )
-import           Control.Monad                ( foldM                  )
+import           Control.Monad                ( foldM, when            )
 import           Control.Monad.Except         ( throwError             )
 import           Control.Monad.Reader         ( runReaderT, liftIO     )
 import           Data.List                    ( intercalate            )
@@ -48,6 +48,7 @@ initConfig = do
     exists <- liftIO . doesFileExist $ path
     today  <- liftIO Cd.today
     isTerm <- liftIO . hIsTerminalDevice $ stdout
+    when isTerm . liftIO . putStr $ "\ESC[0m"
     if exists
        then pure $ T.defaultConfig { T.cRefPath      = Just path
                                    , T.cDate         = today
