@@ -10,8 +10,11 @@ class JournalIssue {
         this.published = published;
     }
     header(){
-        var volNo   = this.volume + ":" + this.issue;
-        var pubdate = "(" + this.published + ")";
+        let volNo   = this.volume + ":" + this.issue;
+        let pubdate = "(" + this.published + ")";
+        if ( volNo.trim() == ":" ){
+            return this.name;
+        }
         return this.name + " " + volNo + " " + pubdate;
    }
 }

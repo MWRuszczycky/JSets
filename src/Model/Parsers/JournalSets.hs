@@ -77,7 +77,7 @@ validateJSet refs (n,xs) = do
 
 validateIssue :: T.References -> (Issue', [Selection'])
                  -> Either T.ErrString (Maybe T.Issue, [T.Selection])
-validateIssue _ ( ("Extra-Citations",_,_) , xs ) =
+validateIssue _ ( ("Extra Articles",_,_) , xs ) =
     (,) Nothing <$> mapM (readSelection Nothing) xs
 validateIssue refs ( (j,v,n), xs ) = do
     let iss = J.lookupIssue refs j (v,n)
@@ -145,7 +145,7 @@ specificIssue = do
     pure (journal, volNo, issNo)
 
 extraCitations :: At.Parser Issue'
-extraCitations = (,,) <$> At.string "Extra-Citations" <*> pure 0 <*> pure 0
+extraCitations = (,,) <$> At.string "Extra Articles" <*> pure 0 <*> pure 0
 
 indentedSelections :: At.Parser [(Text, Text)]
 indentedSelections = At.option [] go

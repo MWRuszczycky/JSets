@@ -52,7 +52,7 @@ function userCitationLocator(citeId) {
             ref = ref.replace("https://","")
             url += ref;
             break;
-    } // switch on refType
+    }
 
     return { url: url, refType: refType, ref: ref, valid: true };
 
@@ -142,9 +142,10 @@ function checkUserCitation(citeId) {
 
 }
 
-function readUserCitations(citeClass) {
-// Read article selections for user-specified citations.
+function readUserCitations(issue) {
+// Read article selections for user-added citations.
 
+    let citeClass = issue.key + "-add";
     let citations = document.getElementsByClassName(citeClass);
     let selected  = [];
 
@@ -153,7 +154,9 @@ function readUserCitations(citeClass) {
         let locator = userCitationLocator(citations[i].id);
 
         if (!locator.valid) {
-            alert( "There is an article without a locator.\n"
+            alert( "There is an article added in "
+                   + issue.header()
+                   + " without a locator.\n"
                    + "It will not be recorded." );
             continue;
         }
@@ -178,12 +181,11 @@ function readSelection() {
     let selection = jsetHeader + "\n";
     let count     = 0;
 
-    // Get articles from configured issues
     for (let i = 0; i < issues.length; i++ ) {
 
         selection += issues[i].header() + "\n";
 
-        // Get articles indexed at PubMed for the issue
+        // Get articles selected using the checkboxes
         let key       = issues[i].key;
         let citations = document.getElementsByClassName(key);
 
@@ -194,21 +196,12 @@ function readSelection() {
             }
         }
 
-        // Get articles not indexed at PubMed for the issue
-        let userCitations = readUserCitations(key + "-add");
+        // Get articles that the user has added manually
+        let userCitations = readUserCitations(issues[i]);
         count += userCitations.length;
         for (let j = 0; j < userCitations.length; j++) {
             selection += "    " + userCitations[j] + "\n";
         }
-    }
-
-    // Get extra articles from non-configured issues
-    let extras = readUserCitations("extra-citations-add");
-
-    selection += "Extra-Citations\n";
-    count     += extras.length;
-    for (let i = 0; i < extras.length; i++) {
-        selection += "    " + extras[i] + "\n";
     }
 
     return { listing: selection, count: count };

@@ -157,7 +157,7 @@ tocsIssuesArrayJS :: Template
 -- number : issue number
 -- date   : issue date
 tocsIssuesArrayJS = parseTemplate' "tIssueHtml-template" . Tx.unwords $ t
-    where t = [ Tx.replicate 10 " "
+    where t = [ " "
               , "new JournalIssue(\"@{class}\","
               , "\"@{title}\","
               , "\"@{vol}\","

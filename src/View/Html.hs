@@ -165,9 +165,9 @@ tocsFunctions = fillNone Temp.tocsFunctionsJS
 tocsGlobals :: T.HasIssue a => T.JSet a -> Text
 -- ^Javascript global variables for the html table of contents.
 tocsGlobals jset = fill xys Temp.tocsGlobalsJS
-    where xys = Map.fromList [ ( "jsetHeader", Vc.jsetHeader jset            )
-                             , ( "savePrefix", savePrefix jset               )
-                             , ( "issues",     issuesArray . T.issues $ jset )
+    where xys = Map.fromList [ ( "jsetHeader", Vc.jsetHeader jset )
+                             , ( "savePrefix", savePrefix    jset )
+                             , ( "issues",     issuesArray   jset )
                              ]
 
 savePrefix :: T.HasIssue a => T.JSet a -> Text
@@ -175,21 +175,34 @@ savePrefix :: T.HasIssue a => T.JSet a -> Text
 savePrefix jset = "sel" <> C.tshow y <> "-" <> ( C.tshow . T.setNo $ jset )
     where y = T.year jset
 
-issuesArray :: T.HasIssue a => [a] -> Text
+issuesArray :: T.HasIssue a => T.JSet a -> Text
 -- ^Constructs the JavaScript 'issues' array, which is used to track
 -- each issue in the journal set.
-issuesArray = Tx.intercalate ",\n" . map issuesArrayElement
+issuesArray jset = Tx.intercalate ",\n" $ issueElements <> extrasElement
+    where issueElements = map issuesArrayElement . T.issues $ jset
+          extrasElement = [extrasArrayElement jset]
 
 issuesArrayElement :: T.HasIssue a => a -> Text
 -- ^Constructs each element of the JavaScrept 'issues' array. This is
 -- used to track the specified issue in the journal set.
-issuesArrayElement iss = fill xys Temp.tocsIssuesArrayJS
-    where xys = Map.fromList [ ("class",  issueClass           iss )
-                             , ("title",  (T.abbr . T.journal) iss )
-                             , ("vol",    (C.tshow . T.volNo)  iss )
-                             , ("number", (C.tshow . T.issNo)  iss )
-                             , ("date",   (C.tshow . T.date )  iss )
-                             ]
+issuesArrayElement iss = fill dict Temp.tocsIssuesArrayJS
+    where dict = Map.fromList [ ("class",  issueClass           iss )
+                              , ("title",  (T.abbr . T.journal) iss )
+                              , ("vol",    (C.tshow . T.volNo)  iss )
+                              , ("number", (C.tshow . T.issNo)  iss )
+                              , ("date",   (C.tshow . T.date )  iss )
+                              ]
+
+extrasArrayElement :: T.HasDate a => a -> Text
+-- ^The JavaScrept 'issues' array element for extra citations, which
+-- is used track extra articles not associated with configured issues.
+extrasArrayElement x = fill dict Temp.tocsIssuesArrayJS
+    where dict = Map.fromList [ ("class",  "extra-citations"     )
+                              , ("title",  "Extra Articles"      )
+                              , ("vol",    ""                    )
+                              , ("number", ""                    )
+                              , ("date",   (C.tshow . T.date ) x )
+                              ]
 
 -- =============================================================== --
 -- HTML compositors for rank-lists to specify article preferences
