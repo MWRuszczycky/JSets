@@ -18,7 +18,7 @@ function isAlphaNum(x) {
 function makeFileName(prefix, xs) {
 // Generate a file name for the selection.
     let suffix = "";
-    for (i = 0; i < xs.length; i++) {
+    for (let i = 0; i < xs.length; i++) {
         if (isAlphaNum(xs[i])) {
             suffix += xs[i];
         }
@@ -121,7 +121,7 @@ function remUserCitation(citeId, citeClass) {
     toRemove.remove();
 
     let xs = document.getElementsByClassName(citeClass + "-name");
-    for (i = 0; i < xs.length; i++) {
+    for (let i = 0; i < xs.length; i++) {
         xs[i].innerHTML = "Article " + (i+1).toString();
     }
 
@@ -142,6 +142,35 @@ function checkUserCitation(citeId) {
 
 }
 
+function readUserCitations(citeClass) {
+// Read article selections for user-specified citations.
+
+    let citations = document.getElementsByClassName(citeClass);
+    let selected  = [];
+
+    for (let i = 0; i < citations.length; i++) {
+
+        let locator = userCitationLocator(citations[i].id);
+
+        if (!locator.valid) {
+            alert( "There is an article without a locator.\n"
+                   + "It will not be recorded." );
+            continue;
+        }
+
+        let prefix = locator.refType.toLowerCase() + ": ";
+        if (locator.refType == "PMID") {
+            prefix = "";
+        }
+
+        selected[selected.length] = prefix + locator.ref;
+
+    }
+
+    return selected;
+
+}
+
 // --------------------------------------------------------------- //
 function readSelection() {
 // Read the user's selections.
@@ -149,70 +178,37 @@ function readSelection() {
     let selection = jsetHeader + "\n";
     let count     = 0;
 
-    for (i = 0; i < issues.length; i++ ) {
-
-        let key       = issues[i].key;
-        let selected  = "";
+    // Get articles from configured issues
+    for (let i = 0; i < issues.length; i++ ) {
 
         selection += issues[i].header() + "\n";
 
-        // Get articles selected from configured issues indexed at PubMed
+        // Get articles indexed at PubMed for the issue
+        let key       = issues[i].key;
         let citations = document.getElementsByClassName(key);
 
-        for (j = 0; j < citations.length; j++) {
+        for (let j = 0; j < citations.length; j++) {
             if (citations[j].checked) {
-                selected += "    " + citations[j].id + "\n";
-                count    += 1;
-            }
-
-        }
-
-        // Get articles selected from configured issues not indexed at PubMed
-        let added = document.getElementsByClassName(key + "-Add");
-
-        for (j = 0; j < added.length; j++) {
-            let title = document.getElementById(added[j].id + "-title").value;
-            let doi   = document.getElementById(added[j].id + "-doi").value;
-            let page  = document.getElementById(added[j].id + "-page").value;
-
-            if (title.length + page.length + doi.length > 0) {
-                count    += 1;
-                selected += "    add: " + title.replace(/\|/g, "<p>")
-                                  + "|" + page.replace(/\|/g, "<p>")
-                                  + "|" + doi.replace(/\|/g, "<p>") + "\n";
-            } else {
-                alert( "A citation from " + key + " lacks an identifier\n"
-                       + "(title, page or doi). It will not be recorded.");
+                selection += "    " + citations[j].id + "\n";
+                count     += 1;
             }
         }
 
-        selection += selected;
+        // Get articles not indexed at PubMed for the issue
+        let userCitations = readUserCitations(key + "-Add");
+        count += userCitations.length;
+        for (let j = 0; j < userCitations.length; j++) {
+            selection += "    " + userCitations[j] + "\n";
+        }
     }
 
     // Get extra articles from non-configured issues
-    let extras = document.getElementsByClassName("user-citation");
+    let extras = readUserCitations("user-citation");
 
     selection += "Extra-Citations\n";
-
-    for (i = 0; i < extras.length; i++) {
-
-        let locator = userCitationLocator(extras[i].id);
-
-        if (!locator.valid) {
-            alert( "There is an 'extra' article without an identifier.\n"
-                   + "It will not be recorded." );
-            continue;
-        }
-
-        count += 1;
-
-        if (locator.refType == "PMID") {
-            selection += "    " + locator.ref + "\n";
-        } else {
-            selection += "    " + locator.refType.toLowerCase()
-                                + ": " + locator.ref + "\n";
-        }
-
+    count     += extras.length;
+    for (let i = 0; i < extras.length; i++) {
+        selection += "    " + extras[i] + "\n";
     }
 
     return { listing: selection, count: count };
