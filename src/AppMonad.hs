@@ -10,8 +10,6 @@ module AppMonad
       -- Working with configured reference issues
     , references
     , getIssue
-    , resolveIssueWith
-    , resolveIssue
       -- Running rank matchings
     , runMatch
     ) where
@@ -22,7 +20,6 @@ import qualified Model.Core.Types          as T
 import qualified Model.Journals            as J
 import qualified Model.Matching            as Mt
 import qualified Model.Parsers.JournalSets as P
-import           Data.List                          ( find       )
 import           Data.Text                          ( Text       )
 import           Control.Monad.Reader               ( asks       )
 import           Control.Monad.Except               ( lift
@@ -87,30 +84,6 @@ getIssue abbr v n = references >>= maybe err pure . go
     where issMsg = Tx.unpack abbr <> " " <> show v <> ":" <> show n
           err    = throwError $ "Invalid issue: " <> issMsg
           go rs  = J.lookupIssue rs abbr (v,n)
-
-resolveIssueWith :: [T.Issue] -> T.Citation -> T.AppMonad T.Citation
--- ^Attempt to resolve the issue of a citation to a configured issue;
--- however, first check that the issues is not already provided in
--- the list of likely candidates. If it is not found in the candidate
--- list, then try to look it up from scratch (see resolveIssue).
-resolveIssueWith refs x = maybe (resolveIssue x) res . find go $ refs
-        where res i = pure $ x { T.pubIssue = i }
-              go  i = (T.pubmed . T.journal) i == (T.pubmed . T.journal) x
-                      && T.year  i == T.year  x
-                      && T.issNo i == T.issNo x
-
-resolveIssue :: T.Citation -> T.AppMonad T.Citation
--- ^Attempt to resolve the issue of a citation to a configured issue.
--- If successful, replace the citation's issue with the configured
--- issue. Otherwise, do nothing. This function is useful for setting
--- the issue of citations downloaded from PubMed without knowing from
--- which issue they come.
-resolveIssue x = references >>= pure . maybe x id . go
-    where name  = T.pubmed . T.journal $ x
-          go rs = do r   <- find ( (== name) . T.pubmed . T.journal ) rs
-                     let key = T.abbr . T.journal $ r
-                     iss <- J.lookupIssue rs key ( T.volNo x, T.issNo x )
-                     pure $ x { T.pubIssue = iss }
 
 -- =============================================================== --
 -- Rank matching

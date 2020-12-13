@@ -48,6 +48,7 @@ getCitation json pmid = (pmid, c)
                             <*> getPages   doc
                             <*> getDoi     doc
                             <*> pure       pmid
+                            <*> pure       True
 
 getAuthors :: JS.JSON -> Maybe [Text]
 getAuthors json = JS.lookupListWith [ "authors" ] go json

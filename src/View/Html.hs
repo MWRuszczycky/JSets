@@ -20,15 +20,31 @@ import           View.Templates           ( fill, fillNone )
 -- =============================================================== --
 -- Helper functions
 
-className :: T.HasIssue a => a -> Text
--- ^Generate a class name for a journal issue. The basic format is
--- JournalName-Volume-Number
+citationClass :: T.Citation -> Text
+-- ^Generate a class name for a citation. If the issue is an extra
+-- citation, then it gets the class name
+--     extra-citation
+-- Otherwise, it gets the class name of the issue.
+citationClass c
+    | T.isExtra c = "extra-citations"
+    | otherwise   = issueClass c
+
+issueClass :: T.HasIssue a => a -> Text
+-- Generate the class name of an issue. The format is,
+--     JournalName-Volume-Number
 -- where the journal name has all spaces converted to underscores.
-className iss = Tx.intercalate "-" xs
-    where xs = [ Vc.spaceToUnder . T.abbr . T.journal $ iss
-               , C.tshow . T.volNo $ iss
-               , C.tshow . T.issNo $ iss
-               ]
+issueClass x = Tx.intercalate "-" fields
+    where fields  = [ Vc.spaceToUnder . T.abbr . T.journal $ x
+                    , C.tshow . T.volNo $ x
+                    , C.tshow . T.issNo $ x
+                    ]
+
+classSelected :: [T.Selection] -> T.Citation -> Text
+-- ^Determine the 'selected' class field for a citation's html.
+classSelected sel c
+    | isSelected = " class=\"selected\""
+    | otherwise  = ""
+    where isSelected = elem (T.pmid c) . J.pmidsInSelection $ sel
 
 adminDefault :: Maybe Text -> Text
 -- ^Handler for missing user names and emails.
@@ -97,19 +113,22 @@ issueHeaderAbbr iss = Tx.concat xs
 
 tocEntries :: T.Citations -> [T.Selection] -> T.ToC -> Text
 -- ^Construct html for all citations in an issue's Table of Contents.
-tocEntries _ _ (T.ToC iss url [])
-    | Tx.null url = fill xys Temp.issueMissingHtml
-    | otherwise   = fill xys Temp.issueMissingLinkedHtml
-    where xys = Map.fromList [ ("issue", issueHeader iss     )
-                             , ("url",   "https://" <> url   )
-                             , ("class", className iss       )
-                             , ("abbr",  issueHeaderAbbr iss )
-                             ]
-tocEntries cs sel (T.ToC iss _ pmids) = fill xys Temp.issueHtml
-    where sel'  = J.pmidsInSelection sel
-          cstxt = Tx.intercalate "\n" . map (tocEntry cs sel') $ pmids
-          xys   = Map.fromList [ ("issue",     issueHeader iss)
+-- If a url is specified, then assume there are missing citations.
+tocEntries _  _   (T.ToC iss ""  []   ) = fill dict Temp.issueMissingHtml
+    where dict  = Map.fromList [ ("issue", issueHeader iss )
+                               ]
+tocEntries cs sel (T.ToC iss ""  pmids) = fill dict Temp.issueHtml
+    where cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
+          dict  = Map.fromList [ ("issue",     issueHeader iss)
                                , ("citations", cstxt          )
+                               ]
+tocEntries cs sel (T.ToC iss url pmids) = fill dict Temp.issueMissingLinkedHtml
+    where cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
+          dict  = Map.fromList [ ("issue",     issueHeader iss    )
+                               , ("citations", cstxt              )
+                               , ("url",       "https://" <> url  )
+                               , ("class",     issueClass iss     )
+                               , ("abbr",      issueHeaderAbbr iss)
                                ]
 
 tocExtra :: T.Citations -> T.JSet T.ToC -> Text
@@ -118,16 +137,15 @@ tocExtra :: T.Citations -> T.JSet T.ToC -> Text
 -- citations section. So, all citations are renderd as selected.
 tocExtra cs (T.JSet _ _ sel) = fill dict Temp.tocsExtraCitationHtml
     where pmids = J.pmidsInSelectionFree sel
-          cstxt = Tx.intercalate "\n" . map (tocEntry cs pmids) $ pmids
+          cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
           dict  = Map.fromList [ ("citations", cstxt ) ]
 
-tocEntry :: T.Citations -> [T.PMID] -> T.PMID -> Text
+tocEntry :: T.Citations -> [T.Selection] -> T.PMID -> Text
 -- ^Construct html for a single citation based on its PMID and a Map
 -- of citations. If the PMID is not a member of the Citations map,
 -- then it is ignored.
 tocEntry cs sel pmid = maybe Tx.empty go . Map.lookup pmid $ cs
-    where go c | elem pmid sel = fill (citationDictSel c) Temp.citationHtml
-               | otherwise     = fill (citationDict    c) Temp.citationHtml
+    where go c = fill (citationDict sel c) Temp.citationHtml
 
 -- --------------------------------------------------------------- --
 -- Javascript code for jset tables of contents html documents
@@ -166,7 +184,7 @@ issuesArrayElement :: T.HasIssue a => a -> Text
 -- ^Constructs each element of the JavaScrept 'issues' array. This is
 -- used to track the specified issue in the journal set.
 issuesArrayElement iss = fill xys Temp.tocsIssuesArrayJS
-    where xys = Map.fromList [ ("class",  className            iss )
+    where xys = Map.fromList [ ("class",  issueClass           iss )
                              , ("title",  (T.abbr . T.journal) iss )
                              , ("vol",    (C.tshow . T.volNo)  iss )
                              , ("number", (C.tshow . T.issNo)  iss )
@@ -217,7 +235,7 @@ rankListElement n (Just c) = fill (rankCitationDict n c) Temp.citationHtml
 
 rankCitationDict :: Int -> T.Citation -> Map.Map Text Text
 -- ^html template dictionary for rank list element.
-rankCitationDict index c = Map.union m . citationDict $ c
+rankCitationDict index c = Map.union m . citationDict [] $ c
     where m = Map.fromList [ ( "index", C.tshow index        )
                            , ( "length", Vc.citationLength c )
                            , ( "type",   "text"              )
@@ -227,15 +245,12 @@ rankCitationDict index c = Map.union m . citationDict $ c
 -- =============================================================== --
 -- html general template dictionaries for citations
 
-citationDictSel :: T.Citation -> Map.Map Text Text
--- ^Basic html template for a selected citation.
-citationDictSel = Map.insert "selected" " class=\"selected\"" . citationDict
-
-citationDict :: T.Citation -> Map.Map Text Text
+citationDict :: [T.Selection] -> T.Citation -> Map.Map Text Text
 -- ^Basic html template for a citation.
-citationDict c = Map.fromList xys
+citationDict sel c = Map.fromList xys
     where xys = [ ("id",       T.pmid c                          )
-                , ("class",    className . T.issue $ c           )
+                , ("selected", classSelected sel c               )
+                , ("class",    citationClass     c               )
                 , ("type",     "checkbox"                        )
                 , ("href",     T.doi c                           )
                 , ("title",    T.title c                         )

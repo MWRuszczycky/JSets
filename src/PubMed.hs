@@ -271,9 +271,9 @@ getToCs (T.JSet n issues sel) = do
     -- in the same second of time as the next two.
     delay
     C.putTxtLnMIO "Requesting PMIDs per issue (eSearch).."
-    xs <- delayMapM (getToC wreq) issues
+    tocs <- delayMapM (getToC wreq) issues
     let pmids = zip [1..] . C.addUnique (J.pmidsInSelection selIDs)
-                          . concatMap T.contents $ xs
+                          . concatMap T.contents $ tocs
     -- Once we have all the PMIDs, we can place the eSummary requests
     -- to get the associated citations. However, PubMed will not allow
     -- too many eSummary PMIDs to be queried in a single request. So,
@@ -281,14 +281,13 @@ getToCs (T.JSet n issues sel) = do
     -- (Still need to figure out what the PMID limit per request is.)
     delay
     C.putTxtLnMIO $ "There are " <> C.tshow (length pmids) <> " PMIDs:"
-    (ms,cs) <- fmap unzip . delayMapM (downloadCitations wreq)
-                          . C.chunksOf 100 $ pmids
+    (missing,cites) <- fmap unzip . delayMapM (downloadCitations wreq)
+                                  . C.chunksOf 100 $ pmids
     -- Clean up: 1. Inform user of any missing citations.
-    handleMissingCitations . concat $ ms
-    -- 2. Correct parsed issues with configured issues if possible.
-    rcs <- mapM (A.resolveIssueWith issues) . mconcat $ cs
-    -- 3. Update ToCs with any PMIDs that were user-specified.
-    --    This may be required if the issue itself is not indexed at
-    --    PubMed, but the citations are present as 'ahead of print'.
-    let xsFinal = map (J.updateContent selIDs) xs
-    pure ( rcs, T.JSet n xsFinal selIDs )
+    handleMissingCitations . concat $ missing
+    -- 2. Update ToCs with any PMIDs that were user-specified.
+    -- 3. Correct parsed issues with configured issues if possible.
+    rs <- A.references
+    let fixedToCs  = map (J.updateToC selIDs) tocs
+        fixedCites = Map.map (J.correctCitation rs fixedToCs) . mconcat $ cites
+    pure ( fixedCites, T.JSet n fixedToCs selIDs )

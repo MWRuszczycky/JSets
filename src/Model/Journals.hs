@@ -5,7 +5,9 @@ module Model.Journals
       isPMID
     , pmidsInSelection
     , pmidsInSelectionFree
-    , updateContent
+    , updateToC
+    , correctCitation
+    , resolveCitationIssue
       -- Working with journal sets
     , pack
     , unpack
@@ -55,11 +57,35 @@ pmidsInSelectionFree = mapMaybe go
     where go (T.ByPMID x) = Just x
           go _            = Nothing
 
-updateContent :: [T.Selection] -> T.ToC -> T.ToC
-updateContent sel x = x { T.contents = foldl' go (T.contents x) sel }
+updateToC :: [T.Selection] -> T.ToC -> T.ToC
+-- ^Add any selected PMID that is bound to a specific Issue to that
+-- issue's table of contents if not already present. This function
+-- is useful when an issue is published but PubMed still thinks that
+-- all of its citations are ahead of print. So, the citation and
+-- table of contents have to be obtained separately and recombined.
+updateToC sel x = x { T.contents = foldl' go (T.contents x) sel }
     where go ps (T.ByBndPMID i p) | i == T.issue x && (not . elem p ) ps = p:ps
                                   | otherwise                            = ps
           go ps _                 = ps
+
+correctCitation :: T.References -> [T.ToC] -> T.Citation -> T.Citation
+-- ^Correct the issue of a citation if the journal is configured and
+-- determine whether the citation is an extra-citation.
+correctCitation rs tocs c = maybe resolved id . C.choice . map go $ tocs
+    where resolved = resolveCitationIssue rs $ c { T.isExtra = True }
+          go toc   = if elem (T.pmid c) . T.contents $ toc
+                        then Just $ c { T.pubIssue = T.issue toc
+                                      , T.isExtra  = False }
+                        else Nothing
+
+resolveCitationIssue :: T.References -> T.Citation -> T.Citation
+-- ^Attempt to resolve the issue of a citation to a configured issue.
+resolveCitationIssue refs x = maybe x id rx
+    where name = T.pubmed . T.journal $ x
+          rx   = do r   <- find ( (== name) . T.pubmed . T.journal ) refs
+                    let key = T.abbr . T.journal $ r
+                    iss <- lookupIssue refs key ( T.volNo x, T.issNo x )
+                    pure $ x { T.pubIssue = iss }
 
 -- =============================================================== --
 -- Working with journal sets

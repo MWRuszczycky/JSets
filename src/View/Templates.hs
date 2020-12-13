@@ -216,10 +216,11 @@ issueMissingHtml = parseTemplate' "res/html/tocs/issue_missing.html"
 issueMissingLinkedHtml :: Template
 -- ^Table of contents substitute when there are no PMIDs at PubMed,
 -- but a link to the ToC at the publisher's website is available.
--- issue : issue header
--- url   : url to the toc at the publisher's website
--- class : class name for the issue
--- abbr  : issue abbreviation for the add citation button
+-- issue     : issue header
+-- citations : any citations that can be found
+-- url       : url to the toc at the publisher's website
+-- class     : class name for the issue
+-- abbr      : issue abbreviation for the add citation button
 issueMissingLinkedHtml = parseTemplate' "res/html/tocs/issue_missing_linked.html"
                          $(MT.embedFile "res/html/tocs/issue_missing_linked.html")
 
@@ -278,9 +279,9 @@ ranksMetaHtml = parseTemplate' "res/html/ranks/meta.html"
 
 citationHtml :: Template
 -- ^Paragraph environment for a single article citation
--- selected : optional class for selected citations
 -- id       : article id
 -- class    : issue class
+-- selected : optional class for selected citations
 -- href     : article doi link
 -- title    : article title
 -- authors  : article authors

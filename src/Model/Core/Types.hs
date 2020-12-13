@@ -390,6 +390,7 @@ data Citation = Citation {
     , pages    :: PageRange
     , doi      :: Text
     , pmid     :: PMID
+    , isExtra  :: Bool
     } deriving ( Show, Eq )
 
 instance HasDate Citation where

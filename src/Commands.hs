@@ -111,7 +111,8 @@ pmidCmd [] = throwError "One or more PMIDs must be provided!"
 pmidCmd xs = do
     wreq <- PM.getWreqSession
     cs   <- PM.getCitations wreq . map Tx.pack $ xs
-    citations <- mapM A.resolveIssue . Map.elems $ cs
+    rs   <- A.references
+    let citations = map (J.resolveCitationIssue rs) . Map.elems $ cs
     V.runView ( V.viewCitations citations ) >>= display
 
 ---------------------------------------------------------------------
