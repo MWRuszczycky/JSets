@@ -253,11 +253,13 @@ handleMissingContent :: T.Issue -> T.AppMonad T.ToC
 -- cannot be found at PMID. This allows the user to enter an alternate
 -- url to the ToC at the publisher's website if available.
 handleMissingContent iss = do
-    let issName = V.showIssue iss
-    A.logMessage $ "  No articles were found at PubMed for " <> issName <> "\n"
-    A.logMessage $ "  Enter an alternate URL or just press enter to continue:\n"
-    A.logMessage $ "    https://"
-    url <- Tx.strip . Tx.pack <$> liftIO getLine
+    let msg = Tx.concat
+              [ "  \ESC[33mNo articles were found at PubMed for "
+              , V.showIssue iss <> "\ESC[0m"
+              , "\n  Enter an alternate URL or just press enter to ignore:\n"
+              , "    https://"
+              ]
+    url <- A.request msg
     pure $ T.ToC iss url []
 
 getToCs :: T.JSet T.Issue -> T.AppMonad (T.Citations, T.JSet T.ToC)

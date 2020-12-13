@@ -14,6 +14,7 @@ module AppMonad
     , runMatch
       -- Interactions and timing
     , delay
+    , request
       -- Logging messages and errors
     , logMessage
     , logError
@@ -111,6 +112,15 @@ delay = do duration <- asks $ (* 10^12) . T.cDelay
                "Delay " <> Vc.showPicoSec duration <> " between requests.."
            liftIO . D.wait $ duration
            when isTerm . logMessage $ "\ESC[2K\ESC[0G"
+
+request :: Text -> T.AppMonad Text
+request msg = do
+    isTerse <- asks T.cTerse
+    isTerm  <- asks T.cStdOutIsTerm
+    if ( not isTerse && isTerm )
+       then do C.putTxtMIO msg
+               Tx.strip . Tx.pack <$> liftIO getLine
+       else pure Tx.empty
 
 -- =============================================================== --
 -- Logging messages and recoverable error information
