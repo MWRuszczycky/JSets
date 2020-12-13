@@ -1,8 +1,10 @@
         <h2>@{issue}</h2>
 
-            <p><b>There are no articles listed for this issue at PubMed</b>. However, a table of contents can still be accessed by <a href="@{url}" target="_blank">clicking here</a>.</p>
+            @{citations}
 
-            <p><b>How to select articles from this issue</b>. Click the <b>Add article from...</b> button and provide either the first few words of the title, its first page number (if unique) or its digital object identifier (most helpful). You can provide all three, but <b>only one of the three is required</b>. Click the "remove" button to deselect the article.</p>
+            <p><b>This issue is not fully indexed at PubMed.</b> However, a complete table of contents can still be accessed by <a href="@{url}" target="_blank">clicking here</a>.</p>
+
+            <p><b>How to select articles from this issue.</b> First, click the <b>Add an article from...</b> button. Next, enter the digital object identifier (DOI), web address of the <b>abstract</b> (WEB) or PubMed ID (PMID). Click the <b>Check link</b> button to see if the correct abstract can be found (it will open in a new browser tab). Click the "remove" button to deselect the article. Examples can be found at the bottom of the page in the <a href="#sec-extra-citations">Extra articles section.</a></p>
 
         <div id="@{class}-Add">
         </div>

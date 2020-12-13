@@ -62,49 +62,25 @@ function userCitationLocator(citeId) {
 function userCitationHTML(citeId, citeClass, index) {
 
     let indexStr = index.toString();
-    let content  = "";
-
-    switch(citeClass) {
-        case "user-citation":
-            content  =
-            `<p id="${citeId}" class="${citeClass}">
-                <b><span class="${citeClass}-name">Article ${indexStr}</span></b>
-                <button type="button"
-                        onClick="checkUserCitation('${citeId}')">
-                    Check link</button>
-                <button type="button"
-                        onClick="remUserCitation('${citeId}','${citeClass}')">
-                    Remove</button></br>
-                <label for="${citeId}-refType">Address</label>
-                <select name="${citeId}-refType" id="${citeId}-refType">
-                    <option value="DOI">DOI</option>
-                    <option value="WEB">WEB</option>
-                    <option value="PMID">PMID</option>
-                </select>
-                <label for="${citeId}-ref">:</label>
-                <input type="text" id="${citeId}-ref"
-                       size="60" class="txtbox">
-             </p>`;
-             break;
-        default:
-            content  =
-            `<p id="${citeId}", class="${citeClass}">
-                <b><span class="${citeClass}-name">Article ${indexStr}</span></b>
-                <button type="button"
-                        onClick="remUserCitation('${citeId}', '${citeClass}')">
-                    Remove</button></br>
-                <label for="${citeId}-title">Title</label>
-                    <input type="text" id="${citeId}-title"
-                           class="txtbox" size="50">
-                <label for="${citeId}-page">Page</label>
-                    <input type="text" id="${citeId}-page"
-                           size="8" class="txtbox"><br>
-                <label for="${citeId}-doi">DOI</label>
-                    <input type="text" id="${citeId}-doi"
-                           size="15" class="txtbox"
-                           style="margin-left: 0.6em;">
-             </p>`;
-    } // switch on citeClass
+    let content  =
+        `<p id="${citeId}" class="${citeClass}">
+            <b><span class="${citeClass}-name">Article ${indexStr}</span></b>
+            <button type="button"
+                    onClick="checkUserCitation('${citeId}')">
+                Check link</button>
+            <button type="button"
+                    onClick="remUserCitation('${citeId}','${citeClass}')">
+                Remove</button></br>
+            <label for="${citeId}-refType">Address</label>
+            <select name="${citeId}-refType" id="${citeId}-refType">
+                <option value="DOI">DOI</option>
+                <option value="WEB">WEB</option>
+                <option value="PMID">PMID</option>
+            </select>
+            <label for="${citeId}-ref">:</label>
+            <input type="text" id="${citeId}-ref"
+                   size="60" class="txtbox">
+         </p>`;
 
     return content;
 
