@@ -225,7 +225,7 @@ issueMissingLinkedHtml = parseTemplate' "res/html/tocs/issue_missing_linked.html
 
 tocsExtraCitationHtml :: Template
 -- ^HTML for entering extra citations for non-configured journals
--- This template has no variables.
+-- citations : the extra citations to include
 tocsExtraCitationHtml = parseTemplate' "res/html/tocs/extra_citations.html"
                         $(MT.embedFile "res/html/tocs/extra_citations.html")
 

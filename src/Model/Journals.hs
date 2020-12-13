@@ -4,6 +4,7 @@ module Model.Journals
     ( -- Working with citations and selections
       isPMID
     , pmidsInSelection
+    , pmidsInSelectionFree
     , updateContent
       -- Working with journal sets
     , pack
@@ -48,6 +49,11 @@ pmidsInSelection = mapMaybe go
     where go (T.ByBndPMID _ x) = Just x
           go (T.ByPMID      x) = Just x
           go _                 = Nothing
+
+pmidsInSelectionFree :: [T.Selection] -> [T.PMID]
+pmidsInSelectionFree = mapMaybe go
+    where go (T.ByPMID x) = Just x
+          go _            = Nothing
 
 updateContent :: [T.Selection] -> T.ToC -> T.ToC
 updateContent sel x = x { T.contents = foldl' go (T.contents x) sel }

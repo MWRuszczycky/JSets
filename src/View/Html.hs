@@ -48,7 +48,7 @@ tocsHtml name email date jset@(T.JSet n tocs sel) cs =
                , ( "title",      "Journal Set " <> C.tshow n                 )
                , ( "instr",      fillNone Temp.tocsInstrHtml                 )
                , ( "tocs",       Tx.unlines . map (tocEntries cs sel) $ tocs )
-               , ( "extra",      fillNone Temp.tocsExtraCitationHtml         )
+               , ( "extra",      tocExtra cs jset                            )
                , ( "saveinstr",  tocsCreateSave name email                   )
                ]
     in fill (Map.fromList dict) Temp.tocsHtml
@@ -96,7 +96,7 @@ issueHeaderAbbr iss = Tx.concat xs
                ]
 
 tocEntries :: T.Citations -> [T.Selection] -> T.ToC -> Text
--- ^Construct html for all citations in a Table of Contents.
+-- ^Construct html for all citations in an issue's Table of Contents.
 tocEntries _ _ (T.ToC iss url [])
     | Tx.null url = fill xys Temp.issueMissingHtml
     | otherwise   = fill xys Temp.issueMissingLinkedHtml
@@ -111,6 +111,15 @@ tocEntries cs sel (T.ToC iss _ pmids) = fill xys Temp.issueHtml
           xys   = Map.fromList [ ("issue",     issueHeader iss)
                                , ("citations", cstxt          )
                                ]
+
+tocExtra :: T.Citations -> T.JSet T.ToC -> Text
+-- ^Construct html for all extra citations in journal set. Any
+-- PMIDs that are not bound to an issue are placed in the extra
+-- citations section. So, all citations are renderd as selected.
+tocExtra cs (T.JSet _ _ sel) = fill dict Temp.tocsExtraCitationHtml
+    where pmids = J.pmidsInSelectionFree sel
+          cstxt = Tx.intercalate "\n" . map (tocEntry cs pmids) $ pmids
+          dict  = Map.fromList [ ("citations", cstxt ) ]
 
 tocEntry :: T.Citations -> [T.PMID] -> T.PMID -> Text
 -- ^Construct html for a single citation based on its PMID and a Map
