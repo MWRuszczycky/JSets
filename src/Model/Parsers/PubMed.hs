@@ -69,11 +69,11 @@ getInt :: [Text] -> JS.JSON -> Maybe Int
 getInt keys json = mbInt <|> Just 0
     where mbInt = JS.lookupWith keys JS.str json >>= C.readMaybeTxt
 
--- This needs to be fixed. It defaults to a Weekly/Resets publication
--- frequency.
+-- TODO This needs to be fixed.
+-- It defaults to a Weekly/Resets publication frequency.
 getJournal :: JS.JSON -> Maybe T.Journal
 getJournal json = JS.lookupWith [ "source" ] JS.str json >>= pure . go
-    where go j = T.Journal j j j T.Weekly True
+    where go j = T.Journal j j j T.Weekly True 20
 
 getDoi :: JS.JSON -> Maybe Text
 getDoi json = JS.lookupWith [ "elocationid" ] JS.str json >>= go

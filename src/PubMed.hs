@@ -248,29 +248,34 @@ getToC wreq iss = do
     paintY      <- A.getPainter "yellow"
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parsePMIDs of
-         Right []    -> do A.logMessage $ paintY "No PMIDs " <> timeMsg <> "\n"
-                           handleMissingContent iss
-         Right pmids -> do A.logMessage $ paintG "OK " <> timeMsg <> "\n"
-                           pure $ T.ToC iss Tx.empty pmids
+         Right pmids -> do if length pmids < (T.mincount . T.journal) iss
+                              then do A.logMessage $ paintY "Missing PMIDs "
+                                                     <> timeMsg <> "\n"
+                                      handleMissingPMIDs pmids iss
+                              else do A.logMessage $ paintG "OK " <> timeMsg <> "\n"
+                                      pure $ T.ToC iss Tx.empty pmids
          Left  err   -> do A.logError   "Failed"
                                       ( "Failed to obtain PMIDs for"
                                         <> V.showIssue iss           )
                                       ( Tx.pack err                  )
                            pure ( T.ToC iss Tx.empty [] )
 
-handleMissingContent :: T.Issue -> T.AppMonad T.ToC
+handleMissingPMIDs :: [T.PMID] -> T.Issue -> T.AppMonad T.ToC
 -- ^Handler for the event that the ToC of a given journal issue
 -- cannot be found at PMID. This allows the user to enter an alternate
 -- url to the ToC at the publisher's website if available.
-handleMissingContent iss = do
+handleMissingPMIDs pmids iss = do
     paint <- A.getPainter "yellow"
-    let msg = Tx.concat
-              [ "  No articles were found at PubMed for "
-              , paint . V.showIssue $ iss
-              , "\n  Enter an alternate URL or just press enter to ignore:\n"
-              , "    https://" ]
+    let n    = paint . C.tshow . length $ pmids
+        m    = paint . C.tshow . T.mincount . T.journal $ iss
+        name = paint . V.showIssue $ iss
+        msg  = Tx.concat
+                  [ "  There were " <> n <> " articles found at PubMed for "
+                  , name <> "\n  However, at least " <> m <> " were expected."
+                  , "\n  Enter an alternate ToC URL or press <enter> to skip:\n"
+                  , "    https://" ]
     url <- A.request msg
-    pure $ T.ToC iss url []
+    pure $ T.ToC iss url pmids
 
 getToCs :: T.JSet T.Issue -> T.AppMonad (T.Citations, T.JSet T.ToC)
 -- ^Request tables of contents for a Journal Set and the citations.

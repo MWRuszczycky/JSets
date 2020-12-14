@@ -266,11 +266,12 @@ instance CanQuery QueryTerm where
 
 -- |Information about a journal
 data Journal = Journal {
-      abbr   :: Text      -- Abbreviated title of journal
-    , name   :: Text      -- Long name of journal
-    , pubmed :: Text      -- Name of journal used by PubMed
-    , freq   :: Frequency -- Issue frequency
-    , resets :: Bool      -- Issue number resets to 1 each year
+      abbr     :: Text      -- Abbreviated title of journal
+    , name     :: Text      -- Long name of journal
+    , pubmed   :: Text      -- Name of journal used by PubMed
+    , freq     :: Frequency -- Issue frequency
+    , resets   :: Bool      -- Issue number resets to 1 each year
+    , mincount :: Int       -- Fewer citations suggests some are missing
     } deriving ( Show, Eq )
 
 -- |Publication frequency of a journal

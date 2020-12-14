@@ -50,11 +50,12 @@ acie :: T.Journal
 -- 52 issues per at roughl 7 day intervals with approximately a 14
 -- day interval at the new year.
 acie = T.Journal {
-      T.name   = "Angewandte Chemie International Edition"
-    , T.abbr   = "ACIE"
-    , T.pubmed = "Angew Chem Int Ed Engl"
-    , T.freq   = T.Weekly
-    , T.resets = True
+      T.name     = "Angewandte Chemie International Edition"
+    , T.abbr     = "ACIE"
+    , T.pubmed   = "Angew Chem Int Ed Engl"
+    , T.freq     = T.Weekly
+    , T.resets   = True
+    , T.mincount = 20
     }
 
 acieRef :: T.Issue
@@ -70,11 +71,12 @@ acieRef = T.Issue {
 
 biochemistry :: T.Journal
 biochemistry = T.Journal {
-      T.name   = "Biochemistry"
-    , T.abbr   = "Biochemistry"
-    , T.pubmed = "Biochemistry"
-    , T.freq   = T.WeeklyFirst
-    , T.resets = True
+      T.name     = "Biochemistry"
+    , T.abbr     = "Biochemistry"
+    , T.pubmed   = "Biochemistry"
+    , T.freq     = T.WeeklyFirst
+    , T.resets   = True
+    , T.mincount = 3
     }
 
 biochemistryRef :: T.Issue
@@ -90,11 +92,12 @@ biochemistryRef = T.Issue {
 
 cellChemBiol :: T.Journal
 cellChemBiol = T.Journal {
-      T.name   = "Cell Chemical Biology"
-    , T.abbr   = "Cell Chem Biol"
-    , T.pubmed = "Cell Chem Biol"
-    , T.freq   = T.Monthly
-    , T.resets = True
+      T.name     = "Cell Chemical Biology"
+    , T.abbr     = "Cell Chem Biol"
+    , T.pubmed   = "Cell Chem Biol"
+    , T.freq     = T.Monthly
+    , T.resets   = True
+    , T.mincount = 10
     }
 
 cellChemBiolRef :: T.Issue
@@ -113,11 +116,12 @@ jacs :: T.Journal
 -- on average, so that 6 day intervals are always balanced by 7 day
 -- intervals. Thus, JACS is more predictable than ACIE.
 jacs = T.Journal {
-      T.name   = "Journal of the American Chemical Society"
-    , T.abbr   = "JACS"
-    , T.pubmed = "J Am Chem Soc"
-    , T.freq   = T.WeeklyFirst
-    , T.resets = True
+      T.name     = "Journal of the American Chemical Society"
+    , T.abbr     = "JACS"
+    , T.pubmed   = "J Am Chem Soc"
+    , T.freq     = T.WeeklyFirst
+    , T.resets   = True
+    , T.mincount = 20
     }
 
 jacsRef :: T.Issue
@@ -133,11 +137,12 @@ jacsRef = T.Issue {
 
 nature :: T.Journal
 nature = T.Journal {
-      T.name   = "Nature"
-    , T.abbr   = "Nature"
-    , T.pubmed = "Nature"
-    , T.freq   = T.WeeklyLast
-    , T.resets = False
+      T.name     = "Nature"
+    , T.abbr     = "Nature"
+    , T.pubmed   = "Nature"
+    , T.freq     = T.WeeklyLast
+    , T.resets   = False
+    , T.mincount = 10
     }
 
 natureRef :: T.Issue
@@ -153,11 +158,12 @@ natureRef = T.Issue {
 
 natChem :: T.Journal
 natChem = T.Journal {
-      T.name   = "Nature Chemistry"
-    , T.abbr   = "Nat Chem"
-    , T.pubmed = "Nat Chem"
-    , T.freq   = T.Monthly
-    , T.resets = True
+      T.name     = "Nature Chemistry"
+    , T.abbr     = "Nat Chem"
+    , T.pubmed   = "Nat Chem"
+    , T.freq     = T.Monthly
+    , T.resets   = True
+    , T.mincount = 10
     }
 
 natChemRef :: T.Issue
@@ -173,11 +179,12 @@ natChemRef = T.Issue {
 
 natChemBiol :: T.Journal
 natChemBiol = T.Journal {
-      T.name   = "Nature Chemical Biology"
-    , T.abbr   = "Nat Chem Biol"
-    , T.pubmed = "Nat Chem Biol"
-    , T.freq   = T.Monthly
-    , T.resets = True
+      T.name     = "Nature Chemical Biology"
+    , T.abbr     = "Nat Chem Biol"
+    , T.pubmed   = "Nat Chem Biol"
+    , T.freq     = T.Monthly
+    , T.resets   = True
+    , T.mincount = 10
     }
 
 natChemBiolRef :: T.Issue
@@ -193,11 +200,12 @@ natChemBiolRef = T.Issue {
 
 pnas :: T.Journal
 pnas = T.Journal {
-      T.name   = "Proceedings of the National Academy of Sciences U.S.A."
-    , T.abbr   = "PNAS"
-    , T.pubmed = "Proc Natl Acad Sci U S A"
-    , T.freq   = T.Weekly
-    , T.resets = True
+      T.name     = "Proceedings of the National Academy of Sciences U.S.A."
+    , T.abbr     = "PNAS"
+    , T.pubmed   = "Proc Natl Acad Sci U S A"
+    , T.freq     = T.Weekly
+    , T.resets   = True
+    , T.mincount = 20
     }
 
 pnasRef :: T.Issue
@@ -213,11 +221,12 @@ pnasRef = T.Issue {
 
 science :: T.Journal
 science = T.Journal {
-      T.name   = "Science"
-    , T.abbr   = "Science"
-    , T.pubmed = "Science"
-    , T.freq   = T.WeeklyLast
-    , T.resets = False
+      T.name     = "Science"
+    , T.abbr     = "Science"
+    , T.pubmed   = "Science"
+    , T.freq     = T.WeeklyLast
+    , T.resets   = False
+    , T.mincount = 10
     }
 
 scienceRef :: T.Issue

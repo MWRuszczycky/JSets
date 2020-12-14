@@ -98,6 +98,7 @@ refField = At.choice $ map keyValuePair [ "day"
                                         , "resets"
                                         , "volume"
                                         , "year"
+                                        , "mincount"
                                         ]
 
 ---------------------------------------------------------------------
@@ -237,6 +238,7 @@ readJournal d = do
     T.Journal k j <$> readString    d "pubmed"
                   <*> readFrequency d
                   <*> readResets    d
+                  <*> readInt       d "mincount"
 
 readFrequency :: Dict -> Either T.ErrString T.Frequency
 readFrequency = maybe (Left frequencyError) go . lookup "frequency"

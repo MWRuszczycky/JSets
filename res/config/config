@@ -18,6 +18,7 @@ email: your@email.com # Contact email for the manager.
 #   year:       <year of reference issue>
 #   month:      <month of reference issue>
 #   day:        <day of reference issue>
+#   mincount:   <minimum number of citations before suspecting some are missing>
 
 journal: Journal of the American Chemical Society/JACS
   pubmed:    J Am Chem Soc
@@ -28,6 +29,7 @@ journal: Journal of the American Chemical Society/JACS
   day:       13
   volume:    132
   issue:     1
+  mincount:  20
 
 journal: Nature/Nature
   pubmed:    Nature
@@ -38,6 +40,7 @@ journal: Nature/Nature
   day:       7
   volume:    2010
   issue:     7277
+  mincount:  10
 
 journal: Proceedings of the National Academy of Sciences/PNAS
   pubmed:    Proc Natl Acad Sci U S A
@@ -48,6 +51,7 @@ journal: Proceedings of the National Academy of Sciences/PNAS
   day:       6
   volume:    112
   issue:     1
+  mincount:  20
 
 journal: Nature Chemical Biology/Nat Chem Biol
   pubmed:    Nat Chem Biol
@@ -58,3 +62,4 @@ journal: Nature Chemical Biology/Nat Chem Biol
   day:       1
   volume:    6
   issue:     1
+  mincount:  10

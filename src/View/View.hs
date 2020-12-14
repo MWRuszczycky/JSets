@@ -97,6 +97,7 @@ referenceToTxt x = Tx.unlines hs
                , "  frequency: " <> (freqToTxt . T.freq) j
                , "  resets:    " <> (resetsToTxt . T.resets) j
                , "  reference: " <> showIssue x
+               , "  mincount:  " <> (C.tshow . T.mincount) j
                ]
 
 resetsToTxt :: Bool -> Text
