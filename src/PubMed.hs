@@ -43,8 +43,6 @@ import           Network.Wreq.Session         ( newSession   )
 import           Control.Monad.Reader         ( when         )
 import           Control.Monad.Except         ( liftIO
                                               , runExceptT   )
-import           View.Core                    ( green
-                                              , yellow       )
 
 -- =============================================================== --
 -- PubMed interface
@@ -138,7 +136,9 @@ delayMapM f xs = do
 handleMissingCitations :: [T.PMID] -> T.AppMonad ()
 -- ^Handler for missing PMIDs in ESummary requests that do not return
 -- a citation from PubMed.
-handleMissingCitations [] = A.logMessage $ green "No missing citations.\n"
+handleMissingCitations [] = do
+    paint <- A.getPainter "green"
+    A.logMessage $ paint "No missing citations.\n"
 handleMissingCitations ms =
     A.logError "There were missing citations!"
                "The following PMIDs were requested but not found:"
@@ -175,8 +175,9 @@ getSelection _      (T.ByPMID      p) = pure [T.ByPMID      p]
 getSelection wreq x@(T.ByBndDOI  i _) = map  (T.ByBndPMID i) <$> getPMIDs wreq x
 getSelection wreq x@(T.ByDOI       _) = map   T.ByPMID       <$> getPMIDs wreq x
 getSelection _      (T.ByWeb       x) = do
+    paint <- A.getPainter "yellow"
     let msg = Tx.concat
-              [ "  Cannot resolve web locator: " <> yellow x <> "\n"
+              [ "  Cannot resolve web locator: " <> paint x <> "\n"
               , "    Enter PMID or blank to skip: " ]
     A.request msg >>= \case ""   -> pure []
                             pmid -> pure [T.ByPMID pmid]
@@ -224,9 +225,10 @@ downloadCitations wreq pmids = do
         (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
     A.logMessage $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
     (t, result) <- C.timeIt $ eSummary wreq ps
+    paint       <- A.getPainter "green"
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parseCitations ps of
-         Right (ms,cs) -> do A.logMessage $ green "OK " <> timeMsg <> "\n"
+         Right (ms,cs) -> do A.logMessage $ paint "OK " <> timeMsg <> "\n"
                              pure ( ms, cs )
          Left  err     -> do A.logError "Failed"
                                         "Failed to download or parse eSummary"
@@ -242,11 +244,13 @@ getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
 getToC wreq iss = do
     A.logMessage $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
     (t, result) <- C.timeIt $ eSearch wreq iss
+    paintG      <- A.getPainter "green"
+    paintY      <- A.getPainter "yellow"
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parsePMIDs of
-         Right []    -> do A.logMessage $ yellow "No PMIDs " <> timeMsg <> "\n"
+         Right []    -> do A.logMessage $ paintY "No PMIDs " <> timeMsg <> "\n"
                            handleMissingContent iss
-         Right pmids -> do A.logMessage $ green "OK " <> timeMsg <> "\n"
+         Right pmids -> do A.logMessage $ paintG "OK " <> timeMsg <> "\n"
                            pure $ T.ToC iss Tx.empty pmids
          Left  err   -> do A.logError   "Failed"
                                       ( "Failed to obtain PMIDs for"
@@ -259,9 +263,10 @@ handleMissingContent :: T.Issue -> T.AppMonad T.ToC
 -- cannot be found at PMID. This allows the user to enter an alternate
 -- url to the ToC at the publisher's website if available.
 handleMissingContent iss = do
+    paint <- A.getPainter "yellow"
     let msg = Tx.concat
               [ "  No articles were found at PubMed for "
-              , yellow . V.showIssue $ iss
+              , paint . V.showIssue $ iss
               , "\n  Enter an alternate URL or just press enter to ignore:\n"
               , "    https://" ]
     url <- A.request msg

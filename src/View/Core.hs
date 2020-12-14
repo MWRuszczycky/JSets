@@ -8,10 +8,6 @@ module View.Core
     , dateP
     , dateW
     , showPicoSec
-      -- Terminal Colors
-    , red
-    , green
-    , yellow
       -- Text formatting of journal sets, issues, citations...
     , jsetHeader
     , jsetVHeader
@@ -95,18 +91,6 @@ showPicoSec x
           msecs      = concatMap show . take (4 - length secs) $ ns
           go (_,v) n = let z = truncate $ fromIntegral v / 10^n
                        in  (z, v - z * 10^n)
-
--- =============================================================== --
--- Terminal colors
-
-red :: Text -> Text
-red t = "\ESC[31m" <> t <> "\ESC[0m"
-
-green :: Text -> Text
-green t = "\ESC[32m" <> t <> "\ESC[0m"
-
-yellow :: Text -> Text
-yellow t = "\ESC[33m" <> t <> "\ESC[0m"
 
 -- =============================================================== --
 -- Text formatting of Journal set, issue, citation, etc. components

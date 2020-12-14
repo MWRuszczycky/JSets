@@ -15,6 +15,7 @@ module AppMonad
       -- Interactions and timing
     , delay
     , request
+    , getPainter
       -- Logging messages and errors
     , logMessage
     , logError
@@ -122,6 +123,20 @@ request msg = do
                Tx.strip . Tx.pack <$> liftIO getLine
        else pure Tx.empty
 
+---------------------------------------------------------------------
+-- colors & styling for terminal output
+
+getPainter :: Text -> T.AppMonad (Text -> Text)
+getPainter color = do
+    isTerm <- asks T.cStdOutIsTerm
+    let go esc x = esc <> x <> "\ESC[0m"
+    case ( isTerm, color    ) of
+         ( False,  _        ) -> pure   id
+         ( _,      "red"    ) -> pure $ go "\ESC[31m"
+         ( _,      "green"  ) -> pure $ go "\ESC[32m"
+         ( _,      "yellow" ) -> pure $ go "\ESC[33m"
+         ( _,      _        ) -> pure $ id
+
 -- =============================================================== --
 -- Logging messages and recoverable error information
 
@@ -138,7 +153,6 @@ logMessage msg = do
 logError :: Text -> Text -> Text -> T.AppMonad ()
 logError msg hdr err = do
     logPath <- asks T.cErrorLog
-    isTerm  <- asks T.cStdOutIsTerm
-    let cmsg = if isTerm then Vc.red msg else cmsg
+    paint   <- getPainter "red"
     lift . C.logFileErr logPath $ "Error: " <> hdr <> "\n" <> err <> "\n"
-    logMessage $ cmsg <> " (see " <> Tx.pack logPath <> ")\n"
+    logMessage $ paint msg <> " (see " <> Tx.pack logPath <> ")\n"
