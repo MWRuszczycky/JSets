@@ -138,5 +138,7 @@ logMessage msg = do
 logError :: Text -> Text -> Text -> T.AppMonad ()
 logError msg hdr err = do
     logPath <- asks T.cErrorLog
+    isTerm  <- asks T.cStdOutIsTerm
+    let cmsg = if isTerm then Vc.red msg else cmsg
     lift . C.logFileErr logPath $ "Error: " <> hdr <> "\n" <> err <> "\n"
-    logMessage $ msg <> " (see " <> Tx.pack logPath <> ")\n"
+    logMessage $ cmsg <> " (see " <> Tx.pack logPath <> ")\n"

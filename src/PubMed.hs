@@ -43,6 +43,8 @@ import           Network.Wreq.Session         ( newSession   )
 import           Control.Monad.Reader         ( when         )
 import           Control.Monad.Except         ( liftIO
                                               , runExceptT   )
+import           View.Core                    ( green
+                                              , yellow       )
 
 -- =============================================================== --
 -- PubMed interface
@@ -91,9 +93,9 @@ eSearchTerm = Tx.intercalate " AND " . map go . T.query
 eSearchQuery :: T.CanQuery a => a -> T.AppMonad Wreq.Options
 eSearchQuery x = do
     let maxResults = C.tshow 200
-    pure $ Wreq.defaults & Wreq.param "retmode".~ [ "json"        ]
-                         & Wreq.param "retmax" .~ [ maxResults    ]
-                         & Wreq.param "term"   .~ [ eSearchTerm x ]
+    pure $ Wreq.defaults & Wreq.param "retmode" .~ [ "json"        ]
+                         & Wreq.param "retmax"  .~ [ maxResults    ]
+                         & Wreq.param "term"    .~ [ eSearchTerm x ]
 
 ---------------------------------------------------------------------
 -- Options for construction of ESummary requests to get citations
@@ -136,7 +138,7 @@ delayMapM f xs = do
 handleMissingCitations :: [T.PMID] -> T.AppMonad ()
 -- ^Handler for missing PMIDs in ESummary requests that do not return
 -- a citation from PubMed.
-handleMissingCitations [] = A.logMessage "No missing citations.\n"
+handleMissingCitations [] = A.logMessage $ green "No missing citations.\n"
 handleMissingCitations ms =
     A.logError "There were missing citations!"
                "The following PMIDs were requested but not found:"
@@ -174,7 +176,7 @@ getSelection wreq x@(T.ByBndDOI  i _) = map  (T.ByBndPMID i) <$> getPMIDs wreq x
 getSelection wreq x@(T.ByDOI       _) = map   T.ByPMID       <$> getPMIDs wreq x
 getSelection _      (T.ByWeb       x) = do
     let msg = Tx.concat
-              [ "  Cannot resolve web locator: \ESC[33m" <> x <> "\ESC[0m\n"
+              [ "  Cannot resolve web locator: " <> yellow x <> "\n"
               , "    Enter PMID or blank to skip: " ]
     A.request msg >>= \case ""   -> pure []
                             pmid -> pure [T.ByPMID pmid]
@@ -182,12 +184,12 @@ getSelection _      (T.ByWeb       x) = do
 getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
 -- ^Same as getSelection, but allow no more than one PMID.
 getOneSelection wreq x = do
-    let noneMsg = "No PMID found for " <> C.tshow x <> ", skipping..\n"
+    let noneMsg = "No PMID found for " <> C.tshow x <> ", skipping...\n"
     getSelection wreq x >>= \case
         []   -> A.logMessage noneMsg *> pure []
         p:[] -> pure [p]
         ps   -> let manyHdr = "Multiple PMIDs found for " <> C.tshow x
-                    manyMsg = manyHdr <> ", skipping.."
+                    manyMsg = manyHdr <> ", skipping..."
                     manyErr = Tx.unlines . J.pmidsInSelection $ ps
                 in  A.logError manyMsg manyHdr manyErr
                     *> pure []
@@ -224,9 +226,9 @@ downloadCitations wreq pmids = do
     (t, result) <- C.timeIt $ eSummary wreq ps
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parseCitations ps of
-         Right (ms,cs) -> do A.logMessage $ "OK " <> timeMsg <> "\n"
+         Right (ms,cs) -> do A.logMessage $ green "OK " <> timeMsg <> "\n"
                              pure ( ms, cs )
-         Left  err     -> do A.logError ( "Failed " <> timeMsg )
+         Left  err     -> do A.logError "Failed"
                                         "Failed to download or parse eSummary"
                                         ( Tx.pack err )
                              pure ( [], Map.empty )
@@ -242,11 +244,11 @@ getToC wreq iss = do
     (t, result) <- C.timeIt $ eSearch wreq iss
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
     case result >>= P.parsePMIDs of
-         Right []    -> do A.logMessage $ "No PMIDs " <> timeMsg <> "\n"
+         Right []    -> do A.logMessage $ yellow "No PMIDs " <> timeMsg <> "\n"
                            handleMissingContent iss
-         Right pmids -> do A.logMessage $ "OK " <> timeMsg <> "\n"
+         Right pmids -> do A.logMessage $ green "OK " <> timeMsg <> "\n"
                            pure $ T.ToC iss Tx.empty pmids
-         Left  err   -> do A.logError ( "Failed " <> timeMsg         )
+         Left  err   -> do A.logError   "Failed"
                                       ( "Failed to obtain PMIDs for"
                                         <> V.showIssue iss           )
                                       ( Tx.pack err                  )
@@ -258,8 +260,8 @@ handleMissingContent :: T.Issue -> T.AppMonad T.ToC
 -- url to the ToC at the publisher's website if available.
 handleMissingContent iss = do
     let msg = Tx.concat
-              [ "  \ESC[33mNo articles were found at PubMed for "
-              , V.showIssue iss <> "\ESC[0m"
+              [ "  No articles were found at PubMed for "
+              , yellow . V.showIssue $ iss
               , "\n  Enter an alternate URL or just press enter to ignore:\n"
               , "    https://" ]
     url <- A.request msg
@@ -273,14 +275,14 @@ getToCs (T.JSet n issues sel) = do
     -- First, the PMIDs from the user selection. Some of these may
     -- require an eSearch query to PubMed. The PMIDs are wrapped as
     -- Selections in order to bind them to issues as necessary.
-    A.logMessage "Resolving selection..\n"
+    A.logMessage "Resolving selection...\n"
     let (wID, woID) = C.splitOn J.isPMID sel
     selIDs <- nub . (<> wID) . concat <$> delayMapM (getOneSelection wreq) woID
     -- Get all the PMIDs associated with each issue's ToC. We need an
     -- extra delay here to ensure that the last two requests are not
     -- in the same second of time as the next two.
     A.delay
-    A.logMessage "Requesting PMIDs per issue (eSearch)..\n"
+    A.logMessage "Requesting PMIDs per issue (eSearch)...\n"
     tocs <- delayMapM (getToC wreq) issues
     let pmids = zip [1..] . C.addUnique (J.pmidsInSelection selIDs)
                           . concatMap T.contents $ tocs
