@@ -9,6 +9,6 @@ p.selected a:visited { color: #c33c3c; }
 p { display: block;
     padding-left: 2.5em;
     text-indent: -1.7em; }
-span.locator { color: #3b6d96; }
+span.example { color: #00a379; }
 .txtbox { margin-left: 0.3em;
           margin-top:  3px; }
