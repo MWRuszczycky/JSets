@@ -28,12 +28,12 @@ import qualified Data.Text             as Tx
 import qualified Data.Version          as Ver
 import qualified Paths_jsets           as Paths
 import qualified System.Console.GetOpt as Opt
-import           Data.Text                      ( Text        )
+import           Data.Text                      ( Text )
 
 -- =============================================================== --
 -- Local types
 
-type Option = Opt.OptDescr (T.Config -> T.ErrMonad T.Config)
+type Option = Opt.OptDescr T.ConfigStep
 
 -- =============================================================== --
 -- Interface
@@ -77,7 +77,7 @@ cmdHeader :: T.Command -> Text
 -- ^Construct a summary header for detailed command help.
 cmdHeader cmd = sep <> "\n  " <> cmdSummary cmd <> "\n"
 
-optionsHelp :: [Opt.OptDescr (T.Config -> T.ErrMonad T.Config)] -> Text
+optionsHelp :: [Option] -> Text
 -- ^Construct a summary of all command line options.
 optionsHelp = Tx.pack . Opt.usageInfo "Options summary:"
 

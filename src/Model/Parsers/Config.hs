@@ -16,7 +16,6 @@ import           Data.Text                   ( Text                   )
 import           Data.List                   ( nub, intercalate       )
 import           Data.Bifunctor              ( bimap                  )
 import           Control.Applicative         ( (<|>), many, some      )
-import           Control.Monad               ( foldM                  )
 
 -- =============================================================== --
 -- Configuration file parsers and readers
@@ -123,21 +122,20 @@ keyValuePair key = do
 -- This is where the Text string pairs representing the parsed
 -- configuration file are read and checked as configuration values.
 
-readConfig :: T.Config -> T.ConfigFile -> Either T.ErrString T.Config
-readConfig config (T.ConfigFile configParams configRefs) = do
-    config' <- foldM readParam config configParams
-    refs    <- readRefs configRefs
-    pure $ config' { T.cReferences = refs }
+readConfig :: T.ConfigFile -> Either T.ErrString [T.ConfigStep]
+readConfig (T.ConfigFile configParams configRefs) = do
+    refConfigStep  <- readRefs configRefs
+    pure $ refConfigStep : map readParam configParams
 
-readRefs :: [Dict] -> Either T.ErrString [T.Issue]
-readRefs ds = mapM readRef ds >>= checkForDuplicates
+readRefs :: [Dict] -> Either T.ErrString T.ConfigStep
+readRefs ds = mapM readRef ds >>= checkForDuplicates >>= go
+    where go rs = pure . T.ConfigInit $ \ c -> pure $ c { T.cReferences = rs }
 
-readParam :: T.Config -> (Text,Text) -> Either T.ErrString T.Config
--- ^Read configuration parameters Text strings to values. Note that
--- configuration data can be overridden by command line options.
-readParam c ("user", u )    = pure $ c { T.cUser  = T.cUser  c <|> pure u }
-readParam c ("email", e)    = pure $ c { T.cEmail = T.cEmail c <|> pure e }
-readParam c _               = pure c
+readParam :: (Text,Text) -> T.ConfigStep
+readParam ("user",  u) = T.ConfigGen $ \ c -> pure $ c { T.cUser  = Just u }
+readParam ("email", e) = T.ConfigGen $ \ c -> pure $ c { T.cEmail = Just e }
+readParam (p,       _) = T.ConfigWarn warning
+    where warning = "Unrecognized parameter: " <> p <> " (ignored)"
 
 ---------------------------------------------------------------------
 -- Read validation and error handling

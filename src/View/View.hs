@@ -73,7 +73,7 @@ getFormat = do
 
 viewConfig :: T.ViewMonad ()
 viewConfig = do
-    path <- asks T.cRefPath
+    path <- asks T.cConfigPath
     refs <- asks T.cReferences
     Vc.writeLn . configPathTxt $ path
     Vc.newLine

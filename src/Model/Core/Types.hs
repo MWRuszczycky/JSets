@@ -16,6 +16,8 @@ module Model.Core.Types
       -- Program configuration
     , Dict
     , ConfigFile        (..)
+    , Configurator
+    , ConfigStep        (..)
     , Config            (..)
     , defaultConfig
     , Command           (..)
@@ -156,18 +158,26 @@ type Dict = [(Text, Text)]
 -- is the header information. The second Dict is the references.
 data ConfigFile = ConfigFile Dict [Dict] deriving ( Show )
 
+type Configurator = Config -> ErrMonad Config
+
+data ConfigStep =
+      ConfigInit Configurator  -- Initial configuration
+    | ConfigGen  Configurator  -- General configuration
+    | ConfigWarn Text          -- Configuration warning
+
 -- |Application configuration
 data Config = Config {
       cUser         :: Maybe Text     -- user's name
     , cEmail        :: Maybe Text     -- user's email
     , cOutputPath   :: Maybe FilePath -- file output path
-    , cRefPath      :: Maybe FilePath -- path to the references file
+    , cConfigPath   :: Maybe FilePath -- path to the configuration file
     , cJSetKey      :: Maybe Int      -- journal set key
     , cFormat       :: Maybe Format   -- explicit output format
     , cErrorLog     :: FilePath       -- where to send detailed error info
     , cDate         :: Day            -- date when application started
     , cDelay        :: Integer        -- delay (sec) between PubMed requests
     , cReferences   :: [Issue]        -- reference issues
+    , cArguments    :: [String]       -- command line arguments
     , cHelp         :: Bool           -- user requested help
     , cSortJSets    :: Bool           -- sort issues by Journal in output
     , cShowVer      :: Bool           -- show version number flag
@@ -181,13 +191,14 @@ defaultConfig = Config {
       cUser         = Nothing
     , cEmail        = Nothing
     , cOutputPath   = Nothing
-    , cRefPath      = Nothing
+    , cConfigPath   = Nothing
     , cJSetKey      = Nothing
     , cFormat       = Nothing
     , cErrorLog     = "jsets-errors.log"
     , cDate         = fromGregorian 2020 1 1
     , cDelay        = 1
     , cReferences   = []
+    , cArguments    = []
     , cHelp         = False
     , cSortJSets    = True
     , cShowVer      = False

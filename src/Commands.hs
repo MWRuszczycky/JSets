@@ -4,7 +4,7 @@
 module Commands
     ( -- Commands
       commands
-    , runCommands
+    , runCommand
     ) where
 
 import qualified Data.Map.Strict           as Map
@@ -43,9 +43,9 @@ commands = [ T.Command "help"  helpCmd  helpHelp
            , T.Command "year"  yearCmd  yearHelp
            ]
 
-runCommands :: [String] -> T.AppMonad ()
-runCommands []     = pure ()
-runCommands (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
+runCommand :: [String] -> T.AppMonad ()
+runCommand []     = pure ()
+runCommand (x:xs) = maybe err go . find ( (==x) . T.cmdName ) $ commands
     where go  = flip T.cmdAction xs
           err = throwError $ "Unknown command: " <> x
 
