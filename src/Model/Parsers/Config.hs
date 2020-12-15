@@ -11,36 +11,40 @@ import qualified Data.Attoparsec.Text as At
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
 import qualified Model.Parsers.Core   as P
-import           Model.Core.Types            ( Dict, ConfigFile  (..) )
-import           Data.Text                   ( Text                   )
-import           Data.List                   ( nub, intercalate       )
-import           Data.Bifunctor              ( bimap                  )
-import           Control.Applicative         ( (<|>), many, some      )
+import           Data.Char                   ( isAlphaNum        )
+import           Data.Text                   ( Text              )
+import           Data.List                   ( nub, intercalate  )
+import           Data.Bifunctor              ( bimap             )
+import           Control.Applicative         ( (<|>), many, some )
+import           Control.Monad               ( guard             )
+
+-- TODO : Refactor so there is only one function that parses the
+-- configuration file directly to ConfigSteps.
+-- The checking for duplicate references should be done in the
+-- finalization steps of the configuration not here.
 
 -- =============================================================== --
 -- Configuration file parsers and readers
 
 -- Configuration file parsing takes place in two stages.
 --
--- 1. The raw text file is parsed to structured data in the form of
---    of [(Text, Text)] dictionaries of type Dict, which pairing a
---    configuration parameter name with a configured string value.
---    Configuration parameters and reference issue information are
---    each parsed into their Dict values forming a ConfigFile value.
+-- 1. The raw text file is parsed to Parameter key-value Text pairs.
+--    Configuration parameters and reference issue parameters are
+--    each parsed separately to generate a ConfigFile value.
 --    This is all done with the parseConfig function.
 --
--- 2. The raw structured data in the form of a ConfigFile can then be
---    converted to a Config value on which the AppMonad is based as
+-- 2. The ConfigFile key-value Text pairs (type Parameter) can then
+--    be converted to a Config on which the AppMonad is based as
 --    using the readConfig function.
 
 -- =============================================================== --
--- Parsing a configuration text file to a lists of configuration
--- parameter names and values represented as Text strings.
+-- Parsing a configuration file to lists of Parameter key-value pairs
 
-parseConfig :: Text -> Either T.ErrString ConfigFile
+parseConfig :: Text -> Either T.ErrString T.ConfigFile
 parseConfig txt = handleResult txt . At.parse configFile $ txt
 
-handleResult :: Text -> At.Result ConfigFile -> Either T.ErrString ConfigFile
+handleResult :: Text -> At.Result T.ConfigFile
+                -> Either T.ErrString T.ConfigFile
 handleResult xs (At.Fail ys _  _) = handleFail xs ys
 handleResult xs (At.Partial go  ) = handleResult xs . go $ Tx.empty
 handleResult _  (At.Done    _  r) = pure r
@@ -59,75 +63,63 @@ handleFail input rest = Left msg
 ---------------------------------------------------------------------
 -- Configuration dicts
 
-configFile :: At.Parser ConfigFile
-configFile = ConfigFile <$> configDict <*> refDicts
+configFile :: At.Parser T.ConfigFile
+configFile = T.ConfigFile <$> configParameters <*> refDicts
 
-configDict :: At.Parser Dict
-configDict = P.comments *> many configField
-
-configField :: At.Parser (Text, Text)
-configField = At.choice $ map keyValuePair [ "email"
-                                           , "user"
-                                           ]
+configParameters :: At.Parser [T.Parameter]
+configParameters = P.comments *> many parameter
 
 ---------------------------------------------------------------------
 -- Parsing journal reference issues
 
-refDicts :: At.Parser [Dict]
+refDicts :: At.Parser [T.RefParameters]
 refDicts = do
     P.comments
-    ds <- many refDict
+    ds <- many refParameters
     P.comments
     At.endOfInput
     pure ds
 
-refDict :: At.Parser Dict
-refDict = do
-    jh <- keyValuePair "journal"
-    fs <- some refField
-    P.comments
+refParameters :: At.Parser T.RefParameters
+refParameters = do
+    P.comments *> At.string "journal" *> P.comments *> At.char ':' *> P.comments
+    jh <- (,) "journal" <$> validValue
+    P.comment <|> At.endOfLine
+    fs <- some parameter
     pure $ jh : fs
-
-refField :: At.Parser (Text, Text)
-refField = At.choice $ map keyValuePair [ "day"
-                                        , "frequency"
-                                        , "issue"
-                                        , "month"
-                                        , "pubmed"
-                                        , "resets"
-                                        , "volume"
-                                        , "year"
-                                        , "mincount"
-                                        ]
 
 ---------------------------------------------------------------------
 -- Parse helpers
 
 validValue :: At.Parser Text
-validValue = fmap Tx.pack . some . At.satisfy $ At.notInClass ":#\n\r\t"
+validValue = fmap Tx.strip . At.takeWhile1 . At.notInClass $ ":#\n\r\t"
 
-keyValuePair :: Text -> At.Parser (Text, Text)
-keyValuePair key = do
+validKey :: At.Parser Text
+validKey = At.takeWhile1 $ \ c -> isAlphaNum c || c == '-' || c == '_'
+
+parameter :: At.Parser T.Parameter
+parameter = do
     P.comments
-    k <- At.string key
+    k <- validKey
+    guard $ k /= "journal"
     P.comments
     At.char ':'
     P.comments
-    v <- Tx.strip <$> validValue
+    v <- validValue
     P.comment <|> At.endOfLine
     pure (k,v)
 
 -- =============================================================== --
 -- Reading configuration files and journal issue references
--- This is where the Text string pairs representing the parsed
+-- This is where the raw Text Parameters representing the parsed
 -- configuration file are read and checked as configuration values.
 
 readConfig :: T.ConfigFile -> Either T.ErrString [T.ConfigStep]
 readConfig (T.ConfigFile configParams configRefs) = do
-    refConfigStep  <- readRefs configRefs
+    refConfigStep <- readRefs configRefs
     pure $ refConfigStep : map readParam configParams
 
-readRefs :: [Dict] -> Either T.ErrString T.ConfigStep
+readRefs :: [T.RefParameters] -> Either T.ErrString T.ConfigStep
 readRefs ds = mapM readRef ds >>= checkForDuplicates >>= go
     where go rs = pure . T.ConfigInit $ \ c -> pure $ c { T.cReferences = rs }
 
@@ -153,8 +145,8 @@ checkForDuplicates xs
           ys     = map (T.name . T.journal) xs
           zs     = map (T.abbr . T.journal) xs
 
-readError :: Dict -> T.ErrString -> T.ErrString
-readError d err = maybe noJournal go . lookup "journal" $ d
+readError :: T.RefParameters -> T.ErrString -> T.ErrString
+readError ps err = maybe noJournal go . lookup "journal" $ ps
     where noJournal = "Fields provided without preceding <journal> header!"
           go x = concat [ "Unable read journal reference for " <> Tx.unpack  x
                         , "\n" <> err
@@ -179,13 +171,13 @@ frequencyError = intercalate "\n" hs
 ---------------------------------------------------------------------
 -- General helpers for reading journal issue references
 
-readString :: Dict -> Text -> Either T.ErrString Text
-readString d k = maybe err go . lookup k $ d
+readString :: T.RefParameters -> Text -> Either T.ErrString Text
+readString ps k = maybe err go . lookup k $ ps
     where go x = checkString x
           err  = Left $ "Record lacks a <" <> Tx.unpack k <> "> field!"
 
-readInt :: Dict -> Text -> Either T.ErrString Int
-readInt d k = readString d k >>= go
+readInt :: T.RefParameters -> Text -> Either T.ErrString Int
+readInt ps k = readString ps k >>= go
     where go   = maybe err pure . C.readMaybeTxt
           err  = Left $ "Record requires an integer value for the <"
                         <> Tx.unpack k <> "> field!"
@@ -221,24 +213,24 @@ prepString = Tx.map Ch.toLower . Tx.strip
 ---------------------------------------------------------------------
 -- Reading journal issue references dictionaries
 
-readRef :: Dict -> Either T.ErrString T.Issue
-readRef d = bimap (readError d) id ref
-    where ref = T.Issue <$> readDate    d
-                        <*> readInt     d "volume"
-                        <*> readInt     d "issue"
-                        <*> readJournal d
+readRef :: T.RefParameters -> Either T.ErrString T.Issue
+readRef ps = bimap (readError ps) id ref
+    where ref = T.Issue <$> readDate    ps
+                        <*> readInt     ps "volume"
+                        <*> readInt     ps "issue"
+                        <*> readJournal ps
 
-readJournal :: Dict -> Either T.ErrString T.Journal
-readJournal d = do
-    (j, k) <- readJournalHeader d
+readJournal :: T.RefParameters -> Either T.ErrString T.Journal
+readJournal ps = do
+    (j, k) <- readJournalHeader ps
     checkString j
     checkString k
-    T.Journal k j <$> readString    d "pubmed"
-                  <*> readFrequency d
-                  <*> readResets    d
-                  <*> readInt       d "mincount"
+    T.Journal k j <$> readString    ps "pubmed"
+                  <*> readFrequency ps
+                  <*> readResets    ps
+                  <*> readInt       ps "mincount"
 
-readFrequency :: Dict -> Either T.ErrString T.Frequency
+readFrequency :: T.RefParameters -> Either T.ErrString T.Frequency
 readFrequency = maybe (Left frequencyError) go . lookup "frequency"
     where go x = case prepString x of
                       "weekly"       -> pure T.Weekly
@@ -247,18 +239,18 @@ readFrequency = maybe (Left frequencyError) go . lookup "frequency"
                       "monthly"      -> pure T.Monthly
                       _              -> Left frequencyError
 
-readDate :: Dict -> Either T.ErrString Tm.Day
-readDate dict = do
-    d <- readInt dict "day"
-    y <- fromIntegral <$> readInt dict "year"
-    m <- readMonth    dict
+readDate :: T.RefParameters -> Either T.ErrString Tm.Day
+readDate ps = do
+    d <- readInt   ps "day"
+    y <- fromIntegral <$> readInt ps "year"
+    m <- readMonth ps
     pure $ Tm.fromGregorian y m d
 
-readMonth :: Dict -> Either T.ErrString Int
-readMonth dict = maybe err pure $ lookup "month" dict >>= toMonth . prepString
+readMonth :: T.RefParameters -> Either T.ErrString Int
+readMonth ps = maybe err pure $ lookup "month" ps >>= toMonth . prepString
     where err  = Left "Missing or invalid <month> field!"
 
-readResets :: Dict -> Either T.ErrString Bool
+readResets :: T.RefParameters -> Either T.ErrString Bool
 readResets = maybe (Left resetsError) go . lookup "resets"
     where go x = case prepString x of
                       "true"  -> pure True
@@ -267,7 +259,7 @@ readResets = maybe (Left resetsError) go . lookup "resets"
                       "no"    -> pure False
                       _       -> Left resetsError
 
-readJournalHeader :: Dict -> Either T.ErrString (Text, Text)
+readJournalHeader :: T.RefParameters -> Either T.ErrString (Text, Text)
 readJournalHeader =  maybe (Left "") go . lookup "journal"
     where go x  = case break (== '/') . Tx.unpack $ x of
                        ([]  , _      ) -> Left " Missing journal name!"

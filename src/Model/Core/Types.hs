@@ -14,7 +14,8 @@ module Model.Core.Types
     , AppMonad
     , ViewMonad
       -- Program configuration
-    , Dict
+    , Parameter
+    , RefParameters
     , ConfigFile        (..)
     , Configurator
     , ConfigStep        (..)
@@ -152,11 +153,15 @@ type ViewMonad = WriterT (Endo [Text]) (Reader Config)
 ---------------------------------------------------------------------
 -- Program configuration
 
-type Dict = [(Text, Text)]
+-- |Configuration parameter key-value pair
+type Parameter     = (Text,Text)
+
+-- |Configuration parameters for a given reference issue
+type RefParameters = [Parameter]
 
 -- |Structured data from a parsed configuration file. The first Dict
 -- is the header information. The second Dict is the references.
-data ConfigFile = ConfigFile Dict [Dict] deriving ( Show )
+data ConfigFile = ConfigFile [Parameter] [RefParameters] deriving ( Show )
 
 type Configurator = Config -> ErrMonad Config
 

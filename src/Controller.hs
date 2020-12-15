@@ -96,8 +96,7 @@ configure config = do
     pure . (,) (cliWarnings <> fileWarnings) $ configFinal
         { T.cDate         = today
         , T.cStdOutIsTerm = isTerm
-        , T.cFormat       = Nothing -- TODO fix this
-        }
+        } -- TODO : determine output format at this point.
 
 ---------------------------------------------------------------------
 -- Configuration helpers
