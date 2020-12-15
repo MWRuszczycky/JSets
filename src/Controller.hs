@@ -47,6 +47,7 @@ configureApp = do
     when (T.cStdOutIsTerm  config) . liftIO . putStr $ "\ESC[0m"
     when (not . T.cTerse $ config) . mapM_ warn $ ws
     pure config
+    -- TODO make sure there are no duplicated references
 
 ---------------------------------------------------------------------
 -- Configuration phases
@@ -133,10 +134,23 @@ fileConfigSteps :: T.Config -> T.ErrMonad [T.ConfigStep]
 fileConfigSteps config = do
     let path = T.cConfigPath config
     content <- maybe (pure Tx.empty) C.readFileErr $ path
-    case P.parseConfig content >>= P.readConfig of
+    case P.parseConfig content of
          Right steps -> pure steps
          Left  err   -> throwError $ "Error: Unable to configure JSets! \n"
                                      <> err
+
+-- checkForDuplicates :: [T.Issue] -> Either T.ErrString [T.Issue]
+-- -- ^Journal entries are all keyed by their abbreviations. So, the
+-- -- journal abbreviations must be unique. However, this function also
+-- -- checks to make sure the journal names are also unique.
+-- checkForDuplicates xs
+--     | gNames && gAbbrs = pure xs
+--     | gNames           = Left "References have repeated journal abbreviations!"
+--     | otherwise        = Left "References have repeated journal names!"
+--     where gNames = ys == nub ys
+--           gAbbrs = zs == nub zs
+--           ys     = map (T.name . T.journal) xs
+--           zs     = map (T.abbr . T.journal) xs
 
 -- =============================================================== --
 -- Options
