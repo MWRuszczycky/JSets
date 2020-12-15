@@ -18,7 +18,7 @@ import           Commands                     ( runCommand, commands )
 import           Control.Monad                ( foldM, when          )
 import           Control.Monad.Except         ( throwError           )
 import           Control.Monad.Reader         ( runReaderT, liftIO   )
-import           Data.List                    ( intercalate          )
+import           Data.List                    ( nub, intercalate     )
 import           Data.Text                    ( Text, pack           )
 import           System.Directory             ( getHomeDirectory
                                               , doesFileExist        )
@@ -43,11 +43,11 @@ runApp config
 configureApp :: T.ErrMonad T.Config
 configureApp = do
     (ws,config) <- initialize >>= configure
+    checkForDuplicateReferences config
     -- Configure the terminal if necessary
     when (T.cStdOutIsTerm  config) . liftIO . putStr $ "\ESC[0m"
     when (not . T.cTerse $ config) . mapM_ warn $ ws
     pure config
-    -- TODO make sure there are no duplicated references
 
 ---------------------------------------------------------------------
 -- Configuration phases
@@ -139,18 +139,20 @@ fileConfigSteps config = do
          Left  err   -> throwError $ "Error: Unable to configure JSets! \n"
                                      <> err
 
--- checkForDuplicates :: [T.Issue] -> Either T.ErrString [T.Issue]
--- -- ^Journal entries are all keyed by their abbreviations. So, the
--- -- journal abbreviations must be unique. However, this function also
--- -- checks to make sure the journal names are also unique.
--- checkForDuplicates xs
---     | gNames && gAbbrs = pure xs
---     | gNames           = Left "References have repeated journal abbreviations!"
---     | otherwise        = Left "References have repeated journal names!"
---     where gNames = ys == nub ys
---           gAbbrs = zs == nub zs
---           ys     = map (T.name . T.journal) xs
---           zs     = map (T.abbr . T.journal) xs
+checkForDuplicateReferences :: T.Config -> T.ErrMonad ()
+-- ^Journal entries are all keyed by their abbreviations. So, the
+-- journal abbreviations must be unique. However, this function also
+-- checks to make sure the journal names are also unique.
+checkForDuplicateReferences config
+    | gNames && gAbbrs = pure ()
+    | gNames           = throwError abbrErr
+    | otherwise        = throwError nameErr
+    where gNames  = xs == nub xs
+          gAbbrs  = ys == nub ys
+          xs      = map (T.name . T.journal) . T.cReferences $ config
+          ys      = map (T.abbr . T.journal) . T.cReferences $ config
+          abbrErr = "References have repeated journal abbreviations!"
+          nameErr = "References have repeated journal names!"
 
 -- =============================================================== --
 -- Options
