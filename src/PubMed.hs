@@ -46,14 +46,13 @@ import           Control.Monad.Except         ( liftIO
 
 -- =============================================================== --
 -- PubMed interface
--- PMC queries of the PubMed data base are in two stages. The first
--- uses the ESearch E-utility to obtain the unique ID (UID) numbers
--- of the requested information (here each article citation).
--- These UIDs need to be submitted in a second request to PMC to
--- acquire the actual citations. This is done using the ESummary
--- E-utility. The following two functions are used to construct query
--- urls for use with ESearch and ESummary.
--- For more information see
+-- Queries of the PubMed data base are in two stages. The first uses
+-- the ESearch to obtain the unique ID (a.k.a., UID, PubMed ID or
+-- PMID) numbers of the requested information, which here each is the
+-- article citation. Once obtained, the PMIDs need to be submitted
+-- in a second request to PubMed in order to acquire the actual
+-- citation information as a document summary. This is done using the
+-- ESummary E-utility. For more information, see
 -- https://www.ncbi.nlm.nih.gov/books/NBK25501
 -- https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESummary
 -- https://www.ncbi.nlm.nih.gov/books/NBK25500/#chapter1.Searching_a_Database

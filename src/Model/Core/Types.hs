@@ -25,8 +25,8 @@ module Model.Core.Types
     , JSets             (..)
     , References
       -- PubMed
-    , Query
     , ESearchTerm
+    , Query
     , QueryTerm         (..)
       -- Journals
     , Journal           (..)
@@ -150,11 +150,21 @@ type ViewMonad = WriterT (Endo [Text]) (Reader Config)
 ---------------------------------------------------------------------
 -- Program configuration
 
+-- |A Configurator is used to update the configuration (Config) based
+-- on a command line option or a configuration file option.
 type Configurator = Config -> ErrMonad Config
 
+-- |A ConfigStep is a step during the configuration process where the
+-- configuration (Config) is updated in some way. It either wraps a
+-- Configurator that needs to be applied or a warning that was raised
+-- during the reading of configuration options from the command line
+-- or file. Init steps should be applied early in the configuration
+-- process as later configuration steps may depend on these results
+-- (e.g., setting the configuration file path). Gen steps take place
+-- later and should not affect the outcome of subseqeunt steps.
 data ConfigStep =
-      ConfigInit Configurator  -- Initial configuration
-    | ConfigGen  Configurator  -- General configuration
+      ConfigInit Configurator  -- Initial step, may affect later steps
+    | ConfigGen  Configurator  -- General step, should not affect later steps
     | ConfigWarn Text          -- Configuration warning
 
 -- |Application configuration
@@ -199,12 +209,14 @@ defaultConfig = Config {
     , cStdOutIsTerm = True
     }
 
+-- |Describes a JSets command that can be run (e.g., <toc> or <read>)
 data Command = Command {
-      cmdName   :: String
-    , cmdAction :: [String] -> AppMonad ()
-    , cmdHelp   :: (Text, Text)
+      cmdName   :: String                   -- How the command is envoked
+    , cmdAction :: [String] -> AppMonad ()  -- What it does with its arguments
+    , cmdHelp   :: (Text, Text)             -- Short and long documentation
     }
 
+-- |Output formats.
 data Format =
       TXT
     | HTML
@@ -217,7 +229,8 @@ data Format =
 -- Journal sets
 
 -- |A Journal Set (JSet) is a list of all journal issues to be
--- reviewed in a single along with an identifying INT key.
+-- reviewed in a single litarature review session along with an
+-- identifying integer key.
 data JSet a = JSet {
       setNo     :: Int
     , issues    :: [a]
@@ -243,10 +256,14 @@ type References = [Issue]
 -- =============================================================== --
 -- PubMed
 
-type Query = [QueryTerm]
-
+-- |The text string which is built from a Query and is appended to
+-- the ESearch url to submit a PubMed ESearch request.
 type ESearchTerm = Text
 
+-- |Representation of a complete PubMed ESearch request.
+type Query = [QueryTerm]
+
+-- |Should correspond to a single field in a PubMed ESearch request.
 data QueryTerm =
       TitleQry   Text
     | PageQry    PageNo
@@ -289,15 +306,9 @@ data Frequency =
 -- =============================================================== --
 -- Journal Issues
 
--- An Issue is the base description of a published issue of a journal.
--- A ToC is essentially the table of contents associated with an
--- Issue. It provides all the PubMed IDs of citations in the issue as
--- well a possible URL where the ToC can be found at the publisher's
--- website if necessary.
-
 ---------------------------------------------------------------------
 
--- |Basic information about a given issue of a journal.
+-- |Base description of a published issue of a journal.
 data Issue = Issue {
       theDate    :: Day
     , theVolNo   :: Int
@@ -329,7 +340,10 @@ instance CanQuery Issue where
 
 ---------------------------------------------------------------------
 
--- |Table of contents for an issue of a journal
+-- |Essentially the table of contents associated with an Issue. It
+-- provides all the PubMed IDs (or as many as can be found) of the
+-- citations in the issue as well a possible URL where the ToC can be
+-- found at the publisher's website if necessary.
 data ToC = ToC {
       theIssue :: Issue  -- The issue the contents reflect.
     , tocURL   :: Text   -- URL to the online ToC at the publisher's website.
@@ -353,18 +367,18 @@ instance MayMix ToC where
 -- =============================================================== --
 -- Citations
 
+-- |A PubMed ID
 type PMID = Text
 
 -- |Structured data type representing user citation selections.
 -- Normally the selection should be by PMID; however, in some cases
--- the user may specify a doi, direct link or an issue with some
--- identifying text (article title, page number, etc.). This last
--- specification will need to be refined later.
+-- the user may specify a DOI, or some web identifier (e.g., website,
+-- article title, etc.). The PMID & DOI can be bound to known issue.
 data Selection =
       ByBndPMID Issue PMID -- PubMed ID that should be bound to an issue
-    | ByPMID          PMID -- PubMed ID that is not associated issue
+    | ByPMID          PMID -- PubMed ID where the associated issue is not known
     | ByBndDOI  Issue Text -- DOI that should be bound to an issue
-    | ByDOI           Text -- DOI that is not associated issue
+    | ByDOI           Text -- DOI where the associated issue is not known
     | ByWeb           Text -- Some text identifier to help locate the selection
       deriving ( Eq )
 
@@ -455,6 +469,7 @@ instance Ord PageRange where
 -- =============================================================== --
 -- Rank matching
 
+-- |Data type used to manage the results from the <match> command.
 data MatchResult = MatchResult {
       -- Identifier title for the match.
       matchTitle  :: Text
