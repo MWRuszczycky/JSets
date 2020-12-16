@@ -44,7 +44,6 @@ import qualified Model.Journals   as J
 import qualified View.Core        as Vc
 import qualified View.Html        as Html
 import qualified View.Templates   as Temp
-import           Control.Applicative      ( (<|>)                )
 import           Control.Monad            ( replicateM_, when    )
 import           Control.Monad.Reader     ( ask, asks, runReader )
 import           Control.Monad.Writer     ( execWriterT          )
@@ -61,12 +60,6 @@ import           View.Templates           ( fill                 )
 runView :: T.ViewMonad a -> T.AppMonad Text
 runView view = ask >>= pure . Tx.concat . flip appEndo [] . run
     where run config = flip runReader config . execWriterT $ view
-
-getFormat :: T.ViewMonad T.Format
-getFormat = do
-   argFmt <- asks T.cFormat
-   extFmt <- asks $ \ x -> T.cOutputPath x >>= C.readFormat . C.extension
-   maybe (pure T.TXT) pure $ argFmt <|> extFmt
 
 -- =============================================================== --
 -- Viewing configuration files and configured references
@@ -116,7 +109,7 @@ freqToTxt T.Monthly     = "monthly (12 issues per year)"
 viewJSets :: T.HasIssue a => T.JSets a -> T.ViewMonad ()
 viewJSets jsets = do
     abbrs <- asks T.cReferences >>= pure . map ( T.abbr . T.journal )
-    getFormat >>= \case
+    asks T.cFormat >>= \case
         T.CSV -> jsetsCsv abbrs jsets
         T.MKD -> jsetsMkd jsets
         _     -> jsetsTxt jsets
@@ -185,7 +178,7 @@ jsetMkd jset = do
 -- Viewing tables of contents
 
 viewToCs :: T.Citations -> T.JSet T.ToC -> T.ViewMonad ()
-viewToCs cs jset = getFormat >>= \case
+viewToCs cs jset = asks T.cFormat >>= \case
                        T.HTML -> jsetContentHtml cs jset
                        T.MKD  -> jsetContentMkd  cs jset
                        _      -> jsetContentTxt  cs jset
@@ -227,7 +220,7 @@ viewRanks cs jset@(T.JSet _ _ sel) = do
     date  <- asks T.cDate
     let pmids = J.pmidsInSelection sel
     let go = flip Map.lookup cs
-    getFormat >>= \case
+    asks T.cFormat >>= \case
          T.HTML -> Vc.write . Html.ranksHtml name email date cs $ jset
          T.MKD  -> Vc.separate Vc.newLine . map citationMkd . mapMaybe go $ pmids
          _      -> Vc.separate Vc.newLine . map citationTxt . mapMaybe go $ pmids
@@ -297,7 +290,7 @@ viewCitations :: [T.Citation] -> T.ViewMonad ()
 viewCitations = Vc.separate Vc.newLine . map viewCitation
 
 viewCitation :: T.Citation -> T.ViewMonad ()
-viewCitation x = getFormat >>= \case
+viewCitation x = asks T.cFormat >>= \case
                      T.MKD -> citationMkd x
                      _     -> citationTxt x
 

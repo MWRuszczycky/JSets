@@ -97,7 +97,7 @@ configure config = do
     pure . (,) (cliWarnings <> fileWarnings) $ configFinal
         { T.cDate         = today
         , T.cStdOutIsTerm = isTerm
-        } -- TODO : determine output format at this point.
+        }
 
 ---------------------------------------------------------------------
 -- Configuration helpers
@@ -168,6 +168,12 @@ options =
           "PATH"
       ) "Use the configuration file at path PATH."
 
+    , Opt.Option "o" [ "output" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigInit $ configOutputPath x )
+          "PATH"
+      ) "Set the output filepath to PATH."
+
     , Opt.Option "" [ "user" ]
       ( Opt.ReqArg
           ( \ x -> T.ConfigGen $ \ c -> pure $ c { T.cUser = Just . pack $ x } )
@@ -185,12 +191,6 @@ options =
           ( \ x -> T.ConfigGen $ configKey x )
           "KEY"
       ) "Set the journal set key to KEY (positive integer)."
-
-    , Opt.Option "o" [ "output" ]
-      ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ \ c -> pure $ c { T.cOutputPath = Just x } )
-          "PATH"
-      ) "Set the output filepath to PATH."
 
     , Opt.Option "" [ "delay" ]
       ( Opt.ReqArg
@@ -245,9 +245,20 @@ configDelay delay config
     where d = maybe 0 id . readMaybe $ delay
 
 configFormat :: String -> T.Configurator
+-- ^This should be a part of a general configuration step so that it
+-- takes precedence over the format set by the output path extension. 
 configFormat arg config = maybe err go . C.readFormat $ arg
-    where go x = pure $ config { T.cFormat = Just x }
+    where go x = pure $ config { T.cFormat = x }
           err  = throwError $ "Unrecognized format " <> arg
 
 configArguments :: [String] -> T.Configurator
 configArguments args config = pure $ config { T.cArguments = args }
+
+configOutputPath :: FilePath -> T.Configurator
+-- ^Configure both the output path as well as the format. This should
+-- be an initial configuration step so that the format provided by
+-- the --fmt option will take precedence if used.
+configOutputPath fp config = pure $
+    config { T.cOutputPath = Just fp
+           , T.cFormat     = maybe (T.cFormat config) id
+                             . C.readFormat . C.extension $ fp }

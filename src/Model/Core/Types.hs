@@ -164,7 +164,7 @@ data Config = Config {
     , cOutputPath   :: Maybe FilePath -- file output path
     , cConfigPath   :: Maybe FilePath -- path to the configuration file
     , cJSetKey      :: Maybe Int      -- journal set key
-    , cFormat       :: Maybe Format   -- explicit output format
+    , cFormat       :: Format         -- explicit output format
     , cErrorLog     :: FilePath       -- where to send detailed error info
     , cDate         :: Day            -- date when application started
     , cDelay        :: Integer        -- delay (sec) between PubMed requests
@@ -185,7 +185,7 @@ defaultConfig = Config {
     , cOutputPath   = Nothing
     , cConfigPath   = Nothing
     , cJSetKey      = Nothing
-    , cFormat       = Nothing
+    , cFormat       = TXT
     , cErrorLog     = "jsets-errors.log"
     , cDate         = fromGregorian 2020 1 1
     , cDelay        = 1
@@ -210,6 +210,7 @@ data Format =
     | HTML
     | MKD
     | CSV
+    | JSON
       deriving ( Show, Eq )
 
 -- =============================================================== --

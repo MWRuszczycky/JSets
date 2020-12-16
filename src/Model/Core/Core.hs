@@ -55,6 +55,7 @@ readFormat fmt = case map toLower fmt of
                       "md"   -> Just T.MKD
                       "html" -> Just T.HTML
                       "txt"  -> Just T.TXT
+                      "json" -> Just T.JSON
                       _      -> Nothing
 
 -- =============================================================== --
