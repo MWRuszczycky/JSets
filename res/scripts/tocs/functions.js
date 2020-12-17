@@ -4,6 +4,7 @@
 // --------------------------------------------------------------- //
 function isAlphaNum(x) {
 // Determine if character is alpha-numeric.
+
     if (x.length === 1) {
         let v     = x.charCodeAt(0);
         let isNum = (v > 47 && v < 58);
@@ -17,6 +18,7 @@ function isAlphaNum(x) {
 // --------------------------------------------------------------- // 
 function makeFileName(prefix, xs) {
 // Generate a file name for the selection.
+
     let suffix = "";
     for (let i = 0; i < xs.length; i++) {
         if (isAlphaNum(xs[i])) {
@@ -31,6 +33,11 @@ function makeFileName(prefix, xs) {
 
 // --------------------------------------------------------------- //
 function userCitationLocator(citeId) {
+// Generate an object describing the locator for a user-added
+// citation. The members are:
+// url     : The presumed url of the citation abstract
+// refType : The type of locator (DOI, PMID or something on the Web)
+// valid   : Whether the locator has non-zero length
 
     let refType = document.getElementById(citeId + "-refType").value;
     let ref     = document.getElementById(citeId + "-ref").value.trim();
@@ -53,13 +60,16 @@ function userCitationLocator(citeId) {
             url += ref;
             break;
     }
-
     return { url: url, refType: refType, ref: ref, valid: true };
-
 }
 
 // --------------------------------------------------------------- //
 function userCitationHTML(citeId, citeClass, index) {
+// Generate the HTML for a user-added citation with the given ID in
+// the given class. The user-added citations are listed sequentially
+// for each issue or the Extra Articles and numbered with the index
+// in the respective list. However, the index has no other purpose
+// than to make things easier to read for the user.
 
     let indexStr = index.toString();
     let content  =
@@ -81,12 +91,10 @@ function userCitationHTML(citeId, citeClass, index) {
             <input type="text" id="${citeId}-ref"
                    size="60" class="txtbox">
          </p>`;
-
     return content;
-
 }
 
-// ------------------------------------------------------------------
+// --------------------------------------------------------------- //
 function newUserCitation(citeClass) {
 // Create a new html element for entering a user-citation. Handles
 // citations from missing configured issues and extra citations.
@@ -107,10 +115,9 @@ function newUserCitation(citeClass) {
     userCite.innerHTML = userCitationHTML(citeId, citeClass, count + 1);
 
     citeGroup.appendChild(userCite);
-
 }
 
-// ------------------------------------------------------------------
+// --------------------------------------------------------------- //
 function remUserCitation(citeId, citeClass) {
 // Delete a user-added citation and rename the remaining user-
 // citations so they remain sequentially numbered. Note that the
@@ -124,10 +131,9 @@ function remUserCitation(citeId, citeClass) {
     for (let i = 0; i < xs.length; i++) {
         xs[i].innerHTML = "Article " + (i+1).toString();
     }
-
 }
 
-// ------------------------------------------------------------------
+// --------------------------------------------------------------- //
 function checkUserCitation(citeId) {
 // Attempt to open a link to a user-specified citation in a new tab.
 
@@ -139,9 +145,9 @@ function checkUserCitation(citeId) {
     }
 
     window.open(locator.url, "_blank");
-
 }
 
+// --------------------------------------------------------------- //
 function readUserCitations(issue) {
 // Read article selections for user-added citations.
 
@@ -160,18 +166,13 @@ function readUserCitations(issue) {
                    + "It will not be recorded." );
             continue;
         }
-
         let prefix = locator.refType.toLowerCase() + ": ";
         if (locator.refType == "PMID") {
             prefix = "";
         }
-
         selected[selected.length] = prefix + locator.ref;
-
     }
-
     return selected;
-
 }
 
 // --------------------------------------------------------------- //
@@ -195,7 +196,6 @@ function readSelection() {
                 count     += 1;
             }
         }
-
         // Get articles that the user has added manually
         let userCitations = readUserCitations(issues[i]);
         count += userCitations.length;
@@ -203,9 +203,7 @@ function readSelection() {
             selection += "    " + userCitations[j] + "\n";
         }
     }
-
     return { listing: selection, count: count };
-
 }
 
 // --------------------------------------------------------------- // 
@@ -246,5 +244,4 @@ function resetSelection() {
    countWgt.innerHTML    = "";
    saveWgt.style         = "display:none";
    createWgt.style       = "display.block;"
-
 }

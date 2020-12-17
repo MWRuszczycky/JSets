@@ -70,6 +70,19 @@ jsonHelp :: (Text, Text)
 jsonHelp = (s, H.jsonHelp)
     where s = "Download raw PubMed json responses for a journal issue."
 
+-- TODO : This works but it's a mess and needs to be rewritten.
+-- 1. Make command <issue> which takes an issue abbreviation, a year
+--    and an issue number and performs a ToC request (just like the
+--    <toc> command). This will require a lookupIssueByYear function.
+-- 2. Return the json output if the json format is configured.
+-- 3. Make a <query> command that can be used to construct PubMed
+--    queries. Again, the json should be returned if json format is
+--    configured.
+-- 4. Implement the --pmid-only flag for only returning the results
+--    of the ESearch query and not proceding to the ESummary query
+--    for both the <issue> and <query> commands.
+-- 5. Write the corresponding documentation.
+-- 6. Delete the <json> command.
 jsonCmd :: [String] -> T.AppMonad ()
 jsonCmd [] = throwError "A journal issue must be specified."
 jsonCmd xs

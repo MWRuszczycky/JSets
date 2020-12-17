@@ -106,9 +106,9 @@ getConfigurators :: [T.ConfigStep] -> ([T.Configurator],[T.Configurator])
 -- ^Parse configuration steps into steps that should be applied first
 -- versus those that should be applied later.
 getConfigurators = foldr go ([],[])
-    where go (T.ConfigInit    f) (fs,gs) = (f:fs,gs)
-          go (T.ConfigGen     g) (fs,gs) = (fs,g:gs)
-          go _                   (fs,gs) = (fs,gs)
+    where go (T.ConfigInit f) (fs,gs) = (f:fs,gs)
+          go (T.ConfigGen  g) (fs,gs) = (fs,g:gs)
+          go _                (fs,gs) = (fs,gs)
 
 getWarnings :: [T.ConfigStep] -> [Text]
 -- ^Parse configuration steps to get all the warnings.

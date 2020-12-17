@@ -130,20 +130,6 @@ delayMapM f xs = do
     pure $ us <> vs
 
 ---------------------------------------------------------------------
--- Handler functions for missing PMIDs and citations
-
-handleMissingCitations :: [T.PMID] -> T.AppMonad ()
--- ^Handler for missing PMIDs in ESummary requests that do not return
--- a citation from PubMed.
-handleMissingCitations [] = do
-    paint <- A.getPainter "green"
-    A.logMessage $ paint "No missing citations.\n"
-handleMissingCitations ms =
-    A.logError "There were missing citations!"
-               "The following PMIDs were requested but not found:"
-               $ Tx.unlines ms
-
----------------------------------------------------------------------
 -- Downloading PMIDs via ESearch requests
 
 eSearch :: T.CanQuery a =>
@@ -226,12 +212,11 @@ downloadCitations wreq pmids = do
     (t, result) <- C.timeIt $ eSummary wreq ps
     paint       <- A.getPainter "green"
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
+        errMsg  = "Failed to download or parse eSummary"
     case result >>= P.parseCitations ps of
          Right (ms,cs) -> do A.logMessage $ paint "OK " <> timeMsg <> "\n"
                              pure ( ms, cs )
-         Left  err     -> do A.logError "Failed"
-                                        "Failed to download or parse eSummary"
-                                        ( Tx.pack err )
+         Left  err     -> do A.logError "Failed" errMsg $ Tx.pack err
                              pure ( [], Map.empty )
 
 ---------------------------------------------------------------------
@@ -246,35 +231,17 @@ getToC wreq iss = do
     paintG      <- A.getPainter "green"
     paintY      <- A.getPainter "yellow"
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
+        errMsg  = "Failed to obtain PMIDs for" <> V.showIssue iss
+        missMsg = paintY "Missing PMIDs " <> timeMsg <> "\n"
+        okMsg   = paintG "OK " <> timeMsg <> "\n"
     case result >>= P.parsePMIDs of
+         Left  err   -> do A.logError "Failed" errMsg $ Tx.pack err
+                           pure $ T.ToC iss Tx.empty []
          Right pmids -> do if length pmids < (T.mincount . T.journal) iss
-                              then do A.logMessage $ paintY "Missing PMIDs "
-                                                     <> timeMsg <> "\n"
+                              then do A.logMessage missMsg
                                       handleMissingPMIDs pmids iss
-                              else do A.logMessage $ paintG "OK " <> timeMsg <> "\n"
+                              else do A.logMessage okMsg
                                       pure $ T.ToC iss Tx.empty pmids
-         Left  err   -> do A.logError   "Failed"
-                                      ( "Failed to obtain PMIDs for"
-                                        <> V.showIssue iss           )
-                                      ( Tx.pack err                  )
-                           pure ( T.ToC iss Tx.empty [] )
-
-handleMissingPMIDs :: [T.PMID] -> T.Issue -> T.AppMonad T.ToC
--- ^Handler for the event that the ToC of a given journal issue
--- cannot be found at PMID. This allows the user to enter an alternate
--- url to the ToC at the publisher's website if available.
-handleMissingPMIDs pmids iss = do
-    paint <- A.getPainter "yellow"
-    let n    = paint . C.tshow . length $ pmids
-        m    = paint . C.tshow . T.mincount . T.journal $ iss
-        name = paint . V.showIssue $ iss
-        msg  = Tx.concat
-                  [ "  There were " <> n <> " articles found at PubMed for "
-                  , name <> "\n  However, at least " <> m <> " were expected."
-                  , "\n  Enter an alternate ToC URL or press <enter> to skip:\n"
-                  , "    https://" ]
-    url <- A.request msg
-    pure $ T.ToC iss url pmids
 
 getToCs :: T.JSet T.Issue -> T.AppMonad (T.Citations, T.JSet T.ToC)
 -- ^Request tables of contents for a Journal Set and the citations.
@@ -301,7 +268,7 @@ getToCs (T.JSet n issues sel) = do
     -- we have to break up the requests into chunks.
     -- (Still need to figure out what the PMID limit per request is.)
     A.delay
-    A.logMessage $ "There are " <> C.tshow (length pmids) <> " PMIDs:\n"
+    A.logMessage $ "There are " <> C.tshow (length pmids) <> " PMIDs...\n"
     (missing,cites) <- fmap unzip . delayMapM (downloadCitations wreq)
                                   . C.chunksOf 100 $ pmids
     -- Clean up: 1. Inform user of any missing citations.
@@ -312,3 +279,33 @@ getToCs (T.JSet n issues sel) = do
     let fixedToCs  = map (J.updateToC selIDs) tocs
         fixedCites = Map.map (J.correctCitation rs fixedToCs) . mconcat $ cites
     pure ( fixedCites, T.JSet n fixedToCs selIDs )
+
+---------------------------------------------------------------------
+-- Handler and checker functions for when there may be problems
+
+handleMissingPMIDs :: [T.PMID] -> T.Issue -> T.AppMonad T.ToC
+-- ^Handler for the event that the ToC of a given journal issue
+-- cannot be found at PubMed. This allows the user to enter an
+-- alternate url to the ToC at the publisher's website if available.
+handleMissingPMIDs pmids iss = do
+    paint <- A.getPainter "yellow"
+    let n    = paint . C.tshow . length $ pmids
+        m    = paint . C.tshow . T.mincount . T.journal $ iss
+        name = paint . V.showIssue $ iss
+        msg  = Tx.concat
+                  [ "  There were " <> n <> " articles found at PubMed for "
+                  , name <> "\n  However, at least " <> m <> " were expected."
+                  , "\n  Enter an alternate ToC URL or press <enter> to skip:\n"
+                  , "    https://" ]
+    url <- A.request msg
+    pure $ T.ToC iss url pmids
+
+handleMissingCitations :: [T.PMID] -> T.AppMonad ()
+-- ^Handler for PMIDs that do not return a citation from PubMed.
+handleMissingCitations [] = do
+    paint <- A.getPainter "green"
+    A.logMessage $ paint "No missing citations.\n"
+handleMissingCitations ms =
+    A.logError "There were missing citations!"
+               "The following PMIDs were requested but not found:"
+               $ Tx.unlines ms
