@@ -59,6 +59,7 @@ type RefKeyValPairs = [KeyValPair]
 configFile :: At.Parser [T.ConfigStep]
 configFile = do
     ps <- many $ parseParameter <|> parseReference
+    P.comments
     At.endOfInput
     pure ps
 
