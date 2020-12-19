@@ -1,0 +1,8 @@
+Usage: jsets issue ABBREVIATION YEAR NUMBER
+
+Submit a request for all articles in a published issue of a configured
+journal. The journal is specified by its abbreviated title and the
+issue by its year of publication and issue number. The issue must be
+published after the corresponding reference issue for the journal.
+Use the --pmids-only option to only return the PMIDs for the article
+in the issue. Use --fmt=JSON to return only the json response.

@@ -8,6 +8,7 @@ module View.Help
     , version
       -- Help strings
     , helpHelp
+    , issueHelp
     , matchHelp
     , pmidHelp
     , ranksHelp
@@ -88,6 +89,9 @@ sep = Tx.replicate 20 "-"
 
 helpHelp :: Text
 helpHelp = $(MT.embedFile "res/help/helpHelp.txt")
+
+issueHelp :: Text
+issueHelp = $(MT.embedFile "res/help/issueHelp.txt")
 
 jsetsHelp :: Text
 jsetsHelp = $(MT.embedFile "res/help/jsetsHelp.txt")

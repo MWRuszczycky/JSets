@@ -66,7 +66,7 @@ helpCmd (c:_)       = maybe err go . find ( (==c) . T.cmdName ) $ commands
 -- Downloading a single issue from pubmed
 
 issueHelp :: (Text, Text)
-issueHelp = (s, "TODO")
+issueHelp = (s, H.issueHelp)
     where s = "Download the table of contents for a configured journal issue."
 
 issueCmd :: [String] -> T.AppMonad ()
