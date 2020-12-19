@@ -25,6 +25,7 @@ module Model.Journals
     , issuesInYear
     , issuesInVolume
     , lookupIssue
+    , lookupIssueInYear
     , nextWeekly
     , nextMonthly
     ) where
@@ -227,8 +228,14 @@ issuesInVolume v = takeWhile ((==v) . T.theVolNo)
                    . iterate (addIssues 1)
 
 lookupIssue :: T.References -> Text -> (Int, Int) -> Maybe T.Issue
-lookupIssue refs abbr (v,n) = find ( (== abbr) . T.abbr . T.theJournal ) refs
-                              >>= find ( (== n) . T.theIssNo ) . issuesInVolume v
+lookupIssue refs abbr (v,n) =
+    find ( (== abbr) . T.abbr . T.theJournal ) refs
+    >>= find ( (== n) . T.issNo ) . issuesInVolume v
+
+lookupIssueInYear :: T.References -> Text -> (Int, Int) -> Maybe T.Issue
+lookupIssueInYear refs abbr (y,n) =
+    find ( (== abbr) . T.abbr . T.journal ) refs
+    >>= find ( (== n) . T.issNo ) . issuesInYear y
 
 addIssues :: Int -> T.Issue -> T.Issue
 addIssues n x
