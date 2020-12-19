@@ -13,7 +13,6 @@ module PubMed
       -- PubMed web interface: helper functions
     , getWreqSession
     , delayMapM
-    , handleMissingCitations
       -- PubMed web interface: eSearch & PMID requests
     , eSearch
     , getPMIDs
@@ -135,50 +134,27 @@ delayMapM f xs = do
 eSearch :: T.CanQuery a =>
            C.WebRequest -> a -> T.AppMonad (Either T.ErrString Text)
 -- ^Submit an ESearch request to PubMed for the given queriable
--- value. The ESearch response is returned as json.
+-- value. The ESearch response is returned as json. This function
+-- not throw any exceptions and instead returns the result as an
+-- Either value. It also does not generate any messages.
 eSearch wreq x = do
     query <- eSearchQuery x
     liftIO . runExceptT . wreq query $ eSearchUrl
 
 getPMIDs :: T.CanQuery a => C.WebRequest -> a -> T.AppMonad [T.PMID]
 -- ^Submit ESearch request to PubMed for a queriable value and parse
--- the resulting json response to PubMed IDs.
+-- the resulting json response to PubMed IDs. This function does not
+-- throw any exceptions. If the PubMed request cannot be completed or
+-- the returned json cannot be parsed, then an error message is
+-- generated and the error details are logged.
 getPMIDs wreq x = do
     result <- eSearch wreq x
     case result >>= P.parsePMIDs of
          Right ps  -> pure ps
          Left  err -> let msg = "Failed!"
-                          hdr = "Unable to download or parse eSearch JSON:"
+                          hdr = "Unable to download or parse eSearch:"
                       in  (A.logError msg hdr . Tx.pack) err
                           *> pure []
-
-getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
--- ^Convert selections to PMIDs. If not already provided as PMID, the
--- selection is used to query PubMed via an eSearch request.
-getSelection _      (T.ByBndPMID i p) = pure [T.ByBndPMID i p]
-getSelection _      (T.ByPMID      p) = pure [T.ByPMID      p]
-getSelection wreq x@(T.ByBndDOI  i _) = map  (T.ByBndPMID i) <$> getPMIDs wreq x
-getSelection wreq x@(T.ByDOI       _) = map   T.ByPMID       <$> getPMIDs wreq x
-getSelection _      (T.ByWeb       x) = do
-    paint <- A.getPainter "yellow"
-    let msg = Tx.concat
-              [ "  Cannot resolve web locator: " <> paint x <> "\n"
-              , "    Enter PMID or blank to skip: " ]
-    A.request msg >>= \case ""   -> pure []
-                            pmid -> pure [T.ByPMID pmid]
-
-getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
--- ^Same as getSelection, but allow no more than one PMID.
-getOneSelection wreq x = do
-    let noneMsg = "No PMID found for " <> C.tshow x <> ", skipping...\n"
-    getSelection wreq x >>= \case
-        []   -> A.logMessage noneMsg *> pure []
-        p:[] -> pure [p]
-        ps   -> let manyHdr = "Multiple PMIDs found for " <> C.tshow x
-                    manyMsg = manyHdr <> ", skipping..."
-                    manyErr = Tx.unlines . J.pmidsInSelection $ ps
-                in  A.logError manyMsg manyHdr manyErr
-                    *> pure []
 
 ---------------------------------------------------------------------
 -- Downloading Citations via ESummary requests
@@ -186,62 +162,39 @@ getOneSelection wreq x = do
 eSummary :: C.WebRequest -> [T.PMID] -> T.AppMonad (Either T.ErrString Text)
 -- ^Submit an ESummary request to PubMed with given list of PMIDs.
 -- The document summaries are returned as json and describe the
--- associated citations indexed by the PMIDs.
+-- associated citations indexed by the PMIDs. This function does not
+-- throw any exceptions and returns the result as an Either value. It
+-- also does not generate any messages.
 eSummary wreq pmids =
     liftIO . runExceptT . wreq (eSummaryQuery pmids) $ eSummaryUrl
 
 getCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
--- ^Download the citations associated with a list of PMIDs. This is
--- the interface function for placing ESummary requests where the
--- citations are desired but not the json. It wraps the
--- downloadCitations function.
+-- ^Submit an ESummary request to PubMed for the requested PMIDs and
+-- return any corresponding citations. This function does not throw
+-- any exceptions. If the request fails, then a error message is
+-- produced and the error details are logged. If any PMIDs do not
+-- return a citation, then an error message is generated.
 getCitations wreq pmids = do
-    (ms,cs) <- downloadCitations wreq . zip [1..] $ pmids
-    handleMissingCitations ms
-    pure cs
+    result <- eSummary wreq pmids
+    paintY <- A.getPainter "yellow"
+    paintR <- A.getPainter "red"
+    case result >>= P.parseCitations pmids of
+         Right ([], cs) -> pure cs
+         Right (ms, cs) -> let msg = paintY "Missing citations:\n"
+                                     <> Tx.unlines ms
+                           in  A.logMessage msg *> pure cs
+         Left  err      -> let msg = paintR "Failed!"
+                               hdr = "Failed to download or parse eSummary:"
+                           in  (A.logError msg hdr . Tx.pack) err
+                               *> pure Map.empty
 
-downloadCitations :: C.WebRequest -> [(Int, T.PMID)]
-                     -> T.AppMonad ([T.PMID], T.Citations)
--- ^Core function for placing ESummary requests. Missing PMIDs that
--- are requested but cannot be found are also returned.
-downloadCitations _    []    = pure ([], Map.empty)
-downloadCitations wreq pmids = do
-    let (ns,ps) = unzip pmids
-        (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
-    A.logMessage $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
-    (t, result) <- C.timeIt $ eSummary wreq ps
-    paint       <- A.getPainter "green"
-    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
-        errMsg  = "Failed to download or parse eSummary"
-    case result >>= P.parseCitations ps of
-         Right (ms,cs) -> do A.logMessage $ paint "OK " <> timeMsg <> "\n"
-                             pure ( ms, cs )
-         Left  err     -> do A.logError "Failed" errMsg $ Tx.pack err
-                             pure ( [], Map.empty )
-
----------------------------------------------------------------------
--- Downloading issue content
-
-getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
--- ^Get the all citations asssociated with a given journal issue and
--- return the corresponding ToC.
-getToC wreq iss = do
-    A.logMessage $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
-    (t, result) <- C.timeIt $ eSearch wreq iss
-    paintG      <- A.getPainter "green"
-    paintY      <- A.getPainter "yellow"
-    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
-        errMsg  = "Failed to obtain PMIDs for" <> V.showIssue iss
-        missMsg = paintY "Missing PMIDs " <> timeMsg <> "\n"
-        okMsg   = paintG "OK " <> timeMsg <> "\n"
-    case result >>= P.parsePMIDs of
-         Left  err   -> do A.logError "Failed" errMsg $ Tx.pack err
-                           pure $ T.ToC iss Tx.empty []
-         Right pmids -> do if length pmids < (T.mincount . T.journal) iss
-                              then do A.logMessage missMsg
-                                      handleMissingPMIDs pmids iss
-                              else do A.logMessage okMsg
-                                      pure $ T.ToC iss Tx.empty pmids
+-- =============================================================== -- 
+-- Special functions for the toc command
+--
+-- These functions have more error handling options than the regular
+-- PubMed query functions to help with constructing toc output. They
+-- also need to handle queries from selection files. So, they are
+-- more complicated.
 
 getToCs :: T.JSet T.Issue -> T.AppMonad (T.Citations, T.JSet T.ToC)
 -- ^Request tables of contents for a Journal Set and the citations.
@@ -280,8 +233,83 @@ getToCs (T.JSet n issues sel) = do
         fixedCites = Map.map (J.correctCitation rs fixedToCs) . mconcat $ cites
     pure ( fixedCites, T.JSet n fixedToCs selIDs )
 
+getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
+-- ^Get the all citations asssociated with a given journal issue and
+-- return the corresponding ToC.
+getToC wreq iss = do
+    A.logMessage $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
+    (t, result) <- C.timeIt $ eSearch wreq iss
+    paintG      <- A.getPainter "green"
+    paintY      <- A.getPainter "yellow"
+    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
+        errMsg  = "Failed to obtain PMIDs for" <> V.showIssue iss
+        missMsg = paintY "Missing PMIDs " <> timeMsg <> "\n"
+        okMsg   = paintG "OK " <> timeMsg <> "\n"
+    case result >>= P.parsePMIDs of
+         Left  err   -> do A.logError "Failed" errMsg $ Tx.pack err
+                           pure $ T.ToC iss Tx.empty []
+         Right pmids -> do if length pmids < (T.mincount . T.journal) iss
+                              then do A.logMessage missMsg
+                                      handleMissingPMIDs pmids iss
+                              else do A.logMessage okMsg
+                                      pure $ T.ToC iss Tx.empty pmids
+
 ---------------------------------------------------------------------
--- Handler and checker functions for when there may be problems
+-- Resolving selection PMIDs and locators from selection files
+
+getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
+-- ^Convert selections to PMIDs. If not already provided as PMID, the
+-- selection is used to query PubMed via an eSearch request.
+getSelection _      (T.ByBndPMID i p) = pure [T.ByBndPMID i p]
+getSelection _      (T.ByPMID      p) = pure [T.ByPMID      p]
+getSelection wreq x@(T.ByBndDOI  i _) = map  (T.ByBndPMID i) <$> getPMIDs wreq x
+getSelection wreq x@(T.ByDOI       _) = map   T.ByPMID       <$> getPMIDs wreq x
+getSelection _      (T.ByWeb       x) = do
+    paint <- A.getPainter "yellow"
+    let msg = Tx.concat
+              [ "  Cannot resolve web locator: " <> paint x <> "\n"
+              , "    Enter PMID or blank to skip: " ]
+    A.request msg >>= \case ""   -> pure []
+                            pmid -> pure [T.ByPMID pmid]
+
+getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
+-- ^Same as getSelection, but allow no more than one PMID.
+getOneSelection wreq x = do
+    let noneMsg = "No PMID found for " <> C.tshow x <> ", skipping...\n"
+    getSelection wreq x >>= \case
+        []   -> A.logMessage noneMsg *> pure []
+        p:[] -> pure [p]
+        ps   -> let manyHdr = "Multiple PMIDs found for " <> C.tshow x
+                    manyMsg = manyHdr <> ", skipping..."
+                    manyErr = Tx.unlines . J.pmidsInSelection $ ps
+                in  A.logError manyMsg manyHdr manyErr
+                    *> pure []
+
+----------------------------------------------------------------------
+-- Downloading citations for toc output
+
+downloadCitations :: C.WebRequest -> [(Int, T.PMID)]
+                     -> T.AppMonad ([T.PMID], T.Citations)
+-- ^Core function for placing ESummary requests. Missing PMIDs that
+-- are requested but cannot be found are also returned.
+downloadCitations _    []    = pure ([], Map.empty)
+downloadCitations wreq pmids = do
+    let (ns,ps) = unzip pmids
+        (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
+    A.logMessage $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
+    (t, result) <- C.timeIt $ eSummary wreq ps
+    paint       <- A.getPainter "green"
+    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
+        errMsg  = "Failed to download or parse eSummary"
+    case result >>= P.parseCitations ps of
+         Right (ms,cs) -> do A.logMessage $ paint "OK " <> timeMsg <> "\n"
+                             pure ( ms, cs )
+         Left  err     -> do A.logError "Failed" errMsg $ Tx.pack err
+                             pure ( [], Map.empty )
+
+---------------------------------------------------------------------
+-- Handler and checker functions for when there may be problems with
+-- the toc requests
 
 handleMissingPMIDs :: [T.PMID] -> T.Issue -> T.AppMonad T.ToC
 -- ^Handler for the event that the ToC of a given journal issue
