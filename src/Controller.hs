@@ -226,6 +226,11 @@ options =
           ( T.ConfigGen $ \ c -> pure $ c { T.cSortJSets = False } )
       ) "Do not sort journal set issues."
 
+    , Opt.Option "" [ "pmids-only" ]
+      ( Opt.NoArg
+          ( T.ConfigGen $ \ c -> pure $ c { T.cOnlyPMIDs = True } )
+      ) "Return only PubMed IDs when querying PubMed."
+
     , Opt.Option "t" [ "terse" ]
       ( Opt.NoArg
           ( T.ConfigGen $ \ c -> pure $ c { T.cTerse = True } )
