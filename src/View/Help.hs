@@ -8,7 +8,6 @@ module View.Help
     , version
       -- Help strings
     , helpHelp
-    , jsonHelp
     , matchHelp
     , pmidHelp
     , ranksHelp
@@ -92,9 +91,6 @@ helpHelp = $(MT.embedFile "res/help/helpHelp.txt")
 
 jsetsHelp :: Text
 jsetsHelp = $(MT.embedFile "res/help/jsetsHelp.txt")
-
-jsonHelp :: Text
-jsonHelp = $(MT.embedFile "res/help/jsonHelp.txt")
 
 matchHelp :: Text
 matchHelp = $(MT.embedFile "res/help/matchHelp.txt")

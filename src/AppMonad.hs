@@ -30,6 +30,7 @@ import qualified Model.Matching            as Mt
 import qualified Model.Parsers.JournalSets as P
 import qualified View.Core                 as Vc
 import           Data.Text                          ( Text         )
+import           Text.Read                          ( readMaybe    )
 import           Control.Monad                      ( when         )
 import           Control.Monad.Reader               ( asks         )
 import           Control.Monad.Except               ( lift, liftIO
@@ -89,11 +90,21 @@ getJSets jsets (Just k) =
 references :: T.AppMonad T.References
 references = asks T.cReferences
 
-getIssue :: Text -> Int -> Int -> T.AppMonad T.Issue
-getIssue abbr v n = references >>= maybe err pure . go
-    where issMsg = Tx.unpack abbr <> " " <> show v <> ":" <> show n
-          err    = throwError $ "Invalid issue: " <> issMsg
-          go rs  = J.lookupIssue rs abbr (v,n)
+getIssue :: [String] -> T.AppMonad T.Issue
+-- ^Try to find a configured issue based on the argument list and the
+-- configuration. Throw an error if not possible.
+getIssue ([]     ) = throwError $ "Journal abbreviation, year and issue number"
+                                  <> " must be provided!"
+getIssue (_:_:[] ) = throwError "The issue number must be provided!"
+getIssue (_:[]   ) = throwError "The year and issue number must be provided!"
+getIssue (i:y:n:_) = do
+    rs <- references
+    let abbr = Tx.pack i
+    case (,) <$> readMaybe y <*> readMaybe n >>= J.lookupIssueInYear rs abbr of
+         Just iss -> pure iss
+         Nothing  -> throwError $ "Cannot find issue " <> n
+                                  <> " from journal with abbreviation " <> i
+                                  <> " in the year " <> y <> "!"
 
 -- =============================================================== --
 -- Rank matching

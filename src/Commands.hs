@@ -14,7 +14,6 @@ import qualified AppMonad                  as A
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
-import qualified Model.Parsers.PubMed      as P
 import qualified Model.Parsers.Rankings    as P
 import qualified PubMed                    as PM
 import qualified View.View                 as V
@@ -33,7 +32,7 @@ import           Control.Monad.Except               ( liftIO, lift
 commands :: [ T.Command ]
 -- ^Commands should not be more than five characters long.
 commands = [ T.Command "help"  helpCmd  helpHelp
-           , T.Command "json"  jsonCmd  jsonHelp
+           , T.Command "issue" issueCmd issueHelp
            , T.Command "match" matchCmd matchHelp
            , T.Command "pmid"  pmidCmd  pmidHelp
            , T.Command "ranks" ranksCmd ranksHelp
@@ -64,39 +63,21 @@ helpCmd (c:_)       = maybe err go . find ( (==c) . T.cmdName ) $ commands
           go  = display . H.cmdDetails
 
 ---------------------------------------------------------------------
--- Downloading raw json from pubmed
+-- Downloading a single issue from pubmed
 
-jsonHelp :: (Text, Text)
-jsonHelp = (s, H.jsonHelp)
-    where s = "Download raw PubMed json responses for a journal issue."
+issueHelp :: (Text, Text)
+issueHelp = (s, "TODO")
+    where s = "Download the table of contents for a configured journal issue."
 
--- TODO : This works but it's a mess and needs to be rewritten.
--- 1. Make command <issue> which takes an issue abbreviation, a year
---    and an issue number and performs a ToC request (just like the
---    <toc> command). This will require a lookupIssueByYear function.
--- 2. Return the json output if the json format is configured.
--- 3. Make a <query> command that can be used to construct PubMed
---    queries. Again, the json should be returned if json format is
---    configured.
--- 4. Implement the --pmid-only flag for only returning the results
---    of the ESearch query and not proceding to the ESummary query
---    for both the <issue> and <query> commands.
--- 5. Write the corresponding documentation.
--- 6. Delete the <json> command.
-jsonCmd :: [String] -> T.AppMonad ()
-jsonCmd [] = throwError "A journal issue must be specified."
-jsonCmd xs
-    | length xs < 3 = throwError "Invalid number of arguments (should be 3)!"
-    | otherwise     = do
-        let abbr = Tx.pack $ xs !! 0
-        v <- maybe (throwError "invalid volume!")   pure . readMaybe $ xs !! 1
-        n <- maybe (throwError "invalid number!") pure . readMaybe $ xs !! 2
-        query <- PM.eSearchQuery =<< A.getIssue abbr v n
-        esearch <- lift . C.webRequest query $ PM.eSearchUrl
-        lift . C.writeFileErr "esearch.json" $ esearch
-        pmids <- liftEither . P.parsePMIDs $ esearch
-        esummary <- lift . C.webRequest (PM.eSummaryQuery pmids) $ PM.eSummaryUrl
-        lift . C.writeFileErr "esummary.json" $ esummary
+issueCmd :: [String] -> T.AppMonad ()
+issueCmd args = do
+    x    <- A.getIssue args
+    wreq <- PM.getWreqSession
+    (,) <$> asks T.cFormat <*> asks T.cOnlyPMIDs >>= \case
+         ( T.JSON, True ) -> queryESearchJSON wreq x
+         ( _,      True ) -> PM.getPMIDs wreq x >>= display . Tx.unlines
+         ( T.JSON, _    ) -> PM.getPMIDs wreq x >>= queryESummaryJSON wreq
+         _                -> PM.getPMIDs wreq x >>= queryCitations wreq
 
 ---------------------------------------------------------------------
 -- Match ranking for distributing papers
@@ -121,9 +102,38 @@ pmidHelp = (s, H.pmidHelp)
 
 pmidCmd :: [String] -> T.AppMonad ()
 pmidCmd [] = throwError "One or more PMIDs must be provided!"
-pmidCmd xs = do
-    wreq <- PM.getWreqSession
-    cs   <- PM.getCitations wreq . map Tx.pack $ xs
+pmidCmd xs = PM.getWreqSession >>= flip queryCitations pmids
+    where pmids = map Tx.pack xs
+
+---------------------------------------------------------------------
+-- Submit a query to PubMed
+
+queryHelp :: (Text, Text)
+queryHelp = (s, "TODO")
+    where s = "Submit a query to PubMed"
+
+queryCmd :: [String] -> T.AppMonad ()
+queryCmd = undefined
+
+queryESearchJSON :: T.CanQuery a => C.WebRequest -> a -> T.AppMonad ()
+queryESearchJSON wreq x = PM.eSearch wreq x >>= \case
+    Right json -> display json
+    Left  err  -> do paint <- A.getPainter "red"
+                     let msg = paint "Failed!"
+                         hdr = "Cannot complete eSearch request:"
+                     A.logError msg hdr . Tx.pack $ err
+
+queryESummaryJSON :: C.WebRequest -> [T.PMID] -> T.AppMonad ()
+queryESummaryJSON wreq pmids = PM.eSummary wreq pmids >>= \case
+    Right json -> display json
+    Left  err  -> do paint <- A.getPainter "red"
+                     let msg = paint "Failed!"
+                         hdr = "Cannot complete eSummary request:"
+                     A.logError msg hdr . Tx.pack $ err
+
+queryCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad ()
+queryCitations wreq pmids = do
+    cs   <- PM.getCitations wreq pmids
     rs   <- A.references
     let citations = map (J.resolveCitationIssue rs) . Map.elems $ cs
     V.runView ( V.viewCitations citations ) >>= display
