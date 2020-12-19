@@ -186,6 +186,7 @@ data Config = Config {
     , cMatchDetails :: Bool           -- show detailed match output
     , cTerse        :: Bool           -- do not produce messages
     , cStdOutIsTerm :: Bool           -- stdout is the terminal
+    , cOnlyPMIDs    :: Bool           -- only return PMIDs from PubMed query
     } deriving ( Show )
 
 defaultConfig :: Config
@@ -207,6 +208,7 @@ defaultConfig = Config {
     , cMatchDetails = False
     , cTerse        = False
     , cStdOutIsTerm = True
+    , cOnlyPMIDs    = False
     }
 
 -- |Describes a JSets command that can be run (e.g., <toc> or <read>)
