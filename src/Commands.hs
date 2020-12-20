@@ -96,8 +96,12 @@ pmidHelp = (s, H.pmidHelp)
 
 pmidCmd :: [String] -> T.AppMonad ()
 pmidCmd [] = throwError "One or more PMIDs must be provided!"
-pmidCmd xs = PM.getWreqSession >>= flip queryCitations pmids
-    where pmids = map Tx.pack xs
+pmidCmd xs = do
+    let pmids = map Tx.pack xs
+    wreq <- PM.getWreqSession
+    asks T.cFormat >>= \case
+        T.JSON -> queryESummaryJSON wreq pmids
+        _      -> queryCitations    wreq pmids
 
 ---------------------------------------------------------------------
 -- Submit a query to PubMed
@@ -117,7 +121,7 @@ runQuery x = do
          ( T.JSON, True ) -> queryESearchJSON wreq x
          ( _,      True ) -> PM.getPMIDs wreq x >>= display . Tx.unlines
          ( T.JSON, _    ) -> PM.getPMIDs wreq x >>= queryESummaryJSON wreq
-         _                -> PM.getPMIDs wreq x >>= queryCitations wreq
+         _                -> PM.getPMIDs wreq x >>= queryCitations    wreq
 
 queryESearchJSON :: T.CanQuery a => C.WebRequest -> a -> T.AppMonad ()
 queryESearchJSON wreq x = PM.eSearch wreq x >>= \case
