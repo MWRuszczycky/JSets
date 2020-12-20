@@ -75,13 +75,17 @@ eSummaryUrl = eUtilsUrl <> "esummary.fcgi?db=pubmed"
 -- Terms & options for construction of ESearch requests to get PMIDs
 
 eSearchTerm :: T.CanQuery a => a -> T.ESearchTerm
+-- ^Generate an ESearch term string. The WildQry essentially lets
+-- PubMed decide how to search for the provided query string. Only
+-- the journal term seems to work and requires surrounding quotes.
 eSearchTerm = Tx.intercalate " AND " . map go . T.query
-    where go (T.TitleQry   x) = "\"" <> x <> "\"[title]"
+    where go (T.AuthorQry  x) =         x <> "[author]"
+          go (T.TitleQry   x) =         x <> "[title]"
           go (T.PageQry    x) = C.tshow x <> "[page]"
-          go (T.DOIQry     x) = x         <> "[doi]"
+          go (T.DOIQry     x) =         x <> "[doi]"
           go (T.JournalQry x) = "\"" <> x <> "\"[journal]"
-          go (T.WildQry    x) = "\"" <> x <> "\"[ALL fields]"
-          go (T.PMIDQry    x) = x         <> "[pmid]"
+          go (T.WildQry    x) =         x
+          go (T.PMIDQry    x) =         x <> "[pmid]"
           go (T.YearQry    x) = C.tshow x <> "[ppdat]"
           go (T.NumberQry  x) = C.tshow x <> "[issue]"
           go (T.VolumeQry  x) = C.tshow x <> "[volume]"

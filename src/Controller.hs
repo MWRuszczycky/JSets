@@ -18,6 +18,7 @@ import           Commands                     ( runCommand, commands )
 import           Control.Monad                ( foldM, when          )
 import           Control.Monad.Except         ( throwError           )
 import           Control.Monad.Reader         ( runReaderT, liftIO   )
+import           Data.Char                    ( isDigit              )
 import           Data.List                    ( nub, intercalate     )
 import           Data.Text                    ( Text, pack           )
 import           System.Directory             ( getHomeDirectory
@@ -204,6 +205,60 @@ options =
           "FMT"
       ) "Set the output format to FMT overriding file extension."
 
+    , Opt.Option "" [ "author" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ configAddToQuery . T.AuthorQry . Tx.pack $ x )
+          "AUTHOR"
+      ) "Set the author field for PubMed queries"
+
+    , Opt.Option "" [ "title" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ configAddToQuery . T.TitleQry . Tx.pack $ x )
+          "TITLE"
+      ) "Set the title field for PubMed queries"
+
+    , Opt.Option "" [ "page" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ configPageQuery x )
+          "PAGE"
+      ) "Set the page field for PubMed queries"
+
+    , Opt.Option "" [ "doi" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ configAddToQuery . T.DOIQry . Tx.pack $ x )
+          "DOI"
+      ) "Set the doi field for PubMed queries"
+
+    , Opt.Option "" [ "journal" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ configAddToQuery . T.JournalQry . Tx.pack $ x )
+          "JOURNAL"
+      ) "Set the journal field for PubMed queries"
+
+    , Opt.Option "" [ "pmid" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ configAddToQuery . T.PMIDQry . Tx.pack $ x )
+          "PMID"
+      ) "Set the pmid field for PubMed queries"
+
+    , Opt.Option "" [ "year" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ configIntQuery T.YearQry x )
+          "YEAR"
+      ) "Set the year field for PubMed queries"
+
+     , Opt.Option "" [ "issue" ]
+       ( Opt.ReqArg
+           ( \ x -> T.ConfigGen $ configIntQuery T.NumberQry x )
+           "ISSUE"
+       ) "Set the issue number field for PubMed queries"
+
+     , Opt.Option "" [ "volume" ]
+       ( Opt.ReqArg
+           ( \ x -> T.ConfigGen $ configIntQuery T.VolumeQry x )
+           "VOLUME"
+       ) "Set the volume number field for PubMed queries"
+
     -- Flags
 
     , Opt.Option "h" [ "help" ]
@@ -236,6 +291,24 @@ options =
           ( T.ConfigGen $ \ c -> pure $ c { T.cTerse = True } )
       ) "Do not display messages & accept all defaults."
     ]
+
+configAddToQuery :: T.QueryTerm -> T.Configurator
+configAddToQuery q config = pure $ config { T.cQuery = q:qs}
+    where qs = T.cQuery config
+
+configIntQuery :: (Int -> T.QueryTerm) -> String -> T.Configurator
+configIntQuery q x config = go x >>= flip configAddToQuery config . q
+    where go x = maybe err chk . readMaybe $ x
+          err  = throwError $ "Argument " <> x <> " is not an unsigned integer!"
+          chk n | n < 0     = err
+                | otherwise = pure n
+
+configPageQuery :: String -> T.Configurator
+configPageQuery xs config = go pgno >>= flip configAddToQuery config
+    where (rd,rp) = span isDigit . reverse $ xs
+          pgno    = T.PageNo (reverse rp) <$> (readMaybe . reverse $ rd)
+          go      = maybe err (pure . T.PageQry)
+          err     = throwError $ "Invalid page number " <> xs <> "!"
 
 configKey :: String -> T.Configurator
 configKey key config

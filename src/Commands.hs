@@ -35,6 +35,7 @@ commands = [ T.Command "help"  helpCmd  helpHelp
            , T.Command "issue" issueCmd issueHelp
            , T.Command "match" matchCmd matchHelp
            , T.Command "pmid"  pmidCmd  pmidHelp
+           , T.Command "query" queryCmd queryHelp
            , T.Command "ranks" ranksCmd ranksHelp
            , T.Command "read"  readCmd  readHelp
            , T.Command "refs"  refsCmd  refsHelp
@@ -70,14 +71,7 @@ issueHelp = (s, H.issueHelp)
     where s = "Download the table of contents for a configured journal issue."
 
 issueCmd :: [String] -> T.AppMonad ()
-issueCmd args = do
-    x    <- A.getIssue args
-    wreq <- PM.getWreqSession
-    (,) <$> asks T.cFormat <*> asks T.cOnlyPMIDs >>= \case
-         ( T.JSON, True ) -> queryESearchJSON wreq x
-         ( _,      True ) -> PM.getPMIDs wreq x >>= display . Tx.unlines
-         ( T.JSON, _    ) -> PM.getPMIDs wreq x >>= queryESummaryJSON wreq
-         _                -> PM.getPMIDs wreq x >>= queryCitations wreq
+issueCmd args = A.getIssue args >>= runQuery
 
 ---------------------------------------------------------------------
 -- Match ranking for distributing papers
@@ -113,7 +107,17 @@ queryHelp = (s, "TODO")
     where s = "Submit a query to PubMed"
 
 queryCmd :: [String] -> T.AppMonad ()
-queryCmd = undefined
+queryCmd args = asks ( (q:) . T.cQuery ) >>= runQuery
+    where q= T.WildQry . Tx.pack . unwords $ args
+
+runQuery :: T.CanQuery a => a -> T.AppMonad ()
+runQuery x = do
+    wreq <- PM.getWreqSession
+    (,) <$> asks T.cFormat <*> asks T.cOnlyPMIDs >>= \case
+         ( T.JSON, True ) -> queryESearchJSON wreq x
+         ( _,      True ) -> PM.getPMIDs wreq x >>= display . Tx.unlines
+         ( T.JSON, _    ) -> PM.getPMIDs wreq x >>= queryESummaryJSON wreq
+         _                -> PM.getPMIDs wreq x >>= queryCitations wreq
 
 queryESearchJSON :: T.CanQuery a => C.WebRequest -> a -> T.AppMonad ()
 queryESearchJSON wreq x = PM.eSearch wreq x >>= \case

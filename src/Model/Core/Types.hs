@@ -180,6 +180,7 @@ data Config = Config {
     , cDelay        :: Integer        -- delay (sec) between PubMed requests
     , cReferences   :: [Issue]        -- reference issues
     , cArguments    :: [String]       -- command line arguments
+    , cQuery        :: Query          -- arguments for PubMed queries
     , cHelp         :: Bool           -- user requested help
     , cSortJSets    :: Bool           -- sort issues by Journal in output
     , cShowVer      :: Bool           -- show version number flag
@@ -202,6 +203,7 @@ defaultConfig = Config {
     , cDelay        = 1
     , cReferences   = []
     , cArguments    = []
+    , cQuery        = []
     , cHelp         = False
     , cSortJSets    = True
     , cShowVer      = False
@@ -267,7 +269,8 @@ type Query = [QueryTerm]
 
 -- |Should correspond to a single field in a PubMed ESearch request.
 data QueryTerm =
-      TitleQry   Text
+      AuthorQry  Text
+    | TitleQry   Text
     | PageQry    PageNo
     | DOIQry     Text
     | JournalQry Text
@@ -279,7 +282,7 @@ data QueryTerm =
       deriving ( Eq, Show )
 
 instance CanQuery a => CanQuery [a] where
-    query = concat . map query
+    query = concatMap query
 
 instance CanQuery QueryTerm where
     query = (:[])
