@@ -1,0 +1,11 @@
+Usage: jsets query TERM [TERM]
+
+Options: --author=AUTHOR --title=TITLE --page=PAGE --doi=DOI --journal=JOURNAL
+         --pmid=PMID --year=YEAR --issue=ISSUENUMBER --volume=VOLUME
+
+Download citations from a PubMed search. The TERM arguments will be
+collected together as a single search string directly supplied to
+PubMed. The options listed above can be used to designate specific
+search fields. To limit the request to matching PubMed IDs (i.e., an
+ESearch query only), use the --pmids-only option. To return only the
+unparsed json response from PubMed set --fmt=json.

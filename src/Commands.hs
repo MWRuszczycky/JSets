@@ -107,8 +107,8 @@ pmidCmd xs = do
 -- Submit a query to PubMed
 
 queryHelp :: (Text, Text)
-queryHelp = (s, "TODO")
-    where s = "Submit a query to PubMed"
+queryHelp = (s, H.queryHelp)
+    where s = "Submit a query directly to PubMed"
 
 queryCmd :: [String] -> T.AppMonad ()
 queryCmd args = asks ( (q:) . T.cQuery ) >>= runQuery

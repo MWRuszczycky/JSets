@@ -11,6 +11,7 @@ module View.Help
     , issueHelp
     , matchHelp
     , pmidHelp
+    , queryHelp
     , ranksHelp
     , readHelp
     , refsHelp
@@ -101,6 +102,9 @@ matchHelp = $(MT.embedFile "res/help/matchHelp.txt")
 
 pmidHelp :: Text
 pmidHelp = $(MT.embedFile "res/help/pmidHelp.txt")
+
+queryHelp :: Text
+queryHelp = $(MT.embedFile "res/help/queryHelp.txt")
 
 ranksHelp :: Text
 ranksHelp = $(MT.embedFile "res/help/ranksHelp.txt")
