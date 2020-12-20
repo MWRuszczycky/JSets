@@ -61,9 +61,10 @@ getIssue json = T.Issue <$> getDate json
                         <*> getJournal json
 
 getDate :: JS.JSON -> Maybe Day
-getDate json = dateTxt >>= either (const Nothing) pure . At.parseOnly parseDate
-    where dateTxt = JS.lookupWith [ "pubdate" ] JS.str json
-                    <|> JS.lookupWith ["epubdate" ] JS.str json
+getDate json = pubDate <|> epubDate
+    where pubDate   = JS.lookupWith [ "pubdate"  ] JS.str json >>= checkDate
+          epubDate  = JS.lookupWith [ "epubdate" ] JS.str json >>= checkDate
+          checkDate = either (const Nothing) pure . At.parseOnly parseDate
 
 getInt :: [Text] -> JS.JSON -> Maybe Int
 getInt keys json = mbInt <|> Just 0
