@@ -396,11 +396,11 @@ data Selection =
       deriving ( Eq )
 
 instance Show Selection where
-    show (ByBndPMID i x) = "pmid: " <> Tx.unpack x <> " bound to " <> show i
-    show (ByPMID      x) = "pmid: " <> Tx.unpack x <> " (unbound)"
-    show (ByBndDOI  i x) = "doi: "  <> Tx.unpack x <> " bound to " <> show i
-    show (ByDOI       x) = "doi: "  <> Tx.unpack x <> " (unbound)"
-    show (ByWeb       x) = "web: "  <> Tx.unpack x
+    show (ByBndPMID i x) = Tx.unpack x <> " (pmid bound to " <> show i <> ")"
+    show (ByPMID      x) = Tx.unpack x <> " (unbound pmid)"
+    show (ByBndDOI  i x) = Tx.unpack x <> " (doi bound to " <> show i <> ")"
+    show (ByDOI       x) = Tx.unpack x <> " (unbound doi)"
+    show (ByWeb       x) = Tx.unpack x <> " (web identifier)"
 
 instance MayMix Selection where
     mix (ByBndPMID x1 x2) (ByBndPMID y1 y2)

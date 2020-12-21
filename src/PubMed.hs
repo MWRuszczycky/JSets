@@ -208,14 +208,14 @@ getToCs (T.JSet n issues sel) = do
     -- First, the PMIDs from the user selection. Some of these may
     -- require an eSearch query to PubMed. The PMIDs are wrapped as
     -- Selections in order to bind them to issues as necessary.
-    A.logMessage "Resolving selection...\n"
     let (wID, woID) = C.splitOn J.isPMID sel
+    A.logMessage $ tocsSelectionMsg (length wID) (length woID)
     selIDs <- nub . (<> wID) . concat <$> delayMapM (getOneSelection wreq) woID
     -- Get all the PMIDs associated with each issue's ToC. We need an
     -- extra delay here to ensure that the last two requests are not
     -- in the same second of time as the next two.
     A.delay
-    A.logMessage "Requesting PMIDs per issue (eSearch)...\n"
+    A.logMessage $ tocsESearchMsg (length issues)
     tocs <- delayMapM (getToC wreq) issues
     let pmids = zip [1..] . C.addUnique (J.pmidsInSelection selIDs)
                           . concatMap T.contents $ tocs
@@ -225,7 +225,7 @@ getToCs (T.JSet n issues sel) = do
     -- we have to break up the requests into chunks.
     -- (Still need to figure out what the PMID limit per request is.)
     A.delay
-    A.logMessage $ "There are " <> C.tshow (length pmids) <> " PMIDs...\n"
+    A.logMessage $ tocsESummaryMsg (length pmids)
     (missing,cites) <- fmap unzip . delayMapM (downloadCitations wreq)
                                   . C.chunksOf 100 $ pmids
     -- Clean up: 1. Inform user of any missing citations.
@@ -257,6 +257,25 @@ getToC wreq iss = do
                                       handleMissingPMIDs pmids iss
                               else do A.logMessage okMsg
                                       pure $ T.ToC iss Tx.empty pmids
+
+---------------------------------------------------------------------
+-- Messaging during the tocs download process
+
+tocsSelectionMsg :: Int -> Int -> Text
+tocsSelectionMsg nWithID nNoID
+    | nNoID == 0 = mainMsg <> "\n"
+    | otherwise  = mainMsg <> ", " <> nNoIDStr <> " require resolution...\n"
+    where mainMsg  = "There are " <> totalStr <> " articles selected"
+          totalStr = C.tshow $ nWithID + nNoID
+          nNoIDStr = C.tshow nNoID
+
+tocsESearchMsg :: Int -> Text
+tocsESearchMsg n = Tx.unwords
+    [ "ESearch: Requesting PMIDs for", C.tshow n, "issues...\n" ]
+
+tocsESummaryMsg :: Int -> Text
+tocsESummaryMsg n = Tx.unwords
+    [ "ESummary: Requesting document summaries for", C.tshow n, "PMIDs...\n" ]
 
 ---------------------------------------------------------------------
 -- Resolving selection PMIDs and locators from selection files
