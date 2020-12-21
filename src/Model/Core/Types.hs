@@ -20,6 +20,7 @@ module Model.Core.Types
     , defaultConfig
     , Command           (..)
     , Format            (..)
+    , Color             (..)
       -- Journal sets
     , JSet              (..)
     , JSets             (..)
@@ -227,6 +228,13 @@ data Format =
     | MKD
     | CSV
     | JSON
+      deriving ( Show, Eq )
+
+-- |Terminal colors
+data Color =
+      Red
+    | Green
+    | Yellow
       deriving ( Show, Eq )
 
 -- =============================================================== --

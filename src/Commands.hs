@@ -126,7 +126,7 @@ runQuery x = do
 queryESearchJSON :: T.CanQuery a => C.WebRequest -> a -> T.AppMonad ()
 queryESearchJSON wreq x = PM.eSearch wreq x >>= \case
     Right json -> display json
-    Left  err  -> do paint <- A.getPainter "red"
+    Left  err  -> do paint <- A.getPainter T.Red
                      let msg = paint "Failed!"
                          hdr = "Cannot complete eSearch request:"
                      A.logError msg hdr . Tx.pack $ err
@@ -134,7 +134,7 @@ queryESearchJSON wreq x = PM.eSearch wreq x >>= \case
 queryESummaryJSON :: C.WebRequest -> [T.PMID] -> T.AppMonad ()
 queryESummaryJSON wreq pmids = PM.eSummary wreq pmids >>= \case
     Right json -> display json
-    Left  err  -> do paint <- A.getPainter "red"
+    Left  err  -> do paint <- A.getPainter T.Red
                      let msg = paint "Failed!"
                          hdr = "Cannot complete eSummary request:"
                      A.logError msg hdr . Tx.pack $ err

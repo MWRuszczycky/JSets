@@ -180,8 +180,8 @@ getCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
 -- return a citation, then an error message is generated.
 getCitations wreq pmids = do
     result <- eSummary wreq pmids
-    paintY <- A.getPainter "yellow"
-    paintR <- A.getPainter "red"
+    paintY <- A.getPainter T.Yellow
+    paintR <- A.getPainter T.Red
     case result >>= P.parseCitations pmids of
          Right ([], cs) -> pure cs
          Right (ms, cs) -> let msg = paintY "Missing citations:\n"
@@ -243,8 +243,8 @@ getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
 getToC wreq iss = do
     A.logMessage $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
     (t, result) <- C.timeIt $ eSearch wreq iss
-    paintG      <- A.getPainter "green"
-    paintY      <- A.getPainter "yellow"
+    paintG      <- A.getPainter T.Green
+    paintY      <- A.getPainter T.Yellow
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
         errMsg  = "Failed to obtain PMIDs for" <> V.showIssue iss
         missMsg = paintY "Missing PMIDs " <> timeMsg <> "\n"
@@ -269,7 +269,7 @@ getSelection _      (T.ByPMID      p) = pure [T.ByPMID      p]
 getSelection wreq x@(T.ByBndDOI  i _) = map  (T.ByBndPMID i) <$> getPMIDs wreq x
 getSelection wreq x@(T.ByDOI       _) = map   T.ByPMID       <$> getPMIDs wreq x
 getSelection _      (T.ByWeb       x) = do
-    paint <- A.getPainter "yellow"
+    paint <- A.getPainter T.Yellow
     let msg = Tx.concat
               [ "  Cannot resolve web locator: " <> paint x <> "\n"
               , "    Enter PMID or blank to skip: " ]
@@ -302,7 +302,7 @@ downloadCitations wreq pmids = do
         (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
     A.logMessage $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
     (t, result) <- C.timeIt $ eSummary wreq ps
-    paint       <- A.getPainter "green"
+    paint       <- A.getPainter T.Green
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
         errMsg  = "Failed to download or parse eSummary"
     case result >>= P.parseCitations ps of
@@ -320,7 +320,7 @@ handleMissingPMIDs :: [T.PMID] -> T.Issue -> T.AppMonad T.ToC
 -- cannot be found at PubMed. This allows the user to enter an
 -- alternate url to the ToC at the publisher's website if available.
 handleMissingPMIDs pmids iss = do
-    paint <- A.getPainter "yellow"
+    paint <- A.getPainter T.Yellow
     let n    = paint . C.tshow . length $ pmids
         m    = paint . C.tshow . T.mincount . T.journal $ iss
         name = paint . V.showIssue $ iss
@@ -335,7 +335,7 @@ handleMissingPMIDs pmids iss = do
 handleMissingCitations :: [T.PMID] -> T.AppMonad ()
 -- ^Handler for PMIDs that do not return a citation from PubMed.
 handleMissingCitations [] = do
-    paint <- A.getPainter "green"
+    paint <- A.getPainter T.Green
     A.logMessage $ paint "No missing citations.\n"
 handleMissingCitations ms =
     A.logError "There were missing citations!"

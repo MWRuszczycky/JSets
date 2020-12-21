@@ -137,16 +137,15 @@ request msg = do
 ---------------------------------------------------------------------
 -- colors & styling for terminal output
 
-getPainter :: Text -> T.AppMonad (Text -> Text)
+getPainter :: T.Color -> T.AppMonad (Text -> Text)
 getPainter color = do
     isTerm <- asks T.cStdOutIsTerm
     let go esc x = esc <> x <> "\ESC[0m"
     case ( isTerm, color    ) of
          ( False,  _        ) -> pure   id
-         ( _,      "red"    ) -> pure $ go "\ESC[31m"
-         ( _,      "green"  ) -> pure $ go "\ESC[32m"
-         ( _,      "yellow" ) -> pure $ go "\ESC[33m"
-         ( _,      _        ) -> pure $ id
+         ( _,      T.Red    ) -> pure $ go "\ESC[31m"
+         ( _,      T.Green  ) -> pure $ go "\ESC[32m"
+         ( _,      T.Yellow ) -> pure $ go "\ESC[33m"
 
 -- =============================================================== --
 -- Logging messages and recoverable error information
@@ -164,6 +163,6 @@ logMessage msg = do
 logError :: Text -> Text -> Text -> T.AppMonad ()
 logError msg hdr err = do
     logPath <- asks T.cErrorLog
-    paint   <- getPainter "red"
+    paint   <- getPainter T.Red
     lift . C.logFileErr logPath $ "Error: " <> hdr <> "\n" <> err <> "\n"
     logMessage $ paint msg <> " (see " <> Tx.pack logPath <> ")\n"
