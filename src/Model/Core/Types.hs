@@ -179,6 +179,7 @@ data Config = Config {
     , cErrorLog     :: FilePath       -- where to send detailed error info
     , cDate         :: Day            -- date when application started
     , cDelay        :: Integer        -- delay (sec) between PubMed requests
+    , cMaxResults   :: Int            -- maximum results from an ESearch query
     , cReferences   :: [Issue]        -- reference issues
     , cArguments    :: [String]       -- command line arguments
     , cQuery        :: Query          -- arguments for PubMed queries
@@ -202,6 +203,7 @@ defaultConfig = Config {
     , cErrorLog     = "jsets-errors.log"
     , cDate         = fromGregorian 2020 1 1
     , cDelay        = 1
+    , cMaxResults   = 200
     , cReferences   = []
     , cArguments    = []
     , cQuery        = []

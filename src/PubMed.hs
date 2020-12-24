@@ -39,7 +39,7 @@ import           Data.Text                    ( Text         )
 import           Data.List                    ( nub          )
 import           Lens.Micro                   ( (.~), (&)    )
 import           Network.Wreq.Session         ( newSession   )
-import           Control.Monad.Reader         ( when         )
+import           Control.Monad.Reader         ( when, asks   )
 import           Control.Monad.Except         ( liftIO
                                               , runExceptT   )
 
@@ -92,7 +92,7 @@ eSearchTerm = Tx.intercalate " AND " . map go . T.query
 
 eSearchQuery :: T.CanQuery a => a -> T.AppMonad Wreq.Options
 eSearchQuery x = do
-    let maxResults = C.tshow 200
+    maxResults <- C.tshow <$> asks T.cMaxResults
     pure $ Wreq.defaults & Wreq.param "retmode" .~ [ "json"        ]
                          & Wreq.param "retmax"  .~ [ maxResults    ]
                          & Wreq.param "term"    .~ [ eSearchTerm x ]
@@ -120,7 +120,7 @@ getWreqSession = C.webRequestIn <$> liftIO newSession
 
 delayMapM :: (a -> T.AppMonad b) -> [a] -> T.AppMonad [b]
 -- ^PubMed only allows 3 requests per second or you risk getting your
--- IP address bloced. This function is the same as mapM with the
+-- IP address blocked. This function is the same as mapM with the
 -- AppMonad; however, it intersperses a minimum 1 second delay after
 -- every two AppMonad actions sequenced in the list. This ensures
 -- that no more than 2 requests are sent to PubMed per second.
@@ -181,13 +181,12 @@ getCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
 getCitations wreq pmids = do
     result <- eSummary wreq pmids
     paintY <- A.getPainter T.Yellow
-    paintR <- A.getPainter T.Red
     case result >>= P.parseCitations pmids of
          Right ([], cs) -> pure cs
          Right (ms, cs) -> let msg = paintY "Missing citations:\n"
                                      <> Tx.unlines ms
                            in  A.logMessage msg *> pure cs
-         Left  err      -> let msg = paintR "Failed!"
+         Left  err      -> let msg = "Failed!"
                                hdr = "Failed to download or parse eSummary:"
                            in  (A.logError msg hdr . Tx.pack) err
                                *> pure Map.empty

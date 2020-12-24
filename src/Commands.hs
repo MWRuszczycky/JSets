@@ -141,8 +141,8 @@ queryESummaryJSON wreq pmids = PM.eSummary wreq pmids >>= \case
 
 queryCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad ()
 queryCitations wreq pmids = do
-    cs   <- PM.getCitations wreq pmids
-    rs   <- A.references
+    cs <- PM.getCitations wreq pmids
+    rs <- A.references
     let citations = map (J.resolveCitationIssue rs) . Map.elems $ cs
     V.runView ( V.viewCitations citations ) >>= display
 

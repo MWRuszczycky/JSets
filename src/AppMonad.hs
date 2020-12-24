@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes        #-}
 
 module AppMonad
-    ( -- Data structer construction & aquisition
+    ( -- Data structure construction & aquisition
       readJSets
     , getJSet
     , getJSets

@@ -199,6 +199,12 @@ options =
           "SEC"
       ) "Delay in whole seconds between PubMed requests."
 
+    , Opt.Option "" [ "max-results" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ configMaxResults x )
+          "MAX"
+      ) "Maximum number of PubMed results to return (default: 200)."
+
     , Opt.Option "" [ "fmt" ]
       ( Opt.ReqArg
           ( \ x -> T.ConfigGen $ configFormat x )
@@ -321,6 +327,12 @@ configDelay delay config
     | d < 1     = throwError $ "Delay time must be a positive integer."
     | otherwise = pure $ config { T.cDelay = d }
     where d = maybe 0 id . readMaybe $ delay
+
+configMaxResults :: String -> T.Configurator
+configMaxResults maxresults config
+    | n < 1     = throwError $ "Maximum results must be a positive integer."
+    | otherwise = pure $ config { T.cMaxResults = n }
+    where n = maybe 0 id . readMaybe $ maxresults
 
 configFormat :: String -> T.Configurator
 -- ^This should be a part of a general configuration step so that it
