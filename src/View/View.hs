@@ -103,10 +103,14 @@ flagToTxt True  = "yes"
 flagToTxt False = "no"
 
 freqToTxt :: T.Frequency -> Text
-freqToTxt T.Weekly      = "weekly (52 issues per year)"
-freqToTxt T.WeeklyLast  = "weekly-last (drop the last issue of the year)"
-freqToTxt T.WeeklyFirst = "weekly-first (drop the first issue of the year)"
-freqToTxt T.Monthly     = "monthly (12 issues per year)"
+freqToTxt T.WeeklyLast      = "weekly-last (drop the last issue of the year)"
+freqToTxt T.WeeklyFirst     = "weekly-first (drop the first issue of the year)"
+freqToTxt T.Monthly         = "monthly (12 issues per year)"
+freqToTxt T.UnknownFreq     = "unknown (assumed every week)"
+freqToTxt (T.EveryNWeeks n)
+    | n < 1     = "unknown (assumed every week)"
+    | n == 1    = "weekly (52 issues per year)"
+    | otherwise = "every " <> C.tshow n <> " weeks"
 
 -- =============================================================== --
 -- Views of journal sets

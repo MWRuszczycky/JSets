@@ -14,11 +14,13 @@ module Model.Journals
     , emptyJSets
     , lookupJSet
     , combineJSets
+    , yearlySetsByDate
     , yearlySets
-    , splitByFreq
     , issuesByAbbr
+    , isFollowedWeekly
+    , isFollowedMonthly
+    , isFollowedOther
       -- Working with journal issues
-    , addIssues
     , issueAtDate
     , issuesFromDate
     , issuesByDates
@@ -26,8 +28,7 @@ module Model.Journals
     , issuesInVolume
     , lookupIssue
     , lookupIssueInYear
-    , nextWeekly
-    , nextMonthly
+    , nextIssue
     ) where
 
 import qualified Model.Core.Core      as C
@@ -38,6 +39,7 @@ import           Data.Maybe                  ( mapMaybe     )
 import           Data.List                   ( find, foldl' )
 import           Data.Time                   ( Day          )
 import           Data.Text                   ( Text         )
+import           Data.List                   ( sortOn       )
 
 -- =============================================================== --
 -- Working with citations and selections
@@ -112,19 +114,37 @@ combineJSets = pack . T.stir . concatMap unpack
 ---------------------------------------------------------------------
 -- Creation of yearly journal sets
 
+yearlySetsByDate :: Int -> Int -> T.References -> T.JSets T.Issue
+-- Compute the issues in each journal set for a specified year given
+-- some frequency k (in weeks) of the journal sets. Distribute the
+-- sets reasonably evenly by publication date.
+yearlySetsByDate y k refs
+    | y < 2000  = pack []
+    | k < 1     = pack []
+    | otherwise = let jsets = filter ( not . null ) . groupInYear y k $ refs
+                  in  pack [ T.JSet n i [] | (n, i) <- zip [1..] jsets ]
+
 yearlySets :: Int -> Int -> T.References -> T.JSets T.Issue
 -- Compute the issues in each journal set for a specified year given
--- some frequency k (in weeks) of the journal sets.
+-- some frequency k (in weeks) of the journal sets. This function
+-- tries to form the journal sets such that an equal number of each
+-- weekly journal shows up in every journal set, with extras pushed
+-- towards the end. This provides a more even distribution of the
+-- issues; however, it can lead to journal set dates being later
+-- than they would otherwise need to be.
 yearlySets y k refs
     | y < 2000  = pack []
     | k < 1     = pack []
-    | otherwise = let (ws,ms) = splitByFreq refs
-                      wsets   = weeklyInYear y k ws
-                      msets   = monthlyInYear y k ms
-                      sets    = filter ( not . null ) $ C.zipLists wsets msets
-                  in  pack [ T.JSet n i [] | (n, i) <- zip [1..] sets ]
+    | otherwise =
+        let notWeekly x = isFollowedMonthly x || isFollowedOther x
+            wsets       = weeklyInYear y k . filter isFollowedWeekly $ refs
+            xsets       = groupInYear  y k . filter notWeekly        $ refs
+            sets        = filter ( not . null ) $ C.zipLists wsets xsets
+        in  pack [ T.JSet n i [] | (n, i) <- zip [1..] sets ]
 
 setsInYear :: Int -> Int
+-- ^If journal sets are reviewed every k weeks, compute how many
+-- journal sets will be required in a given year.
 setsInYear k
     | k < 1     = 0
     | r == 0    = q
@@ -132,28 +152,42 @@ setsInYear k
     where (q,r) = quotRem 52 k
 
 weeklyInYear :: Int -> Int -> T.References -> [[T.Issue]]
-weeklyInYear y k = foldr go start . map (weeklyIssues y k)
-    where start   = replicate (setsInYear k) []
-          go x xs = C.zipLists x xs
+-- ^Group all weekly issues published in a given year by trying to
+-- keep an equal number of issues from each weekly journal in every
+-- subset. This usually works, because the journal set frequency
+-- cannot be more frequent than once per week. Only references with
+-- weekly publication frequencies should be provided as input.
+weeklyInYear y k = foldr C.zipLists start . map (groupInChunks y k)
+    where start = replicate (setsInYear k) []
 
-weeklyIssues :: Int -> Int -> T.Issue -> [[T.Issue]]
-weeklyIssues y k x = xs <> replicate ( setsInYear k - length xs ) []
+groupInYear :: Int -> Int -> T.References -> [[T.Issue]]
+-- ^Group all issues published in a given year reasonably evenly into
+-- sets at a frequency of k weeks after sorting by date.
+groupInYear y k = groupIssues n . sortOn T.date . concatMap (issuesInYear y)
+    where n = setsInYear k
+
+-- ------------------------------------------------------------------ 
+
+groupInChunks :: Int -> Int -> T.Issue -> [[T.Issue]]
+-- ^Compute all the issues for a journal in the year y and then chunk
+-- it into groups of at least k issues. This is useful for getting
+-- the issues of each weekly issue that will in a given journal set.
+groupInChunks y k x = xs <> replicate ( setsInYear k - length xs ) []
     where xs = C.chunksOf k . issuesInYear y $ x
 
-groupMonthly :: Int -> [a] -> [[a]]
+groupIssues :: Int -> [a] -> [[a]]
 -- Group the elements of a list of into n sublists so that they are
 -- more-or-less evenly distributed. The elements are distributed to
--- push larger lists towards the end of the list. This helps to
--- ensure journal sets become available as soon as possible, because
--- monthly issues are guaranteed to be published only at the end of
--- each month. The length of the returned list is n or 0 if n < 1.
+-- push larger sublists towards the end of the list. This helps to
+-- ensure journal sets become available as soon as possible. The
+-- length of the returned list is n or 0 if n < 1.
 -- n   : site of the list to be created (i.e., the number of bins)
 -- q   : min number monthly issues per set
 -- q+1 : max number monthly issues per set, there will be r of these
 -- v   : initial number of sets with only q issues each
 -- u   : after the first v sets, we have u - 1 sets with only q
 --       monthly issues than one set with q + 1 sets & this repeats.
-groupMonthly n xs
+groupIssues n xs
     | n <  1    = []
     | null xs   = replicate n []
     | r == 0    = C.chunksOf q xs
@@ -168,10 +202,6 @@ groupMonthly n xs
                       where g m = let (ts,rs) = splitAt m zs
                                   in  (ps <> [ts], rs, t+1)
 
-monthlyInYear :: Int -> Int -> T.References -> [[T.Issue]]
-monthlyInYear y k = groupMonthly n . C.collate 1 . map (issuesInYear y)
-    where n = setsInYear k
-
 ---------------------------------------------------------------------
 -- Helper functions
 
@@ -179,11 +209,27 @@ issuesByAbbr :: T.HasIssue a => Text -> [a] -> [a]
 -- ^Pull all issues in a list for a given journal abbr.
 issuesByAbbr abbr = filter ( (== abbr) . T.abbr . T.journal )
 
-splitByFreq :: T.HasIssue a => [a] -> ([a], [a])
-splitByFreq = foldr go ([],[])
-    where go x (ws,ms) = case T.freq . T.journal $ x of
-                              T.Monthly -> (ws, x:ms)
-                              _         -> (x:ws, ms)
+isFollowedWeekly :: T.Issue -> Bool
+-- ^The issue has a weekly publication frequency and is followed.
+isFollowedWeekly x = let followed = T.followed . T.journal $ x
+                     in  case T.freq . T.journal $ x of
+                              T.EveryNWeeks 1 -> followed
+                              T.WeeklyLast    -> followed
+                              T.WeeklyFirst   -> followed
+                              _               -> False
+
+isFollowedMonthly :: T.Issue -> Bool
+-- ^The issue is a monthly publication and is followed.
+isFollowedMonthly x = case T.freq . T.journal $ x of
+                           T.Monthly -> T.followed . T.journal $ x
+                           _         -> False
+
+isFollowedOther :: T.Issue -> Bool
+-- ^The is not published weekly or monthly and is followed.
+isFollowedOther x = let followed = T.followed . T.journal $ x
+                    in  case T.freq . T.journal $ x of
+                             T.EveryNWeeks n -> followed && n > 1
+                             _               -> False
 
 -- =============================================================== --
 -- Working with base journal issues
@@ -197,11 +243,9 @@ issueAtDate :: Day -> T.Issue -> T.Issue
 -- month (monthly). So, a weekly issue published on January 1, 2016
 -- will not be current until January 2, 2016, and a monthly issue
 -- published in June 2018 will not be current until July 2018.
-issueAtDate d x = let go ~(y0:y1:ys) | T.theDate y1 >= d = y0
-                                     | otherwise      = go (y1:ys)
-                   in  case T.freq . T.theJournal $ x of
-                            T.Monthly -> go . iterate nextMonthly $ x
-                            _         -> go . iterate nextWeekly  $ x
+issueAtDate d = go . iterate nextIssue
+    where go ~(x0:x1:xs) | T.theDate x1 >= d = x0
+                         | otherwise         = go (x1:xs)
 
 issuesByDates :: Day -> Day -> T.Issue -> [T.Issue]
 -- ^List of all issues available at the dates provided and in between.
@@ -213,7 +257,7 @@ issuesByDates d0 d1 ref
 issuesFromDate :: Day -> T.Issue -> [T.Issue]
 -- ^List of all issues from a given date on. The reference issue must
 -- be available by the start date.
-issuesFromDate d0 ref = iterate (addIssues 1) . issueAtDate d0 $ ref
+issuesFromDate d0 ref = iterate nextIssue . issueAtDate d0 $ ref
 
 issuesInYear :: Int -> T.Issue -> [T.Issue]
 -- ^All issues with publication dates in the specified year.
@@ -225,7 +269,7 @@ issuesInYear y x = take 52 . filter ((== y) . T.year) $ xs
 issuesInVolume :: Int -> T.Issue -> [T.Issue]
 issuesInVolume v = takeWhile ((==v) . T.theVolNo)
                    . dropWhile ((<v) . T.theVolNo)
-                   . iterate (addIssues 1)
+                   . iterate nextIssue
 
 lookupIssue :: T.References -> Text -> (Int, Int) -> Maybe T.Issue
 lookupIssue refs abbr (v,n) =
@@ -237,15 +281,22 @@ lookupIssueInYear refs abbr (y,n) =
     find ( (== abbr) . T.abbr . T.journal ) refs
     >>= find ( (== n) . T.issNo ) . issuesInYear y
 
-addIssues :: Int -> T.Issue -> T.Issue
-addIssues n x
-    | n < 0     = x
-    | otherwise = let go f = (!! n) . iterate f $ x
-                  in  case T.freq . T.theJournal $ x of
-                           T.Monthly -> go nextMonthly
-                           _         -> go nextWeekly
+nextIssue :: T.Issue -> T.Issue
+-- ^Compute the next issue based on the the publication frequency.
+-- If the frequency is unknown, then assume it is every week.
+nextIssue x = case T.freq . T.theJournal $ x of
+                   T.Monthly       -> nextMonthly       x
+                   T.WeeklyFirst   -> nextWeekly        x
+                   T.WeeklyLast    -> nextWeekly        x
+                   T.EveryNWeeks n -> nextEveryNWeeks n x
+                   T.UnknownFreq   -> nextEveryNWeeks 1 x
+
+-- ------------------------------------------------------------------ 
+-- Computing next issues
 
 nextMonthly :: T.Issue -> T.Issue
+-- ^Compute the next monthly issue. The journal must have a Monthly
+-- publication frequency.
 nextMonthly x1
     | m2 == 1 && resets = x2 { T.theVolNo = v2, T.theIssNo = 1 }
     | m2 == 1           = x2 { T.theVolNo = v2 }
@@ -258,18 +309,35 @@ nextMonthly x1
           resets    = T.resets . T.theJournal $ x1
 
 nextWeekly :: T.Issue -> T.Issue
+-- ^Compute the next issue for journals having special weekly
+-- publication frequencies (i.e., either the first or last issue of
+-- every years is dropped). Journal must have one of these two
+-- publication frequencies.
 nextWeekly x1
     | D.sameYear d1 d3 = x2 { T.theDate = d2 }
     | dropLast         = x2 { T.theDate = d3, T.theVolNo = v2, T.theIssNo = n2y }
     | D.sameYear d1 d2 = x2 { T.theDate = d2 }
-    | everyWeek        = x2 { T.theDate = d2, T.theVolNo = v2, T.theIssNo = n2y }
     | otherwise        = x2 { T.theDate = d3, T.theVolNo = v2, T.theIssNo = n2y }
-    where dropLast  = (T.freq . T.theJournal) x1 == T.WeeklyLast
-          everyWeek = (T.freq . T.theJournal) x1 == T.Weekly
-          d1  = T.theDate x1
-          d2  = Tm.addDays 7 d1
-          d3  = Tm.addDays 14 d1
-          v2  = succ . T.theVolNo $ x1
-          n2  = succ . T.theIssNo $ x1
-          x2  = x1 { T.theIssNo = n2 }
-          n2y = if T.resets . T.theJournal $ x1 then 1 else n2
+    where dropLast = (T.freq . T.theJournal) x1 == T.WeeklyLast
+          d1       = T.theDate x1
+          d2       = Tm.addDays 7 d1
+          d3       = Tm.addDays 14 d1
+          v2       = succ . T.theVolNo $ x1
+          n2       = succ . T.theIssNo $ x1
+          x2       = x1 { T.theIssNo = n2 }
+          n2y      = if T.resets . T.theJournal $ x1 then 1 else n2
+
+nextEveryNWeeks :: Int -> T.Issue -> T.Issue
+-- ^Compute the next issue for journals publishing exactly every n
+-- weeks. If n < 1, then it is assumed to be weekly. This ensures
+-- that interation terminates.
+nextEveryNWeeks n x1
+    | n < 1            = nextEveryNWeeks 1 x1
+    | D.sameYear d1 d2 = x2 { T.theVolNo = v1     , T.theIssNo = succ i1 }
+    | otherwise        = x2 { T.theVolNo = succ v1, T.theIssNo = i2      }
+    where d1 = T.theDate x1
+          d2 = Tm.addDays (fromIntegral $ 7 * n) d1
+          x2 = x1 { T.theDate = d2 }
+          v1 = T.theVolNo $ x1
+          i1 = T.theIssNo $ x1
+          i2 = if T.resets . T.theJournal $ x1 then 1 else succ i1

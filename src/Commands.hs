@@ -214,7 +214,9 @@ yearCmd (y:[])  = yearCmd [ y, "2" ]
 yearCmd (y:w:_) = do
     theYear <- checkYear y
     theFreq <- checkFreq w
-    jsets   <- A.references >>= pure . J.yearlySets theYear theFreq
+    byDate  <- asks T.cYearlyByDate
+    let grouper = if byDate then J.yearlySetsByDate else J.yearlySets
+    jsets   <- A.references >>= pure . grouper theYear theFreq
     V.runView ( V.viewJSets jsets ) >>= display
 
 checkYear :: String -> T.AppMonad Int

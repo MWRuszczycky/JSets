@@ -277,6 +277,11 @@ options =
           ( T.ConfigGen $ \ c -> pure $ c { T.cShowVer = True } )
       ) "Just show the version number and quit."
 
+    , Opt.Option "" [ "by-date" ]
+      ( Opt.NoArg
+          ( T.ConfigGen $ \ c -> pure $ c { T.cYearlyByDate = True } )
+      ) "Order issues by date when grouping with <year> command."
+
     , Opt.Option "" [ "match-details" ]
       ( Opt.NoArg
           ( T.ConfigGen $ \ c -> pure $ c { T.cMatchDetails = True } )

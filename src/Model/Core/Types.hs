@@ -190,6 +190,7 @@ data Config = Config {
     , cTerse        :: Bool           -- do not produce messages
     , cStdOutIsTerm :: Bool           -- stdout is the terminal
     , cOnlyPMIDs    :: Bool           -- only return PMIDs from PubMed query
+    , cYearlyByDate :: Bool           -- yearly sets with issues grouped by date
     } deriving ( Show )
 
 defaultConfig :: Config
@@ -214,6 +215,7 @@ defaultConfig = Config {
     , cTerse        = False
     , cStdOutIsTerm = True
     , cOnlyPMIDs    = False
+    , cYearlyByDate = False
     }
 
 -- |Describes a JSets command that can be run (e.g., <toc> or <read>)
@@ -312,11 +314,14 @@ data Journal = Journal {
     } deriving ( Show, Eq )
 
 -- |Publication frequency of a journal
+-- If the frequency is EveryNWeeks and N is less than 1, then the
+-- reference issues is assumed to be the only issue published.
 data Frequency =
-      Weekly        -- Every 7 days with no dropped issues (52/year)
-    | WeeklyLast    -- Every 7 days dropping the last of the year
-    | WeeklyFirst   -- Every 7 days dropping the first of the year
-    | Monthly       -- Once every month
+      EveryNWeeks Int -- Every 7 * N days with no dropped issues
+    | WeeklyLast      -- Every 7 days dropping the last of the year
+    | WeeklyFirst     -- Every 7 days dropping the first of the year
+    | Monthly         -- Once every month
+    | UnknownFreq     -- The frequency is not known
       deriving ( Show, Eq )
 
 -- =============================================================== --
@@ -333,7 +338,7 @@ data Issue = Issue {
     } deriving ( Eq )
 
 instance Show Issue where
-    show x = (Tx.unpack . abbr . theJournal) x
+    show x = (Tx.unpack . abbr . theJournal) x <> " "
              <> (show . theVolNo) x <> ":"
              <> (show . theIssNo) x
 

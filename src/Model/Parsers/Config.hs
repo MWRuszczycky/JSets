@@ -6,7 +6,6 @@ module Model.Parsers.Config
 
 import qualified Data.Text            as Tx
 import qualified Data.Time            as Tm
-import qualified Data.Char            as Ch
 import qualified Data.Attoparsec.Text as At
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
@@ -145,12 +144,15 @@ readJournalHeader =  maybe (Left "") go . lookup "journal"
 
 readFrequency :: RefKeyValPairs -> Either T.ErrString T.Frequency
 readFrequency = maybe (Left frequencyError) go . lookup "frequency"
-    where go x = case prepString x of
-                      "weekly"       -> pure T.Weekly
-                      "weekly-first" -> pure T.WeeklyFirst
-                      "weekly-last"  -> pure T.WeeklyLast
-                      "monthly"      -> pure T.Monthly
-                      _              -> Left frequencyError
+    where chk n | n > 0     = pure . T.EveryNWeeks $ n
+                | otherwise = Left frequencyError
+          go x  = case prepString x of
+                       "weekly"       -> pure $ T.EveryNWeeks 1
+                       "weekly-first" -> pure T.WeeklyFirst
+                       "weekly-last"  -> pure T.WeeklyLast
+                       "monthly"      -> pure T.Monthly
+                       nstr           -> maybe ( Left frequencyError )
+                                               chk . C.readMaybeTxt $ nstr
 
 readDate :: RefKeyValPairs -> Either T.ErrString Tm.Day
 readDate ps = do
@@ -172,9 +174,9 @@ readResets ps = maybe (Left resetsError) pure . readFlag ps $ "resets"
 readRefError :: [(KeyValPair)] -> T.ErrString -> T.ErrString
 readRefError ps err = maybe noJournal go . lookup "journal" $ ps
     where noJournal = "Fields provided without preceding <journal> header!"
-          go x = concat [ "Unable read journal reference for " <> Tx.unpack  x
-                        , "\n" <> err
-                        ]
+          go x      = concat [ "Unable to read journal reference for "
+                             , Tx.unpack x, ":\n" <> err
+                             ]
 
 resetsError :: T.ErrString
 resetsError = intercalate "\n" hs
@@ -188,8 +190,9 @@ frequencyError = intercalate "\n" hs
     where hs = [ "Missing or invalid <frequency> value!"
                , "Use 'weekly' if there are always 52 issues every year."
                , "Use 'weekly-last' if the last issue of the year is dropped."
-               , "Use 'weekly-first' if th first issue of the year is dropped."
+               , "Use 'weekly-first' if the first issue of the year is dropped."
                , "Use 'monthly' if there are 12 issues every year."
+               , "Use a number n if issues are published every n weeks."
                ]
 
 ---------------------------------------------------------------------
@@ -207,7 +210,7 @@ readInt ps k = readString ps k >>= go
                         <> Tx.unpack k <> "> field!"
 
 readFlag :: RefKeyValPairs -> Text -> Maybe Bool
-readFlag ps k = lookup k ps >>= go . Tx.map toLower
+readFlag ps k = lookup k ps >>= go . prepString
     where go "yes"   = Just True
           go "true"  = Just True
           go "no"    = Just False
@@ -218,7 +221,7 @@ checkString :: Text -> Either T.ErrString Text
 checkString x
     | allValid  = pure x
     | otherwise = Left errMsg
-    where allValid = Tx.all ( \ c -> Ch.isAlphaNum c || c == '_' || c == ' ' ) x
+    where allValid = Tx.all ( \ c -> isAlphaNum c || c == '_' || c == ' ' ) x
           errMsg   = "The field value '" <> Tx.unpack x
                      <> "' contains invalid characters!"
 
@@ -240,4 +243,4 @@ toMonth x = C.readMaybeTxt x >>= go
                | otherwise       = Nothing
 
 prepString :: Text -> Text
-prepString = Tx.map Ch.toLower . Tx.strip
+prepString = Tx.map toLower . Tx.strip
