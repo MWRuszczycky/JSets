@@ -308,6 +308,7 @@ data Journal = Journal {
     , freq     :: Frequency -- Issue frequency
     , resets   :: Bool      -- Issue number resets to 1 each year
     , mincount :: Int       -- Fewer citations suggests some are missing
+    , followed :: Bool      -- Include journal in <year> calculation
     } deriving ( Show, Eq )
 
 -- |Publication frequency of a journal

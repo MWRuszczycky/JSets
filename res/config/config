@@ -1,6 +1,8 @@
 # References configuration file
 # Comments begin with hashes
-# extra whitespace and new lines are ignored
+# Extra whitespace and new lines are ignored
+
+# Configuration parameters must be listed before issue references
 
 user:  Manager's Name # Name of the person managing Literature Review
 email: your@email.com # Contact email for the manager.

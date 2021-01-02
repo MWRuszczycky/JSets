@@ -87,6 +87,7 @@ referenceToTxt x = Tx.unlines hs
           hs = [ T.name j
                , "  abbr:      " <> T.abbr j
                , "  pubmed:    " <> T.pubmed j
+               , "  followed:  " <> (flagToTxt . T.followed) j
                , "  frequency: " <> (freqToTxt . T.freq) j
                , "  resets:    " <> (resetsToTxt . T.resets) j
                , "  reference: " <> showIssue x
@@ -96,6 +97,10 @@ referenceToTxt x = Tx.unlines hs
 resetsToTxt :: Bool -> Text
 resetsToTxt True  = "yes (issue numbers reset to 1 each year)"
 resetsToTxt False = "no (issue numbers continuously increase)"
+
+flagToTxt :: Bool -> Text
+flagToTxt True  = "yes"
+flagToTxt False = "no"
 
 freqToTxt :: T.Frequency -> Text
 freqToTxt T.Weekly      = "weekly (52 issues per year)"

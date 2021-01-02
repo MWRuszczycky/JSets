@@ -56,6 +56,7 @@ acie = T.Journal {
     , T.freq     = T.Weekly
     , T.resets   = True
     , T.mincount = 20
+    , T.followed = True
     }
 
 acieRef :: T.Issue
@@ -77,6 +78,7 @@ biochemistry = T.Journal {
     , T.freq     = T.WeeklyFirst
     , T.resets   = True
     , T.mincount = 3
+    , T.followed = True
     }
 
 biochemistryRef :: T.Issue
@@ -98,6 +100,7 @@ cellChemBiol = T.Journal {
     , T.freq     = T.Monthly
     , T.resets   = True
     , T.mincount = 10
+    , T.followed = True
     }
 
 cellChemBiolRef :: T.Issue
@@ -122,6 +125,7 @@ jacs = T.Journal {
     , T.freq     = T.WeeklyFirst
     , T.resets   = True
     , T.mincount = 20
+    , T.followed = True
     }
 
 jacsRef :: T.Issue
@@ -143,6 +147,7 @@ nature = T.Journal {
     , T.freq     = T.WeeklyLast
     , T.resets   = False
     , T.mincount = 10
+    , T.followed = True
     }
 
 natureRef :: T.Issue
@@ -164,6 +169,7 @@ natChem = T.Journal {
     , T.freq     = T.Monthly
     , T.resets   = True
     , T.mincount = 10
+    , T.followed = True
     }
 
 natChemRef :: T.Issue
@@ -185,6 +191,7 @@ natChemBiol = T.Journal {
     , T.freq     = T.Monthly
     , T.resets   = True
     , T.mincount = 10
+    , T.followed = True
     }
 
 natChemBiolRef :: T.Issue
@@ -206,6 +213,7 @@ pnas = T.Journal {
     , T.freq     = T.Weekly
     , T.resets   = True
     , T.mincount = 20
+    , T.followed = True
     }
 
 pnasRef :: T.Issue
@@ -227,6 +235,7 @@ science = T.Journal {
     , T.freq     = T.WeeklyLast
     , T.resets   = False
     , T.mincount = 10
+    , T.followed = True
     }
 
 scienceRef :: T.Issue

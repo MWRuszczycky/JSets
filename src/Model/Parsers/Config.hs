@@ -11,13 +11,13 @@ import qualified Data.Attoparsec.Text as At
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
 import qualified Model.Parsers.Core   as P
-import           Data.Char                   ( isAlphaNum        )
-import           Data.Text                   ( Text              )
-import           Data.List                   ( intercalate       )
-import           Data.Bifunctor              ( bimap             )
-import           Control.Applicative         ( (<|>), many, some )
-import           Control.Monad               ( guard             )
-import           Control.Monad.Except        ( liftEither        )
+import           Data.Char                   ( isAlphaNum, toLower )
+import           Data.Text                   ( Text                )
+import           Data.List                   ( intercalate         )
+import           Data.Bifunctor              ( bimap               )
+import           Control.Applicative         ( (<|>), many, some   )
+import           Control.Monad               ( guard               )
+import           Control.Monad.Except        ( liftEither          )
 
 -- =============================================================== --
 -- Parsing a configuration file to configuration steps
@@ -43,7 +43,7 @@ handleFail input rest = Left msg
                         ]
 
 -- =============================================================== --
--- Local help types
+-- Local helper types
 
 -- |Generic key-value pair
 type KeyValPair     = (Text,Text)
@@ -55,13 +55,17 @@ type RefKeyValPairs = [KeyValPair]
 -- Parsers: Configuration files are parsed to lists of (Text,Text)
 -- key-value pairs. These are then read to generate the ConfigSteps,
 -- which can then be used to modify the configuration (Config).
+-- Configuration parameters are expected to precede the configured
+-- references, because each reference begins with the journal name
+-- and abbreviation specification but has no terminator.
 
 configFile :: At.Parser [T.ConfigStep]
 configFile = do
-    ps <- many $ parseParameter <|> parseReference
+    ps <- many $ parseParameter
+    rs <- many $ parseReference
     P.comments
     At.endOfInput
-    pure ps
+    pure $ ps <> rs
 
 parseParameter :: At.Parser T.ConfigStep
 parseParameter = readParam <$> keyValuePair
@@ -78,7 +82,7 @@ validKey = At.takeWhile1 $ \ c -> isAlphaNum c || c == '-' || c == '_'
 validValue :: At.Parser Text
 validValue = fmap Tx.strip . At.takeWhile1 . At.notInClass $ ":#\n\r\t"
 
-refKeyValuePairs :: At.Parser [KeyValPair]
+refKeyValuePairs :: At.Parser RefKeyValPairs
 refKeyValuePairs = do
     P.comments *> At.string "journal" *> P.comments *> At.char ':' *> P.comments
     jh <- (,) "journal" <$> validValue
@@ -99,7 +103,7 @@ keyValuePair = do
     pure (k,v)
 
 -- =============================================================== --
--- Readers of parameters and references
+-- Readers for parameter and reference key-value pairs
 
 readRef :: [KeyValPair] -> T.ConfigStep
 readRef ps = T.ConfigInit $ \ c -> ref >>= go c
@@ -122,13 +126,22 @@ readParam (p,       _) = T.ConfigWarn warning
 
 readJournal :: RefKeyValPairs -> Either T.ErrString T.Journal
 readJournal ps = do
-    (j, k) <- readJournalHeader ps
-    checkString j
-    checkString k
-    T.Journal k j <$> readString    ps "pubmed"
-                  <*> readFrequency ps
-                  <*> readResets    ps
-                  <*> readInt       ps "mincount"
+    (name, abbr) <- readJournalHeader ps
+    checkString name
+    checkString abbr
+    T.Journal abbr name <$> readString     ps "pubmed"
+                        <*> readFrequency  ps
+                        <*> readResets     ps
+                        <*> readInt        ps "mincount"
+                        <*> (maybe (pure True) pure . readFlag ps) "followed"
+
+readJournalHeader :: RefKeyValPairs -> Either T.ErrString (Text, Text)
+readJournalHeader =  maybe (Left "") go . lookup "journal"
+    where go x  = case break (== '/') . Tx.unpack $ x of
+                       ([]  , _      ) -> Left " Missing journal name!"
+                       (_   ,'/':[]  ) -> Left " Missing journal abbreviation!"
+                       (name,'/':abbr) -> pure (Tx.pack name, Tx.pack abbr)
+                       (_   , _      ) -> Left " Missing journal abbreviation!"
 
 readFrequency :: RefKeyValPairs -> Either T.ErrString T.Frequency
 readFrequency = maybe (Left frequencyError) go . lookup "frequency"
@@ -151,21 +164,7 @@ readMonth ps = maybe err pure $ lookup "month" ps >>= toMonth . prepString
     where err  = Left "Missing or invalid <month> field!"
 
 readResets :: RefKeyValPairs -> Either T.ErrString Bool
-readResets = maybe (Left resetsError) go . lookup "resets"
-    where go x = case prepString x of
-                      "true"  -> pure True
-                      "yes"   -> pure True
-                      "false" -> pure False
-                      "no"    -> pure False
-                      _       -> Left resetsError
-
-readJournalHeader :: RefKeyValPairs -> Either T.ErrString (Text, Text)
-readJournalHeader =  maybe (Left "") go . lookup "journal"
-    where go x  = case break (== '/') . Tx.unpack $ x of
-                       ([]  , _      ) -> Left " Missing journal name!"
-                       (_   ,'/':[]  ) -> Left " Missing journal abbreviation!"
-                       (name,'/':abbr) -> pure (Tx.pack name, Tx.pack abbr)
-                       (_   , _      ) -> Left " Missing journal abbreviation!"
+readResets ps = maybe (Left resetsError) pure . readFlag ps $ "resets"
 
 ---------------------------------------------------------------------
 -- Reference read validation and error handling
@@ -206,6 +205,14 @@ readInt ps k = readString ps k >>= go
     where go   = maybe err pure . C.readMaybeTxt
           err  = Left $ "Record requires an integer value for the <"
                         <> Tx.unpack k <> "> field!"
+
+readFlag :: RefKeyValPairs -> Text -> Maybe Bool
+readFlag ps k = lookup k ps >>= go . Tx.map toLower
+    where go "yes"   = Just True
+          go "true"  = Just True
+          go "no"    = Just False
+          go "false" = Just False
+          go _       = Nothing
 
 checkString :: Text -> Either T.ErrString Text
 checkString x
