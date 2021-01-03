@@ -19,6 +19,8 @@ module PubMed
       -- PubMed web interface: eSummary & citation requests
     , eSummary
     , getCitations
+      -- PubMed web interface: resolving selections
+    , resolveSelections
       -- PubMed web interface: tables of contents
     , getToC
     , getToCs
@@ -37,6 +39,7 @@ import qualified View.View            as V
 import qualified View.Core            as Vc
 import           Data.Text                    ( Text         )
 import           Data.List                    ( nub          )
+import           Data.Maybe                   ( catMaybes    )
 import           Lens.Micro                   ( (.~), (&)    )
 import           Network.Wreq.Session         ( newSession   )
 import           Control.Monad.Reader         ( when, asks   )
@@ -201,14 +204,17 @@ downloadCitations wreq pmids = do
         (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
     A.logMessage $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
     (t, result) <- C.timeIt $ eSummary wreq ps
-    paint       <- A.getPainter T.Green
+    paintG      <- A.getPainter T.Green
+    paintY      <- A.getPainter T.Yellow
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
         errMsg  = "Failed to download or parse eSummary"
+        warnMsg = paintY "Missing citations " <> timeMsg <> "\n"
+        okMsg   = paintG "OK " <> timeMsg <> "\n"
     case result >>= P.parseCitations ps of
-         Right (ms,cs) -> do A.logMessage $ paint "OK " <> timeMsg <> "\n"
-                             pure ( ms, cs )
-         Left  err     -> do A.logError "Failed" errMsg $ Tx.pack err
-                             pure ( [], Map.empty )
+         Right ([],cs) -> A.logMessage okMsg   *> pure ( [], cs )
+         Right (ms,cs) -> A.logMessage warnMsg *> pure ( ms, cs )
+         Left  err     -> A.logError "Failed" errMsg (Tx.pack err)
+                              *> pure ( [], Map.empty )
 
 handleMissingCitations :: [T.PMID] -> T.AppMonad ()
 -- ^Handler for PMIDs that do not return a citation from PubMed.
@@ -223,6 +229,58 @@ handleMissingCitations ms =
 eSummaryMsg :: Int -> Text
 eSummaryMsg n = Tx.unwords
     [ "ESummary: Requesting document summaries for", C.tshow n, "PMIDs...\n" ]
+
+---------------------------------------------------------------------
+-- Resolving selection PMIDs and locators from selection files
+
+resolveSelections :: C.WebRequest -> [T.Selection] -> T.AppMonad [T.Selection]
+-- ^Given a list of selections, attempt to resolve them to PMIDs
+-- wrapped as Selections. Anything that cannot be resolved is skipped
+-- whith a message provided to the user. This function returns
+-- selections rather than PMIDs, because selections can bind a PMID
+-- or doi to an issue and can be used to update ToCs using updateToC
+-- from the Model.Journals module (e.g., see getToCs function).
+resolveSelections wreq xs = do
+    let (wID, woID) = C.splitOn J.isPMID xs
+    A.logMessage $ resolveSelectionMsg (length wID) (length woID)
+    nub . (<> wID) . catMaybes <$> delayMapM (getSelection wreq) woID
+
+getSelection :: C.WebRequest -> T.Selection -> T.AppMonad (Maybe T.Selection)
+-- ^Wraps getSelections and requres that only one PMID be returned
+-- per selection request.
+getSelection wreq x = do
+    let noneMsg = "No PMID found for " <> C.tshow x <> ", skipping...\n"
+    getSelections wreq x >>= \case
+        []   -> A.logMessage noneMsg *> pure Nothing
+        p:[] -> pure . Just $ p
+        ps   -> let manyHdr = "Multiple PMIDs found for " <> C.tshow x
+                    manyMsg = manyHdr <> ", skipping..."
+                    manyErr = Tx.unlines . J.pmidsInSelection $ ps
+                in  A.logError manyMsg manyHdr manyErr
+                    *> pure Nothing
+
+getSelections :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
+-- ^Convert selections to Selection PMIDs. If not already selected as
+-- a PMID, the selection is used to query PubMed via an eSearch
+-- request. This function is not usually used by itself but wrapped.
+getSelections _      (T.ByBndPMID i p) = pure [T.ByBndPMID i p]
+getSelections _      (T.ByPMID      p) = pure [T.ByPMID      p]
+getSelections wreq x@(T.ByBndDOI  i _) = map  (T.ByBndPMID i) <$> getPMIDs wreq x
+getSelections wreq x@(T.ByDOI       _) = map   T.ByPMID       <$> getPMIDs wreq x
+getSelections _      (T.ByWeb       x) = do
+    paint <- A.getPainter T.Yellow
+    let msg = Tx.concat [ "  Cannot resolve web locator: " <> paint x <> "\n"
+                        , "    Enter PMID or blank to skip: " ]
+    A.request msg >>= \case ""   -> pure []
+                            pmid -> pure [T.ByPMID pmid]
+
+resolveSelectionMsg :: Int -> Int -> Text
+resolveSelectionMsg nWithID nNoID
+    | nNoID == 0 = mainMsg <> "\n"
+    | otherwise  = mainMsg <> ", " <> nNoIDStr <> " require resolution...\n"
+    where mainMsg  = "There are " <> totalStr <> " articles selected"
+          totalStr = C.tshow $ nWithID + nNoID
+          nNoIDStr = C.tshow nNoID
 
 -- =============================================================== -- 
 -- Special functions for the toc command
@@ -240,9 +298,7 @@ getToCs (T.JSet n issues sel) = do
     -- First, the PMIDs from the user selection. Some of these may
     -- require an eSearch query to PubMed. The PMIDs are wrapped as
     -- Selections in order to bind them to issues as necessary.
-    let (wID, woID) = C.splitOn J.isPMID sel
-    A.logMessage $ tocsSelectionMsg (length wID) (length woID)
-    selIDs <- nub . (<> wID) . concat <$> delayMapM (getOneSelection wreq) woID
+    selIDs <- resolveSelections wreq sel
     -- Get all the PMIDs associated with each issue's ToC. We need an
     -- extra delay here to ensure that the last two requests are not
     -- in the same second of time as the next two.
@@ -289,48 +345,9 @@ getToC wreq iss = do
 ---------------------------------------------------------------------
 -- Messaging during the tocs download process
 
-tocsSelectionMsg :: Int -> Int -> Text
-tocsSelectionMsg nWithID nNoID
-    | nNoID == 0 = mainMsg <> "\n"
-    | otherwise  = mainMsg <> ", " <> nNoIDStr <> " require resolution...\n"
-    where mainMsg  = "There are " <> totalStr <> " articles selected"
-          totalStr = C.tshow $ nWithID + nNoID
-          nNoIDStr = C.tshow nNoID
-
 tocsESearchMsg :: Int -> Text
 tocsESearchMsg n = Tx.unwords
     [ "ESearch: Requesting PMIDs for", C.tshow n, "issues...\n" ]
-
----------------------------------------------------------------------
--- Resolving selection PMIDs and locators from selection files
-
-getSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
--- ^Convert selections to PMIDs. If not already provided as PMID, the
--- selection is used to query PubMed via an eSearch request.
-getSelection _      (T.ByBndPMID i p) = pure [T.ByBndPMID i p]
-getSelection _      (T.ByPMID      p) = pure [T.ByPMID      p]
-getSelection wreq x@(T.ByBndDOI  i _) = map  (T.ByBndPMID i) <$> getPMIDs wreq x
-getSelection wreq x@(T.ByDOI       _) = map   T.ByPMID       <$> getPMIDs wreq x
-getSelection _      (T.ByWeb       x) = do
-    paint <- A.getPainter T.Yellow
-    let msg = Tx.concat
-              [ "  Cannot resolve web locator: " <> paint x <> "\n"
-              , "    Enter PMID or blank to skip: " ]
-    A.request msg >>= \case ""   -> pure []
-                            pmid -> pure [T.ByPMID pmid]
-
-getOneSelection :: C.WebRequest -> T.Selection -> T.AppMonad [T.Selection]
--- ^Same as getSelection, but allow no more than one PMID.
-getOneSelection wreq x = do
-    let noneMsg = "No PMID found for " <> C.tshow x <> ", skipping...\n"
-    getSelection wreq x >>= \case
-        []   -> A.logMessage noneMsg *> pure []
-        p:[] -> pure [p]
-        ps   -> let manyHdr = "Multiple PMIDs found for " <> C.tshow x
-                    manyMsg = manyHdr <> ", skipping..."
-                    manyErr = Tx.unlines . J.pmidsInSelection $ ps
-                in  A.logError manyMsg manyHdr manyErr
-                    *> pure []
 
 ---------------------------------------------------------------------
 -- Handler and checker functions for when there may be problems with

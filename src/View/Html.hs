@@ -209,14 +209,14 @@ extrasArrayElement x = fill dict Temp.tocsIssuesArrayJS
 
 ranksHtml :: Maybe Text -> Maybe Text -> Day -> T.Citations -> T.JSet a -> Text
 -- ^Construct html for the rank-list of a journal set.
-ranksHtml name email date cs jset@(T.JSet n _ _ ) =
-    let dict = [ ( "meta",      ranksMeta n date                         )
-               , ( "styles",    fillNone Temp.ranksCSS                   )
-               , ( "script",    fillNone Temp.ranksFunctionsJS           )
-               , ( "title",     "Journal Set " <> C.tshow (T.setNo jset) )
-               , ( "name",      adminDefault name                        )
-               , ( "email",     adminDefault  email                      )
-               , ( "citations", rankListContents cs (T.selection jset)   )
+ranksHtml name email date cs (T.JSet n _ _ ) =
+    let dict = [ ( "meta",      ranksMeta n date               )
+               , ( "styles",    fillNone Temp.ranksCSS         )
+               , ( "script",    fillNone Temp.ranksFunctionsJS )
+               , ( "title",     "Journal Set " <> C.tshow n    )
+               , ( "name",      adminDefault name              )
+               , ( "email",     adminDefault  email            )
+               , ( "citations", rankListContents cs            )
                ]
     in fill (Map.fromList dict) Temp.ranksHtml
 
@@ -234,17 +234,14 @@ ranksMeta setNo date = fill (Map.fromList dict) Temp.ranksMetaHtml
 ---------------------------------------------------------------------
 -- html for the citations in a rank-list document
 
-rankListContents :: T.Citations -> [T.Selection] -> Text
+rankListContents :: T.Citations -> Text
 -- ^Construct html for all rank list elements in the content list.
-rankListContents cs = Tx.unlines . map (uncurry rankListElement)
-                                 . zip [1..]
-                                 . map (flip Map.lookup cs)
-                                 . J.pmidsInSelection
+rankListContents =
+    Tx.unlines . map (uncurry rankListElement) . zip [1..] . Map.elems
 
-rankListElement :: Int -> Maybe T.Citation -> Text
+rankListElement :: Int -> T.Citation -> Text
 -- ^Construct html for a citation element of a rank list.
-rankListElement _ Nothing  = Tx.empty
-rankListElement n (Just c) = fill (rankCitationDict n c) Temp.citationHtml
+rankListElement n c = fill (rankCitationDict n c) Temp.citationHtml
 
 rankCitationDict :: Int -> T.Citation -> Map.Map Text Text
 -- ^html template dictionary for rank list element.

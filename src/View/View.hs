@@ -253,7 +253,7 @@ viewRanks cs jset@(T.JSet _ _ sel) = do
 -- Raw text
 
 showIssue :: T.HasIssue a => a -> Text
-showIssue x = Tx.unwords . map ($x) $ parts
+showIssue x = Tx.unwords . map ($ x) $ parts
     where parts = [ T.abbr . T.journal, Vc.volIss, Vc.dateP ]
 
 ---------------------------------------------------------------------

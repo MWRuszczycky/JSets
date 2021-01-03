@@ -21,6 +21,7 @@ import qualified View.Help                 as H
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
 import           Text.Read                          ( readMaybe      )
+import           Control.Monad                      ( when           )
 import           Control.Monad.Reader               ( asks           )
 import           Control.Monad.Except               ( liftIO, lift
                                                     , liftEither
@@ -168,11 +169,14 @@ ranksHelp = (s, H.ranksHelp)
 ranksCmd :: [FilePath] -> T.AppMonad ()
 ranksCmd [] = throwError "Path(s) to journal set selection files required!"
 ranksCmd fps = do
-    jsets     <- J.combineJSets <$> mapM A.readJSets fps
-    jset      <- asks T.cJSetKey >>= A.getJSet jsets
-    wreq      <- PM.getWreqSession
-    citations <- PM.getCitations wreq . J.pmidsInSelection . T.selection $ jset
-    V.runView ( V.viewRanks citations jset ) >>= display
+    jsets <- J.combineJSets <$> mapM A.readJSets fps
+    jset  <- asks T.cJSetKey >>= A.getJSet jsets
+    wreq  <- PM.getWreqSession
+    let sel = T.selection jset
+    sel' <- PM.resolveSelections wreq $ sel
+    when ( (length . J.pmidsInSelection) sel /= length sel' ) A.delay
+    cites <- PM.getCitations wreq . J.pmidsInSelection $ sel'
+    V.runView ( V.viewRanks cites jset ) >>= display
 
 ---------------------------------------------------------------------
 -- File reading and conversion
