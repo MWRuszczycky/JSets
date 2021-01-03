@@ -180,6 +180,7 @@ data Config = Config {
     , cDate          :: Day            -- date when application started
     , cDelay         :: Integer        -- delay (sec) between PubMed requests
     , cMaxResults    :: Int            -- maximum results from an ESearch query
+    , cESumChunkSize :: Int            -- esummary chunk size/PubMed download
     , cReferences    :: [Issue]        -- reference issues
     , cArguments     :: [String]       -- command line arguments
     , cQuery         :: Query          -- arguments for PubMed queries
@@ -206,6 +207,7 @@ defaultConfig = Config {
     , cDate          = fromGregorian 2020 1 1
     , cDelay         = 1
     , cMaxResults    = 200
+    , cESumChunkSize = 300
     , cReferences    = []
     , cArguments     = []
     , cQuery         = []

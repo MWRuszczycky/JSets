@@ -9,7 +9,6 @@ import qualified Data.Text.IO          as Tx
 import qualified Data.Text             as Tx
 import qualified Model.Core.Types      as T
 import qualified Model.Core.CoreIO     as C
-import qualified Model.Core.Core       as C
 import qualified Model.Core.Dates      as Cd
 import qualified Model.Parsers.Config  as P
 import qualified System.Console.GetOpt as Opt
@@ -18,7 +17,6 @@ import           Commands                     ( runCommand, commands )
 import           Control.Monad                ( foldM, when          )
 import           Control.Monad.Except         ( throwError           )
 import           Control.Monad.Reader         ( runReaderT, liftIO   )
-import           Data.Char                    ( isDigit              )
 import           Data.List                    ( nub, intercalate     )
 import           Data.Text                    ( Text, pack           )
 import           System.Directory             ( getHomeDirectory
@@ -26,7 +24,6 @@ import           System.Directory             ( getHomeDirectory
 import           System.IO                    ( stdout
                                               , hIsTerminalDevice    )
 import           System.Environment           ( getArgs              )
-import           Text.Read                    ( readMaybe            )
 
 -- =============================================================== --
 -- Main control point and routers
@@ -126,7 +123,7 @@ commandLineConfigSteps :: T.ErrMonad [T.ConfigStep]
 commandLineConfigSteps = do
     args <- liftIO getArgs
     case Opt.getOpt Opt.Permute options args of
-         (fs, xs, [] ) -> pure $ T.ConfigInit (configArguments xs) : fs
+         (fs, xs, [] ) -> pure $ T.ConfigInit (P.configArguments xs) : fs
          (_ , _ , err) -> throwError . intercalate "\n" $ err
 
 fileConfigSteps :: T.Config -> T.ErrMonad [T.ConfigStep]
@@ -171,7 +168,7 @@ options =
 
     , Opt.Option "o" [ "output" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigInit $ configOutputPath x )
+          ( \ x -> T.ConfigInit $ P.configOutputPath x )
           "PATH"
       ) "Set the output filepath to PATH."
 
@@ -189,79 +186,85 @@ options =
 
     , Opt.Option "k" [ "key" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configKey x )
+          ( \ x -> T.ConfigGen $ P.configKey x )
           "KEY"
       ) "Set the journal set key to KEY (positive integer)."
 
     , Opt.Option "" [ "delay" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configDelay x )
+          ( \ x -> T.ConfigGen $ P.configDelay x )
           "SEC"
       ) "Delay in whole seconds between PubMed requests."
 
+    , Opt.Option "" [ "docsum-size" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ P.configESumChunkSize x )
+          "COUNT"
+      ) "Max number of PMIDs to submit for an ESummary request (default: 300)."
+
     , Opt.Option "" [ "max-results" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configMaxResults x )
+          ( \ x -> T.ConfigGen $ P.configMaxResults x )
           "MAX"
       ) "Maximum number of PubMed results to return (default: 200)."
 
     , Opt.Option "" [ "fmt" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configFormat x )
+          ( \ x -> T.ConfigGen $ P.configFormat x )
           "FMT"
       ) "Set the output format to FMT overriding file extension."
 
     , Opt.Option "" [ "author" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configAddToQuery . T.AuthorQry . Tx.pack $ x )
+          ( \ x -> T.ConfigGen $ P.configAddToQuery . T.AuthorQry . Tx.pack $ x )
           "AUTHOR"
       ) "Set the author field for PubMed queries"
 
     , Opt.Option "" [ "title" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configAddToQuery . T.TitleQry . Tx.pack $ x )
+          ( \ x -> T.ConfigGen $ P.configAddToQuery . T.TitleQry . Tx.pack $ x )
           "TITLE"
       ) "Set the title field for PubMed queries"
 
     , Opt.Option "" [ "page" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configPageQuery x )
+          ( \ x -> T.ConfigGen $ P.configPageQuery x )
           "PAGE"
       ) "Set the page field for PubMed queries"
 
     , Opt.Option "" [ "doi" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configAddToQuery . T.DOIQry . Tx.pack $ x )
+          ( \ x -> T.ConfigGen $ P.configAddToQuery . T.DOIQry . Tx.pack $ x )
           "DOI"
       ) "Set the doi field for PubMed queries"
 
     , Opt.Option "" [ "journal" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configAddToQuery . T.JournalQry . Tx.pack $ x )
+          ( \ x -> T.ConfigGen $ P.configAddToQuery . T.JournalQry . Tx.pack $ x )
           "JOURNAL"
       ) "Set the journal field for PubMed queries"
 
     , Opt.Option "" [ "pmid" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configAddToQuery . T.PMIDQry . Tx.pack $ x )
+          ( \ x -> T.ConfigGen $ P.configAddToQuery . T.PMIDQry . Tx.pack $ x )
           "PMID"
       ) "Set the pmid field for PubMed queries"
 
     , Opt.Option "" [ "year" ]
       ( Opt.ReqArg
-          ( \ x -> T.ConfigGen $ configIntQuery T.YearQry x )
+          ( \ x -> T.ConfigGen $ P.configIntQuery T.YearQry x )
           "YEAR"
       ) "Set the year field for PubMed queries"
 
      , Opt.Option "" [ "issue" ]
        ( Opt.ReqArg
-           ( \ x -> T.ConfigGen $ configIntQuery T.NumberQry x )
+           ( \ x -> T.ConfigGen $ P.configIntQuery T.NumberQry x )
            "ISSUE"
        ) "Set the issue number field for PubMed queries"
 
      , Opt.Option "" [ "volume" ]
        ( Opt.ReqArg
-           ( \ x -> T.ConfigGen $ configIntQuery T.VolumeQry x )
+           ( \ x -> T.ConfigGen $ P.configIntQuery T.VolumeQry x )
            "VOLUME"
        ) "Set the volume number field for PubMed queries"
 
@@ -307,58 +310,3 @@ options =
           ( T.ConfigGen $ \ c -> pure $ c { T.cTerse = True } )
       ) "Do not display messages & accept all defaults."
     ]
-
-configAddToQuery :: T.QueryTerm -> T.Configurator
-configAddToQuery q config = pure $ config { T.cQuery = q:qs}
-    where qs = T.cQuery config
-
-configIntQuery :: (Int -> T.QueryTerm) -> String -> T.Configurator
-configIntQuery q x config = go x >>= flip configAddToQuery config . q
-    where go x = maybe err chk . readMaybe $ x
-          err  = throwError $ "Argument " <> x <> " is not an unsigned integer!"
-          chk n | n < 0     = err
-                | otherwise = pure n
-
-configPageQuery :: String -> T.Configurator
-configPageQuery xs config = go pgno >>= flip configAddToQuery config
-    where (rd,rp) = span isDigit . reverse $ xs
-          pgno    = T.PageNo (reverse rp) <$> (readMaybe . reverse $ rd)
-          go      = maybe err (pure . T.PageQry)
-          err     = throwError $ "Invalid page number " <> xs <> "!"
-
-configKey :: String -> T.Configurator
-configKey key config
-    | n < 1     = throwError $ "Key must be a positive integer."
-    | otherwise = pure $ config { T.cJSetKey = Just n }
-    where n = maybe 0 id . readMaybe $ key
-
-configDelay :: String -> T.Configurator
-configDelay delay config
-    | d < 1     = throwError $ "Delay time must be a positive integer."
-    | otherwise = pure $ config { T.cDelay = d }
-    where d = maybe 0 id . readMaybe $ delay
-
-configMaxResults :: String -> T.Configurator
-configMaxResults maxresults config
-    | n < 1     = throwError $ "Maximum results must be a positive integer."
-    | otherwise = pure $ config { T.cMaxResults = n }
-    where n = maybe 0 id . readMaybe $ maxresults
-
-configFormat :: String -> T.Configurator
--- ^This should be a part of a general configuration step so that it
--- takes precedence over the format set by the output path extension. 
-configFormat arg config = maybe err go . C.readFormat $ arg
-    where go x = pure $ config { T.cFormat = x }
-          err  = throwError $ "Unrecognized format " <> arg
-
-configArguments :: [String] -> T.Configurator
-configArguments args config = pure $ config { T.cArguments = args }
-
-configOutputPath :: FilePath -> T.Configurator
--- ^Configure both the output path as well as the format. This should
--- be an initial configuration step so that the format provided by
--- the --fmt option will take precedence if used.
-configOutputPath fp config = pure $
-    config { T.cOutputPath = Just fp
-           , T.cFormat     = maybe (T.cFormat config) id
-                             . C.readFormat . C.extension $ fp }

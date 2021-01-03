@@ -221,12 +221,13 @@ getToCs (T.JSet n issues sel) = do
     -- Once we have all the PMIDs, we can place the eSummary requests
     -- to get the associated citations. However, PubMed will not allow
     -- too many eSummary PMIDs to be queried in a single request. So,
-    -- we have to break up the requests into chunks.
-    -- (Still need to figure out what the PMID limit per request is.)
+    -- we have to break up the requests into chunks. Chunks of 400
+    -- will fail, but 350 seems to work (default is 300).
     A.delay
+    chunkSize <- asks T.cESumChunkSize
     A.logMessage $ tocsESummaryMsg (length pmids)
     (missing,cites) <- fmap unzip . delayMapM (downloadCitations wreq)
-                                  . C.chunksOf 100 $ pmids
+                                  . C.chunksOf chunkSize $ pmids
     -- Clean up: 1. Inform user of any missing citations.
     handleMissingCitations . concat $ missing
     -- 2. Update ToCs with any PMIDs that were user-specified.

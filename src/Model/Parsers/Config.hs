@@ -2,6 +2,17 @@
 
 module Model.Parsers.Config
     ( parseConfig
+      -- Configurators
+    , configAddToQuery
+    , configArguments
+    , configDelay
+    , configESumChunkSize
+    , configFormat
+    , configIntQuery
+    , configKey
+    , configMaxResults
+    , configOutputPath
+    , configPageQuery
     ) where
 
 import qualified Data.Text            as Tx
@@ -10,12 +21,15 @@ import qualified Data.Attoparsec.Text as At
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
 import qualified Model.Parsers.Core   as P
-import           Data.Char                   ( isAlphaNum, toLower )
+import           Data.Char                   ( isAlphaNum, toLower
+                                             , isDigit             )
 import           Data.Text                   ( Text                )
 import           Data.List                   ( intercalate         )
+import           Text.Read                   ( readMaybe           )
 import           Control.Applicative         ( (<|>), many, some   )
 import           Control.Monad               ( guard               )
-import           Control.Monad.Except        ( liftEither          )
+import           Control.Monad.Except        ( liftEither
+                                             , throwError          )
 
 -- =============================================================== --
 -- Parsing a configuration file to configuration steps
@@ -66,7 +80,7 @@ configFile = do
     pure $ ps <> rs
 
 parseParameter :: At.Parser T.ConfigStep
-parseParameter = readParam <$> keyValuePair
+parseParameter = readConfigParam <$> keyValuePair
 
 parseReference :: At.Parser T.ConfigStep
 parseReference = readRef <$> refKeyValuePairs
@@ -101,7 +115,7 @@ keyValuePair = do
     pure (k,v)
 
 -- =============================================================== --
--- Readers for parameter and reference key-value pairs
+-- Readers for reference key-value pairs
 
 readRef :: [KeyValPair] -> T.ConfigStep
 readRef ps = T.ConfigInit $ \ c -> ref >>= go c
@@ -111,12 +125,6 @@ readRef ps = T.ConfigInit $ \ c -> ref >>= go c
                                                    <*> readInt     ps "volume"
                                                    <*> readInt     ps "issue"
                                                    <*> readJournal ps
-
-readParam :: KeyValPair -> T.ConfigStep
-readParam ("user",  u) = T.ConfigGen $ \ c -> pure $ c { T.cUser  = Just u }
-readParam ("email", e) = T.ConfigGen $ \ c -> pure $ c { T.cEmail = Just e }
-readParam (p,       _) = T.ConfigWarn warning
-    where warning = "Unrecognized parameter: " <> p <> " (ignored)"
 
 ---------------------------------------------------------------------
 -- Components for reading the key-value pairs for references
@@ -130,7 +138,7 @@ readJournal ps = do
                         <*> readFrequency  ps
                         <*> readResets     ps
                         <*> readInt        ps "mincount"
-                        <*> (maybe (pure True) pure . readFlag ps) "followed"
+                        <*> (maybe (pure True) pure . lookupFlag ps) "followed"
 
 readJournalHeader :: RefKeyValPairs -> Either T.ErrString (Text, Text)
 readJournalHeader =  maybe (Left "") go . lookup "journal"
@@ -167,7 +175,7 @@ readMonth ps = maybe err pure $ lookup "month" ps >>= toMonth . prepString
     where err  = Left "Missing or invalid <month> field!"
 
 readResets :: RefKeyValPairs -> Either T.ErrString Bool
-readResets ps = maybe (Left resetsError) pure . readFlag ps $ "resets"
+readResets ps = maybe (Left resetsError) pure . lookupFlag ps $ "resets"
 
 ---------------------------------------------------------------------
 -- Reference read validation and error handling
@@ -211,8 +219,13 @@ frequencyError = intercalate "\n" hs
                , "Use a number n if issues are published every n weeks."
                ]
 
+flagError :: Text -> T.ErrString
+flagError p = "Invalid boolean flag for "
+               <> Tx.unpack p
+               <> ", use 'yes/no/true/false'."
+
 ---------------------------------------------------------------------
--- General helpers for reading journal issue references
+-- General helpers for reading parameters
 
 readString :: RefKeyValPairs -> Text -> Either T.ErrString Text
 readString ps k = maybe err go . lookup k $ ps
@@ -225,13 +238,16 @@ readInt ps k = readString ps k >>= go
           err  = Left $ "Record requires an integer value for the <"
                         <> Tx.unpack k <> "> field!"
 
-readFlag :: RefKeyValPairs -> Text -> Maybe Bool
-readFlag ps k = lookup k ps >>= go . prepString
+readFlag :: Text -> Maybe Bool
+readFlag = go . prepString
     where go "yes"   = Just True
           go "true"  = Just True
           go "no"    = Just False
           go "false" = Just False
           go _       = Nothing
+
+lookupFlag :: RefKeyValPairs -> Text -> Maybe Bool
+lookupFlag ps k = lookup k ps >>= readFlag
 
 checkString :: Text -> Either T.ErrString Text
 checkString x
@@ -260,3 +276,95 @@ toMonth x = C.readMaybeTxt x >>= go
 
 prepString :: Text -> Text
 prepString = Tx.map toLower . Tx.strip
+
+-- ================================================================== 
+-- Reading parameters to generate configurators
+
+-- ------------------------------------------------------------------ 
+-- Reading configuration parameters from file
+
+readConfigParam :: KeyValPair -> T.ConfigStep
+readConfigParam ("by-date", x) =
+    T.ConfigGen $ \ c -> maybe ( throwError $ flagError "by-date" )
+                         ( \ b -> pure $ c { T.cYearlyByDate = b } )
+                         . readFlag $ x
+readConfigParam ("delay", d) =
+    T.ConfigGen . configDelay . Tx.unpack $ d
+readConfigParam ("docsum-size", s) =
+    T.ConfigGen . configESumChunkSize . Tx.unpack $ s
+readConfigParam ("email", e) =
+    T.ConfigGen $ \ c -> pure $ c { T.cEmail = Just e }
+readConfigParam ("max-results", m) =
+    T.ConfigGen . configMaxResults . Tx.unpack $ m
+readConfigParam ("no-sort", x) =
+    T.ConfigGen $ \ c -> maybe ( throwError $ flagError "no-sort" )
+                         ( \ b -> pure $ c { T.cSortJSets = not b } )
+                         . readFlag $ x
+readConfigParam ("user",  u) =
+    T.ConfigGen $ \ c -> pure $ c { T.cUser  = Just u }
+readConfigParam (p,_) = T.ConfigWarn warning
+    where warning = "Unrecognized parameter: " <> p <> " (ignored)"
+
+-- ------------------------------------------------------------------ 
+-- The specialized configurators
+
+configAddToQuery :: T.QueryTerm -> T.Configurator
+configAddToQuery q config = pure $ config { T.cQuery = q:qs}
+    where qs = T.cQuery config
+
+configArguments :: [String] -> T.Configurator
+configArguments args config = pure $ config { T.cArguments = args }
+
+configDelay :: String -> T.Configurator
+configDelay delay config
+    | d < 1     = throwError $ "Delay time must be a positive integer."
+    | otherwise = pure $ config { T.cDelay = d }
+    where d = maybe 0 id . readMaybe $ delay
+
+configESumChunkSize :: String -> T.Configurator
+configESumChunkSize size config
+    | s < 1     = throwError $ "The ESummary size must be a positive integer."
+    | otherwise = pure $ config { T.cESumChunkSize = s }
+    where s = maybe 0 id . readMaybe $ size
+
+configFormat :: String -> T.Configurator
+-- ^This should be a part of a general configuration step so that it
+-- takes precedence over the format set by the output path extension. 
+configFormat arg config = maybe err go . C.readFormat $ arg
+    where go x = pure $ config { T.cFormat = x }
+          err  = throwError $ "Unrecognized format " <> arg
+
+configIntQuery :: (Int -> T.QueryTerm) -> String -> T.Configurator
+configIntQuery q x config = go x >>= flip configAddToQuery config . q
+    where go x = maybe err chk . readMaybe $ x
+          err  = throwError $ "Argument " <> x <> " is not an unsigned integer!"
+          chk n | n < 0     = err
+                | otherwise = pure n
+
+configKey :: String -> T.Configurator
+configKey key config
+    | n < 1     = throwError $ "Key must be a positive integer."
+    | otherwise = pure $ config { T.cJSetKey = Just n }
+    where n = maybe 0 id . readMaybe $ key
+
+configMaxResults :: String -> T.Configurator
+configMaxResults maxresults config
+    | n < 1     = throwError $ "Maximum results must be a positive integer."
+    | otherwise = pure $ config { T.cMaxResults = n }
+    where n = maybe 0 id . readMaybe $ maxresults
+
+configOutputPath :: FilePath -> T.Configurator
+-- ^Configure both the output path as well as the format. This should
+-- be an initial configuration step so that the format provided by
+-- the --fmt option will take precedence if used.
+configOutputPath fp config = pure $
+    config { T.cOutputPath = Just fp
+           , T.cFormat     = maybe (T.cFormat config) id
+                             . C.readFormat . C.extension $ fp }
+
+configPageQuery :: String -> T.Configurator
+configPageQuery xs config = go pgno >>= flip configAddToQuery config
+    where (rd,rp) = span isDigit . reverse $ xs
+          pgno    = T.PageNo (reverse rp) <$> (readMaybe . reverse $ rd)
+          go      = maybe err (pure . T.PageQry)
+          err     = throwError $ "Invalid page number " <> xs <> "!"
