@@ -66,13 +66,12 @@ runView view = ask >>= pure . Tx.concat . flip appEndo [] . run
 
 viewConfig :: T.ViewMonad ()
 viewConfig = do
-    path <- asks T.cConfigPath
-    refs <- asks T.cReferences
-    Vc.writeLn . configPathTxt $ path
+    asks T.cConfigPath >>= Vc.writeLn . configPathTxt
     Vc.newLine
-    if null refs
-       then Vc.writeLn "There are no references configured."
-       else Vc.writeLns' . map referenceToTxt $ refs
+    (,) <$> asks T.cTerse <*> asks T.cReferences >>= \case
+         ( _,     [] ) -> Vc.writeLn "There are no references configured."
+         ( False, rs ) -> Vc.writeLns' . map referenceToTxt $ rs
+         ( True,  rs ) -> terseReferencesAsTxt rs
 
 configPathTxt :: Maybe FilePath -> Text
 configPathTxt (Just path) = "Configuration file: " <> Tx.pack path
@@ -94,6 +93,15 @@ referenceToTxt x = Tx.unlines hs
                , "  mincount:  " <> (C.tshow . T.mincount) j
                ]
 
+terseReferencesAsTxt :: T.References -> T.ViewMonad ()
+terseReferencesAsTxt rs = hdr *> mapM_ go rs
+    where hdr   = Vc.writeLn "Journal Name/Abbreviation/PubMed Name\n"
+          go x  = Vc.writeLn . Tx.intercalate "/"
+                             . map ($ T.journal x) $ [ T.name
+                                                     , T.abbr
+                                                     , T.pubmed
+                                                     ]
+
 resetsToTxt :: Bool -> Text
 resetsToTxt True  = "yes (issue numbers reset to 1 each year)"
 resetsToTxt False = "no (issue numbers continuously increase)"
@@ -103,13 +111,13 @@ flagToTxt True  = "yes"
 flagToTxt False = "no"
 
 freqToTxt :: T.Frequency -> Text
-freqToTxt T.WeeklyLast   = "weekly-last (drop the last issue of the year)"
-freqToTxt T.WeeklyFirst  = "weekly-first (drop the first issue of the year)"
-freqToTxt T.Monthly      = "monthly near beginning of the month (12 issues per year)"
-freqToTxt T.MidMonthly   = "monthly around mid-month (12 issues per year)"
-freqToTxt T.EndMonthly   = "monthly by the end of every month (12 issues per year)"
-freqToTxt T.SemiMonthly  = "semimonthly at regular intervals (24 issues per year)"
-freqToTxt T.UnknownFreq  = "unknown (assumed every week)"
+freqToTxt T.WeeklyLast  = "weekly-last (drop the last issue of the year)"
+freqToTxt T.WeeklyFirst = "weekly-first (drop the first issue of the year)"
+freqToTxt T.Monthly     = "monthly near beginning of the month (12 issues per year)"
+freqToTxt T.MidMonthly  = "monthly around mid-month (12 issues per year)"
+freqToTxt T.EndMonthly  = "monthly by the end of every month (12 issues per year)"
+freqToTxt T.SemiMonthly = "semimonthly at regular intervals (24 issues per year)"
+freqToTxt T.UnknownFreq = "unknown (assumed every week)"
 freqToTxt (T.EveryNWeeks n)
     | n < 1     = "unknown (assumed every week)"
     | n == 1    = "weekly (52 issues per year)"
