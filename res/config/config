@@ -7,19 +7,12 @@
 user:  Manager's Name # Name of the person managing Literature Review
 email: your@email.com # Contact email for the manager.
 
-# The difference between the <monthly> and <once-monthly> publication
-# frequencies is that a <monthly> journal is assumed to publish at
-# reliably regular intervals (i.e., every 28 or 35 days) so that
-# there is one issue every month. In contrast, a <once-monthly>
-# journal is assumed to publish one issue every month sometime before
-# the end of the month. To ensure journal set dates are not
-# underestimated use once-monthly if in doubt.
-
 # journal: <journal name>/<unique abbreviation>
 #   pubmed:     <unique key for PubMed lookup>
 #   frequency:  <publication frequency>
 #               <monthly>
-#               <once-monthly>
+#               <end-monthly>
+#               <mid-monthly>
 #               <semimonthly>
 #               <weekly>
 #               <weekly-first>
@@ -68,7 +61,7 @@ journal: Proceedings of the National Academy of Sciences/PNAS
 
 journal: Nature Chemical Biology/Nat Chem Biol
   pubmed:    Nat Chem Biol
-  frequency: once-monthly
+  frequency: end-monthly
   resets:    true
   year:      2010
   month:     january

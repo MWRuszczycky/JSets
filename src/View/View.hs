@@ -105,8 +105,9 @@ flagToTxt False = "no"
 freqToTxt :: T.Frequency -> Text
 freqToTxt T.WeeklyLast   = "weekly-last (drop the last issue of the year)"
 freqToTxt T.WeeklyFirst  = "weekly-first (drop the first issue of the year)"
-freqToTxt T.Monthly      = "monthly at regular intervals (12 issues per year)"
-freqToTxt T.OnceMonthly  = "monthly at irregular intervals (12 issues per year)"
+freqToTxt T.Monthly      = "monthly near beginning of the month (12 issues per year)"
+freqToTxt T.MidMonthly   = "monthly around mid-month (12 issues per year)"
+freqToTxt T.EndMonthly   = "monthly by the end of every month (12 issues per year)"
 freqToTxt T.SemiMonthly  = "semimonthly at regular intervals (24 issues per year)"
 freqToTxt T.UnknownFreq  = "unknown (assumed every week)"
 freqToTxt (T.EveryNWeeks n)

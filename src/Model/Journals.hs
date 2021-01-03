@@ -221,7 +221,8 @@ isFollowedOther :: T.Issue -> Bool
 isFollowedOther x = let followed = T.followed . T.journal $ x
                     in  case T.freq . T.journal $ x of
                              T.EveryNWeeks n -> followed && n > 1
-                             T.OnceMonthly   -> followed
+                             T.EndMonthly    -> followed
+                             T.MidMonthly    -> followed
                              T.Monthly       -> followed
                              T.SemiMonthly   -> followed
                              _               -> False
@@ -281,7 +282,8 @@ nextIssue :: T.Issue -> T.Issue
 -- If the frequency is unknown, then assume it is every week.
 nextIssue x = case T.freq . T.theJournal $ x of
                    T.Monthly       -> nextMonthly       x
-                   T.OnceMonthly   -> nextOnceMonthly   x
+                   T.MidMonthly    -> nextMidMonthly    x
+                   T.EndMonthly    -> nextEndMonthly    x
                    T.SemiMonthly   -> nextSemiMonthly   x
                    T.WeeklyFirst   -> nextWeekly        x
                    T.WeeklyLast    -> nextWeekly        x
@@ -291,10 +293,10 @@ nextIssue x = case T.freq . T.theJournal $ x of
 -- ------------------------------------------------------------------ 
 -- Computing next issues
 
-nextOnceMonthly :: T.Issue -> T.Issue
--- ^Compute the next monthly issue when all you can rely on is that
--- at least one issue will be published sometime every month.
-nextOnceMonthly x1
+nextEndMonthly :: T.Issue -> T.Issue
+-- ^Compute the next monthly issue assuming only that the issue will
+-- be published by the end of the month.
+nextEndMonthly x1
     | m2 == 1 && resets = x2 { T.theVolNo = v2, T.theIssNo = 1 }
     | m2 == 1           = x2 { T.theVolNo = v2                 }
     | otherwise         = x2
@@ -309,6 +311,7 @@ nextMonthly :: T.Issue -> T.Issue
 -- ^Compute the next monthly issue.
 -- Add 28 days to the current date, if in the next month, then that
 -- is the next publication date. Otherwise, add 35 days.
+-- Journal issues will tend to be published early in the month.
 nextMonthly x1
     | not $ D.sameYear  d1 d2 = x1 { T.theDate  = d2, T.theIssNo = n2y
                                    ,                  T.theVolNo = v2  }
@@ -322,6 +325,27 @@ nextMonthly x1
           n2  = succ . T.theIssNo $ x1
           v2  = succ . T.theVolNo $ x1
           n2y = if T.resets . T.theJournal $ x1 then 1 else n2
+
+nextMidMonthly :: T.Issue -> T.Issue
+-- ^Compute the next monthly issue.
+-- Add 28 days to the current date, if in the next month and after
+-- the 14th, then that is the next publication date. Otherwise, add
+-- 35 days. Issues will tend to be published mid-monthly. The
+-- reference issue must be published after the 14th.
+nextMidMonthly x1
+    | day2 < 15 && D.sameYear d1 d2 = x1 { T.theDate = d3, T.theIssNo = n2  }
+    | day2 < 15                     = x1 { T.theDate = d3, T.theIssNo = n2y
+                                         ,                 T.theVolNo = v2  }
+    | D.sameYear d1 d2              = x1 { T.theDate = d2, T.theIssNo = n2  }
+    | otherwise                     = x1 { T.theDate = d2, T.theIssNo = n2y
+                                         ,                 T.theVolNo = v2  }
+    where d1   = T.theDate x1
+          d2   = Tm.addDays 28 d1
+          d3   = Tm.addDays 35 d1
+          day2 = T.day d2
+          n2   = succ . T.theIssNo $ x1
+          v2   = succ . T.theVolNo $ x1
+          n2y  = if T.resets . T.theJournal $ x1 then 1 else n2
 
 nextSemiMonthly :: T.Issue -> T.Issue
 -- ^Compute the next semimonthly issue.

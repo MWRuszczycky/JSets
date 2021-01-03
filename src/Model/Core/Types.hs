@@ -320,8 +320,9 @@ data Frequency =
       EveryNWeeks Int -- Every 7 * N days with no dropped issues
     | WeeklyLast      -- Every 7 days dropping the last of the year
     | WeeklyFirst     -- Every 7 days dropping the first of the year
-    | Monthly         -- Once every month at regular intervals
-    | OnceMonthly     -- Once every month, but at irregular intervals
+    | Monthly         -- Once every month towards beginning of the month
+    | MidMonthly      -- Once every motnh towards end of the month
+    | EndMonthly      -- Once by the end of every month
     | SemiMonthly     -- Twice every month
     | UnknownFreq     -- The frequency is not known
       deriving ( Show, Eq )

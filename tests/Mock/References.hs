@@ -5,13 +5,16 @@ module Mock.References
     , issueRefs
     , acieRef
     , biochemistryRef
-    , cellChemBiolRef
+    , cellChemBiolEarlyRef
+    , cellChemBiolEndRef
+    , cellChemBiolMidRef
     , jacsRef
     , natureRef
     , natChemRef
     , natChemBiolRef
     , pnasRef
     , scienceRef
+    , orgLettRef
     ) where
 
 import qualified Data.Time        as Tm
@@ -30,13 +33,16 @@ issueRefs :: [T.Issue]
 -- ^List of all available reference issues.
 issueRefs = [ acieRef
             , biochemistryRef
-            , cellChemBiolRef
+            , cellChemBiolEarlyRef
+            , cellChemBiolEndRef
+            , cellChemBiolMidRef
             , jacsRef
             , natureRef
             , natChemRef
             , natChemBiolRef
             , pnasRef
             , scienceRef
+            , orgLettRef
             ]
 
 -- =============================================================== --
@@ -92,23 +98,62 @@ biochemistryRef = T.Issue {
 ---------------------------------------------------------------------
 -- Cell Chemical Biology
 
-cellChemBiol :: T.Journal
-cellChemBiol = T.Journal {
+cellChemBiolEarly :: T.Journal
+cellChemBiolEarly = T.Journal {
       T.name     = "Cell Chemical Biology"
     , T.abbr     = "Cell Chem Biol"
     , T.pubmed   = "Cell Chem Biol"
-    , T.freq     = T.OnceMonthly
+    , T.freq     = T.Monthly
     , T.resets   = True
     , T.mincount = 10
     , T.followed = True
     }
 
-cellChemBiolRef :: T.Issue
-cellChemBiolRef = T.Issue {
+cellChemBiolEarlyRef :: T.Issue
+cellChemBiolEarlyRef = T.Issue {
+      T.theDate    = Tm.fromGregorian 2017 1 19
+    , T.theVolNo   = 24
+    , T.theIssNo   = 1
+    , T.theJournal = cellChemBiolEarly
+    }
+
+
+cellChemBiolEnd :: T.Journal
+cellChemBiolEnd = T.Journal {
+      T.name     = "Cell Chemical Biology"
+    , T.abbr     = "Cell Chem Biol"
+    , T.pubmed   = "Cell Chem Biol"
+    , T.freq     = T.EndMonthly
+    , T.resets   = True
+    , T.mincount = 10
+    , T.followed = True
+    }
+
+cellChemBiolEndRef :: T.Issue
+cellChemBiolEndRef = T.Issue {
       T.theDate    = Tm.fromGregorian 2010 1 31
     , T.theVolNo   = 17
     , T.theIssNo   = 1
-    , T.theJournal = cellChemBiol
+    , T.theJournal = cellChemBiolEnd
+    }
+
+cellChemBiolMid :: T.Journal
+cellChemBiolMid = T.Journal {
+      T.name     = "Cell Chemical Biology"
+    , T.abbr     = "Cell Chem Biol Rel"
+    , T.pubmed   = "Cell Chem Biol Rel"
+    , T.freq     = T.MidMonthly
+    , T.resets   = True
+    , T.mincount = 10
+    , T.followed = True
+    }
+
+cellChemBiolMidRef :: T.Issue
+cellChemBiolMidRef = T.Issue {
+      T.theDate    = Tm.fromGregorian 2015 1 22
+    , T.theVolNo   = 22
+    , T.theIssNo   = 1
+    , T.theJournal = cellChemBiolMid
     }
 
 ---------------------------------------------------------------------
@@ -166,7 +211,7 @@ natChem = T.Journal {
       T.name     = "Nature Chemistry"
     , T.abbr     = "Nat Chem"
     , T.pubmed   = "Nat Chem"
-    , T.freq     = T.OnceMonthly
+    , T.freq     = T.EndMonthly
     , T.resets   = True
     , T.mincount = 10
     , T.followed = True
@@ -188,7 +233,7 @@ natChemBiol = T.Journal {
       T.name     = "Nature Chemical Biology"
     , T.abbr     = "Nat Chem Biol"
     , T.pubmed   = "Nat Chem Biol"
-    , T.freq     = T.OnceMonthly
+    , T.freq     = T.EndMonthly
     , T.resets   = True
     , T.mincount = 10
     , T.followed = True
@@ -244,4 +289,26 @@ scienceRef = T.Issue {
     , T.theVolNo   = 2010
     , T.theIssNo   = 5961
     , T.theJournal = science
+    }
+
+---------------------------------------------------------------------
+-- Organic Letters
+
+orgLett :: T.Journal
+orgLett = T.Journal {
+      T.name     = "Organic Letters"
+    , T.abbr     = "Org Lett"
+    , T.pubmed   = "Org Lett"
+    , T.freq     = T.SemiMonthly
+    , T.resets   = True
+    , T.mincount = 20
+    , T.followed = True
+    }
+
+orgLettRef :: T.Issue
+orgLettRef = T.Issue {
+      T.theDate    = Tm.fromGregorian 2017 1 6
+    , T.theVolNo   = 19
+    , T.theIssNo   = 1
+    , T.theJournal = orgLett
     }

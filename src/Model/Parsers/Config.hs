@@ -13,7 +13,6 @@ import qualified Model.Parsers.Core   as P
 import           Data.Char                   ( isAlphaNum, toLower )
 import           Data.Text                   ( Text                )
 import           Data.List                   ( intercalate         )
-import           Data.Bifunctor              ( bimap               )
 import           Control.Applicative         ( (<|>), many, some   )
 import           Control.Monad               ( guard               )
 import           Control.Monad.Except        ( liftEither          )
@@ -108,11 +107,10 @@ readRef :: [KeyValPair] -> T.ConfigStep
 readRef ps = T.ConfigInit $ \ c -> ref >>= go c
     where go c r = let rs = T.cReferences c
                    in  pure $ c { T.cReferences = rs <> [r] }
-          ref = liftEither . bimap (readRefError ps ) id $
-                    T.Issue <$> readDate    ps
-                            <*> readInt     ps "volume"
-                            <*> readInt     ps "issue"
-                            <*> readJournal ps
+          ref = liftEither . checkRef ps $ T.Issue <$> readDate    ps
+                                                   <*> readInt     ps "volume"
+                                                   <*> readInt     ps "issue"
+                                                   <*> readJournal ps
 
 readParam :: KeyValPair -> T.ConfigStep
 readParam ("user",  u) = T.ConfigGen $ \ c -> pure $ c { T.cUser  = Just u }
@@ -151,7 +149,8 @@ readFrequency = maybe (Left frequencyError) go . lookup "frequency"
                        "weekly-first" -> pure T.WeeklyFirst
                        "weekly-last"  -> pure T.WeeklyLast
                        "monthly"      -> pure T.Monthly
-                       "once-monthly" -> pure T.OnceMonthly
+                       "mid-monthly"  -> pure T.MidMonthly
+                       "end-monthly"  -> pure T.EndMonthly
                        "semimonthly"  -> pure T.SemiMonthly
                        nstr           -> maybe ( Left frequencyError )
                                                chk . C.readMaybeTxt $ nstr
@@ -173,6 +172,18 @@ readResets ps = maybe (Left resetsError) pure . readFlag ps $ "resets"
 ---------------------------------------------------------------------
 -- Reference read validation and error handling
 
+checkRef :: [(KeyValPair)] -> Either T.ErrString T.Issue
+            -> Either T.ErrString T.Issue
+checkRef ps (Left  err) = Left $ readRefError ps err
+checkRef ps (Right iss)
+    | isMidMonthly && isEarly = Left $ readRefError ps errMsg
+    | otherwise               = pure iss
+    where isMidMonthly = (== T.MidMonthly) . T.freq . T.journal $ iss
+          isEarly      = (< 15) . T.day . T.date $ iss
+          errMsg       = unwords [ "mid-monthly references must be published"
+                                 , "after the 14-th of the month."
+                                 ]
+
 readRefError :: [(KeyValPair)] -> T.ErrString -> T.ErrString
 readRefError ps err = maybe noJournal go . lookup "journal" $ ps
     where noJournal = "Fields provided without preceding <journal> header!"
@@ -193,7 +204,9 @@ frequencyError = intercalate "\n" hs
                , "Use 'weekly' if there are always 52 issues every year."
                , "Use 'weekly-last' if the last issue of the year is dropped."
                , "Use 'weekly-first' if the first issue of the year is dropped."
-               , "Use 'monthly' if there are 12 issues every year."
+               , "Use 'monthly' if monthly towards the beginning of the month."
+               , "Use 'mid-monthly' if monthly towards the end of the month."
+               , "Use 'once-monthly' if monthly at irregural intervals."
                , "Use 'semimonthly' if there are 24 issues every year."
                , "Use a number n if issues are published every n weeks."
                ]
