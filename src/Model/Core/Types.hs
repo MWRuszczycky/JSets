@@ -321,6 +321,7 @@ data Frequency =
     | WeeklyLast      -- Every 7 days dropping the last of the year
     | WeeklyFirst     -- Every 7 days dropping the first of the year
     | Monthly         -- Once every month
+    | SemiMonthly     -- Twice every month
     | UnknownFreq     -- The frequency is not known
       deriving ( Show, Eq )
 

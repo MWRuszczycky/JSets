@@ -18,7 +18,6 @@ module Model.Journals
     , yearlySets
     , issuesByAbbr
     , isFollowedWeekly
-    , isFollowedMonthly
     , isFollowedOther
       -- Working with journal issues
     , issueAtDate
@@ -121,8 +120,9 @@ yearlySetsByDate :: Int -> Int -> T.References -> T.JSets T.Issue
 yearlySetsByDate y k refs
     | y < 2000  = pack []
     | k < 1     = pack []
-    | otherwise = let jsets = filter ( not . null ) . groupInYear y k $ refs
-                  in  pack [ T.JSet n i [] | (n, i) <- zip [1..] jsets ]
+    | otherwise = pack [ T.JSet n i [] | (n, i) <- zip [1..] jsets ]
+        where jsets = filter ( not . null ) . groupInYear y k
+                      . filter (T.followed . T.journal) $ refs
 
 yearlySets :: Int -> Int -> T.References -> T.JSets T.Issue
 -- Compute the issues in each journal set for a specified year given
@@ -135,12 +135,10 @@ yearlySets :: Int -> Int -> T.References -> T.JSets T.Issue
 yearlySets y k refs
     | y < 2000  = pack []
     | k < 1     = pack []
-    | otherwise =
-        let notWeekly x = isFollowedMonthly x || isFollowedOther x
-            wsets       = weeklyInYear y k . filter isFollowedWeekly $ refs
-            xsets       = groupInYear  y k . filter notWeekly        $ refs
-            sets        = filter ( not . null ) $ C.zipLists wsets xsets
-        in  pack [ T.JSet n i [] | (n, i) <- zip [1..] sets ]
+    | otherwise = let wsets = weeklyInYear y k . filter isFollowedWeekly $ refs
+                      xsets = groupInYear  y k . filter isFollowedOther  $ refs
+                      sets  = filter ( not . null ) $ C.zipLists wsets xsets
+                  in  pack [ T.JSet n i [] | (n, i) <- zip [1..] sets ]
 
 setsInYear :: Int -> Int
 -- ^If journal sets are reviewed every k weeks, compute how many
@@ -210,7 +208,7 @@ issuesByAbbr :: T.HasIssue a => Text -> [a] -> [a]
 issuesByAbbr abbr = filter ( (== abbr) . T.abbr . T.journal )
 
 isFollowedWeekly :: T.Issue -> Bool
--- ^The issue has a weekly publication frequency and is followed.
+-- ^The journal has a weekly publication frequency and is followed.
 isFollowedWeekly x = let followed = T.followed . T.journal $ x
                      in  case T.freq . T.journal $ x of
                               T.EveryNWeeks 1 -> followed
@@ -218,17 +216,13 @@ isFollowedWeekly x = let followed = T.followed . T.journal $ x
                               T.WeeklyFirst   -> followed
                               _               -> False
 
-isFollowedMonthly :: T.Issue -> Bool
--- ^The issue is a monthly publication and is followed.
-isFollowedMonthly x = case T.freq . T.journal $ x of
-                           T.Monthly -> T.followed . T.journal $ x
-                           _         -> False
-
 isFollowedOther :: T.Issue -> Bool
--- ^The is not published weekly or monthly and is followed.
+-- ^The journal has issues published less than once a week.
 isFollowedOther x = let followed = T.followed . T.journal $ x
                     in  case T.freq . T.journal $ x of
                              T.EveryNWeeks n -> followed && n > 1
+                             T.Monthly       -> followed
+                             T.SemiMonthly   -> followed
                              _               -> False
 
 -- =============================================================== --
@@ -286,6 +280,7 @@ nextIssue :: T.Issue -> T.Issue
 -- If the frequency is unknown, then assume it is every week.
 nextIssue x = case T.freq . T.theJournal $ x of
                    T.Monthly       -> nextMonthly       x
+                   T.SemiMonthly   -> nextSemiMonthly   x
                    T.WeeklyFirst   -> nextWeekly        x
                    T.WeeklyLast    -> nextWeekly        x
                    T.EveryNWeeks n -> nextEveryNWeeks n x
@@ -295,8 +290,9 @@ nextIssue x = case T.freq . T.theJournal $ x of
 -- Computing next issues
 
 nextMonthly :: T.Issue -> T.Issue
--- ^Compute the next monthly issue. The journal must have a Monthly
--- publication frequency.
+-- ^Compute the next monthly issue. Each issue is assumed to be
+-- published by the last day of each month. The journal must have a
+-- Monthly publication frequency.
 nextMonthly x1
     | m2 == 1 && resets = x2 { T.theVolNo = v2, T.theIssNo = 1 }
     | m2 == 1           = x2 { T.theVolNo = v2 }
@@ -307,6 +303,26 @@ nextMonthly x1
           n2        = succ . T.theIssNo $ x1
           x2        = x1 { T.theIssNo = n2, T.theDate = d2 }
           resets    = T.resets . T.theJournal $ x1
+
+nextSemiMonthly :: T.Issue -> T.Issue
+-- ^Compute the next semimonthly issue.
+-- Add 14 days to the current publication date. If in the next month,
+-- then that is the next publication date. Otherwise, subtract 14
+-- days from the current date. If in the previous month, then keep
+-- the date plus 14 days. Otherwise, add 21 days to the current date.
+nextSemiMonthly x1
+    | not $ D.sameYear  d1 d2 = x1 { T.theDate = d2, T.theIssNo = n2y, T.theVolNo = v2 }
+    | not $ D.sameMonth d1 d2 = x1 { T.theDate = d2, T.theIssNo = n2                   }
+    | not $ D.sameMonth d1 d3 = x1 { T.theDate = d2, T.theIssNo = n2                   }
+    | D.sameYear d1 d4        = x1 { T.theDate = d4, T.theIssNo = n2                   }
+    | otherwise               = x1 { T.theDate = d4, T.theIssNo = n2y, T.theVolNo = v2 }
+    where d1 = T.theDate x1
+          d2 = Tm.addDays 14 d1
+          d3 = Tm.addDays (negate 14) d1
+          d4 = Tm.addDays 21 d1
+          n2 = succ . T.theIssNo $ x1
+          v2 = succ . T.theVolNo $ x1
+          n2y = if T.resets . T.theJournal $ x1 then 1 else n2
 
 nextWeekly :: T.Issue -> T.Issue
 -- ^Compute the next issue for journals having special weekly

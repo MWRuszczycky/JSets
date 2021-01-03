@@ -5,6 +5,7 @@ module Model.Core.Dates
     , firstOfYear
     , firstOfNextYear
     , sameYear
+    , sameMonth
     , diffYears
     , diffMonths
     , diffDays
@@ -34,6 +35,9 @@ firstOfNextYear d = Tm.fromGregorian ((+1) . fromIntegral . T.year $ d) 1 1
 
 sameYear :: Day -> Day -> Bool
 sameYear d1 d2 = T.year d1 == T.year d2
+
+sameMonth :: Day -> Day -> Bool
+sameMonth d1 d2 = T.month d1 == T.month d2
 
 diffYears :: Day -> Day -> Int
 diffYears d1 d0

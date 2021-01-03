@@ -151,6 +151,7 @@ readFrequency = maybe (Left frequencyError) go . lookup "frequency"
                        "weekly-first" -> pure T.WeeklyFirst
                        "weekly-last"  -> pure T.WeeklyLast
                        "monthly"      -> pure T.Monthly
+                       "semimonthly"  -> pure T.SemiMonthly
                        nstr           -> maybe ( Left frequencyError )
                                                chk . C.readMaybeTxt $ nstr
 
@@ -192,6 +193,7 @@ frequencyError = intercalate "\n" hs
                , "Use 'weekly-last' if the last issue of the year is dropped."
                , "Use 'weekly-first' if the first issue of the year is dropped."
                , "Use 'monthly' if there are 12 issues every year."
+               , "Use 'semimonthly' if there are 24 issues every year."
                , "Use a number n if issues are published every n weeks."
                ]
 
