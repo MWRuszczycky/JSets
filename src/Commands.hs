@@ -172,7 +172,6 @@ ranksCmd fps = do
     jset      <- asks T.cJSetKey >>= A.getJSet jsets
     wreq      <- PM.getWreqSession
     citations <- PM.getCitations wreq . J.pmidsInSelection . T.selection $ jset
-    A.logMessage "Done\n"
     V.runView ( V.viewRanks citations jset ) >>= display
 
 ---------------------------------------------------------------------

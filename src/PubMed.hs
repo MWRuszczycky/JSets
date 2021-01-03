@@ -173,23 +173,56 @@ eSummary wreq pmids =
     liftIO . runExceptT . wreq (eSummaryQuery pmids) $ eSummaryUrl
 
 getCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
--- ^Submit an ESummary request to PubMed for the requested PMIDs and
--- return any corresponding citations. This function does not throw
--- any exceptions. If the request fails, then a error message is
--- produced and the error details are logged. If any PMIDs do not
--- return a citation, then an error message is generated.
+-- ^Wrapper for downloadCitations that breaks up the request into
+-- chunks to prevent PubMed from complaining about there being too
+-- many PMIDs in the request. Also handles informing the user if
+-- there are PMIDs requested that did not return a document summary.
+-- This function does not throw any exceptions. If the request fails,
+-- then a error message is produced and the error details are logged.
 getCitations wreq pmids = do
-    result <- eSummary wreq pmids
-    paintY <- A.getPainter T.Yellow
-    case result >>= P.parseCitations pmids of
-         Right ([], cs) -> pure cs
-         Right (ms, cs) -> let msg = paintY "Missing citations:\n"
-                                     <> Tx.unlines ms
-                           in  A.logMessage msg *> pure cs
-         Left  err      -> let msg = "Failed!"
-                               hdr = "Failed to download or parse eSummary:"
-                           in  (A.logError msg hdr . Tx.pack) err
-                               *> pure Map.empty
+    size <- asks T.cESumChunkSize
+    A.logMessage $ eSummaryMsg (length pmids)
+    (missing,cites) <- fmap unzip . delayMapM (downloadCitations wreq)
+                                  . C.chunksOf size $ zip [1..] pmids
+    handleMissingCitations . concat $ missing
+    pure . mconcat $ cites
+
+downloadCitations :: C.WebRequest -> [(Int, T.PMID)]
+                     -> T.AppMonad ([T.PMID], T.Citations)
+-- ^Core function for placing ESummary requests. The PubMed IDs need
+-- to be paired with an index to help inform the user as to the
+-- download progress. If any PMIDs are requested but do not return a
+-- document summary, then these are returned as 'missing PMIDs'.
+-- This function should not be used directl. Instead the getCitations
+-- wrapper should be used.
+downloadCitations _    []    = pure ([], Map.empty)
+downloadCitations wreq pmids = do
+    let (ns,ps) = unzip pmids
+        (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
+    A.logMessage $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
+    (t, result) <- C.timeIt $ eSummary wreq ps
+    paint       <- A.getPainter T.Green
+    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
+        errMsg  = "Failed to download or parse eSummary"
+    case result >>= P.parseCitations ps of
+         Right (ms,cs) -> do A.logMessage $ paint "OK " <> timeMsg <> "\n"
+                             pure ( ms, cs )
+         Left  err     -> do A.logError "Failed" errMsg $ Tx.pack err
+                             pure ( [], Map.empty )
+
+handleMissingCitations :: [T.PMID] -> T.AppMonad ()
+-- ^Handler for PMIDs that do not return a citation from PubMed.
+handleMissingCitations [] = do
+    paint <- A.getPainter T.Green
+    A.logMessage $ paint "No missing citations.\n"
+handleMissingCitations ms =
+    A.logError "There were missing citations!"
+               "The following PMIDs were requested but not found:"
+               $ Tx.unlines ms
+
+eSummaryMsg :: Int -> Text
+eSummaryMsg n = Tx.unwords
+    [ "ESummary: Requesting document summaries for", C.tshow n, "PMIDs...\n" ]
 
 -- =============================================================== -- 
 -- Special functions for the toc command
@@ -216,25 +249,20 @@ getToCs (T.JSet n issues sel) = do
     A.delay
     A.logMessage $ tocsESearchMsg (length issues)
     tocs <- delayMapM (getToC wreq) issues
-    let pmids = zip [1..] . C.addUnique (J.pmidsInSelection selIDs)
-                          . concatMap T.contents $ tocs
+    let pmids = C.addUnique (J.pmidsInSelection selIDs) . concatMap T.contents
+                $ tocs
     -- Once we have all the PMIDs, we can place the eSummary requests
     -- to get the associated citations. However, PubMed will not allow
     -- too many eSummary PMIDs to be queried in a single request. So,
     -- we have to break up the requests into chunks. Chunks of 400
     -- will fail, but 350 seems to work (default is 300).
     A.delay
-    chunkSize <- asks T.cESumChunkSize
-    A.logMessage $ tocsESummaryMsg (length pmids)
-    (missing,cites) <- fmap unzip . delayMapM (downloadCitations wreq)
-                                  . C.chunksOf chunkSize $ pmids
-    -- Clean up: 1. Inform user of any missing citations.
-    handleMissingCitations . concat $ missing
-    -- 2. Update ToCs with any PMIDs that were user-specified.
-    -- 3. Correct parsed issues with configured issues if possible.
+    cites <- getCitations wreq pmids
+    -- Clean up: 1. Update ToCs with any PMIDs that were user-specified.
+    --           2. Correct parsed issues with configured issues if possible.
     rs <- A.references
     let fixedToCs  = map (J.updateToC selIDs) tocs
-        fixedCites = Map.map (J.correctCitation rs fixedToCs) . mconcat $ cites
+        fixedCites = Map.map (J.correctCitation rs fixedToCs) cites
     pure ( fixedCites, T.JSet n fixedToCs selIDs )
 
 getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
@@ -273,10 +301,6 @@ tocsESearchMsg :: Int -> Text
 tocsESearchMsg n = Tx.unwords
     [ "ESearch: Requesting PMIDs for", C.tshow n, "issues...\n" ]
 
-tocsESummaryMsg :: Int -> Text
-tocsESummaryMsg n = Tx.unwords
-    [ "ESummary: Requesting document summaries for", C.tshow n, "PMIDs...\n" ]
-
 ---------------------------------------------------------------------
 -- Resolving selection PMIDs and locators from selection files
 
@@ -308,28 +332,6 @@ getOneSelection wreq x = do
                 in  A.logError manyMsg manyHdr manyErr
                     *> pure []
 
-----------------------------------------------------------------------
--- Downloading citations for toc output
-
-downloadCitations :: C.WebRequest -> [(Int, T.PMID)]
-                     -> T.AppMonad ([T.PMID], T.Citations)
--- ^Core function for placing ESummary requests. Missing PMIDs that
--- are requested but cannot be found are also returned.
-downloadCitations _    []    = pure ([], Map.empty)
-downloadCitations wreq pmids = do
-    let (ns,ps) = unzip pmids
-        (x0,xn) = (C.tshow . head $ ns, C.tshow . last $ ns)
-    A.logMessage $ "Downloading citations " <> x0 <> "-" <> xn <> "..."
-    (t, result) <- C.timeIt $ eSummary wreq ps
-    paint       <- A.getPainter T.Green
-    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
-        errMsg  = "Failed to download or parse eSummary"
-    case result >>= P.parseCitations ps of
-         Right (ms,cs) -> do A.logMessage $ paint "OK " <> timeMsg <> "\n"
-                             pure ( ms, cs )
-         Left  err     -> do A.logError "Failed" errMsg $ Tx.pack err
-                             pure ( [], Map.empty )
-
 ---------------------------------------------------------------------
 -- Handler and checker functions for when there may be problems with
 -- the toc requests
@@ -350,13 +352,3 @@ handleMissingPMIDs pmids iss = do
                   , "    https://" ]
     url <- A.request msg
     pure $ T.ToC iss url pmids
-
-handleMissingCitations :: [T.PMID] -> T.AppMonad ()
--- ^Handler for PMIDs that do not return a citation from PubMed.
-handleMissingCitations [] = do
-    paint <- A.getPainter T.Green
-    A.logMessage $ paint "No missing citations.\n"
-handleMissingCitations ms =
-    A.logError "There were missing citations!"
-               "The following PMIDs were requested but not found:"
-               $ Tx.unlines ms
