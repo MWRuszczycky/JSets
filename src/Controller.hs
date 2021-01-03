@@ -287,6 +287,11 @@ options =
           ( T.ConfigGen $ \ c -> pure $ c { T.cMatchDetails = True } )
       ) "Provide detailed match output."
 
+    , Opt.Option "" [ "match-template" ]
+      ( Opt.NoArg
+          ( T.ConfigGen $ \ c -> pure $ c { T.cMatchTemplate = True } )
+      ) "Generate a template rank-lists file for the match command."
+
     , Opt.Option "" [ "no-sort" ]
       ( Opt.NoArg
           ( T.ConfigGen $ \ c -> pure $ c { T.cSortJSets = False } )

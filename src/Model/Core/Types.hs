@@ -170,52 +170,54 @@ data ConfigStep =
 
 -- |Application configuration
 data Config = Config {
-      cUser         :: Maybe Text     -- user's name
-    , cEmail        :: Maybe Text     -- user's email
-    , cOutputPath   :: Maybe FilePath -- file output path
-    , cConfigPath   :: Maybe FilePath -- path to the configuration file
-    , cJSetKey      :: Maybe Int      -- journal set key
-    , cFormat       :: Format         -- explicit output format
-    , cErrorLog     :: FilePath       -- where to send detailed error info
-    , cDate         :: Day            -- date when application started
-    , cDelay        :: Integer        -- delay (sec) between PubMed requests
-    , cMaxResults   :: Int            -- maximum results from an ESearch query
-    , cReferences   :: [Issue]        -- reference issues
-    , cArguments    :: [String]       -- command line arguments
-    , cQuery        :: Query          -- arguments for PubMed queries
-    , cHelp         :: Bool           -- user requested help
-    , cSortJSets    :: Bool           -- sort issues by Journal in output
-    , cShowVer      :: Bool           -- show version number flag
-    , cMatchDetails :: Bool           -- show detailed match output
-    , cTerse        :: Bool           -- do not produce messages
-    , cStdOutIsTerm :: Bool           -- stdout is the terminal
-    , cOnlyPMIDs    :: Bool           -- only return PMIDs from PubMed query
-    , cYearlyByDate :: Bool           -- yearly sets with issues grouped by date
+      cUser          :: Maybe Text     -- user's name
+    , cEmail         :: Maybe Text     -- user's email
+    , cOutputPath    :: Maybe FilePath -- file output path
+    , cConfigPath    :: Maybe FilePath -- path to the configuration file
+    , cJSetKey       :: Maybe Int      -- journal set key
+    , cFormat        :: Format         -- explicit output format
+    , cErrorLog      :: FilePath       -- where to send detailed error info
+    , cDate          :: Day            -- date when application started
+    , cDelay         :: Integer        -- delay (sec) between PubMed requests
+    , cMaxResults    :: Int            -- maximum results from an ESearch query
+    , cReferences    :: [Issue]        -- reference issues
+    , cArguments     :: [String]       -- command line arguments
+    , cQuery         :: Query          -- arguments for PubMed queries
+    , cHelp          :: Bool           -- user requested help
+    , cSortJSets     :: Bool           -- sort issues by Journal in output
+    , cShowVer       :: Bool           -- show version number flag
+    , cMatchDetails  :: Bool           -- show detailed match output
+    , cTerse         :: Bool           -- do not produce messages
+    , cStdOutIsTerm  :: Bool           -- stdout is the terminal
+    , cOnlyPMIDs     :: Bool           -- only return PMIDs from PubMed query
+    , cYearlyByDate  :: Bool           -- group issues by date with <year> cmd
+    , cMatchTemplate :: Bool           -- generate a match template with <match>
     } deriving ( Show )
 
 defaultConfig :: Config
 defaultConfig = Config {
-      cUser         = Nothing
-    , cEmail        = Nothing
-    , cOutputPath   = Nothing
-    , cConfigPath   = Nothing
-    , cJSetKey      = Nothing
-    , cFormat       = TXT
-    , cErrorLog     = "jsets-errors.log"
-    , cDate         = fromGregorian 2020 1 1
-    , cDelay        = 1
-    , cMaxResults   = 200
-    , cReferences   = []
-    , cArguments    = []
-    , cQuery        = []
-    , cHelp         = False
-    , cSortJSets    = True
-    , cShowVer      = False
-    , cMatchDetails = False
-    , cTerse        = False
-    , cStdOutIsTerm = True
-    , cOnlyPMIDs    = False
-    , cYearlyByDate = False
+      cUser          = Nothing
+    , cEmail         = Nothing
+    , cOutputPath    = Nothing
+    , cConfigPath    = Nothing
+    , cJSetKey       = Nothing
+    , cFormat        = TXT
+    , cErrorLog      = "jsets-errors.log"
+    , cDate          = fromGregorian 2020 1 1
+    , cDelay         = 1
+    , cMaxResults    = 200
+    , cReferences    = []
+    , cArguments     = []
+    , cQuery         = []
+    , cHelp          = False
+    , cSortJSets     = True
+    , cShowVer       = False
+    , cMatchDetails  = False
+    , cTerse         = False
+    , cStdOutIsTerm  = True
+    , cOnlyPMIDs     = False
+    , cYearlyByDate  = False
+    , cMatchTemplate = False
     }
 
 -- |Describes a JSets command that can be run (e.g., <toc> or <read>)

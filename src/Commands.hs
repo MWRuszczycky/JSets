@@ -81,8 +81,20 @@ matchHelp = (s, H.matchHelp)
     where s = "Perform matchings according to a rank-lists file."
 
 matchCmd :: [String] -> T.AppMonad ()
-matchCmd []     = throwError "A path to a match file must be provided!"
-matchCmd (fp:_) = do
+matchCmd xs = asks T.cMatchTemplate >>= \ x -> if x
+                  then makeMatchTemplate xs
+                  else runMatchCmd xs
+
+makeMatchTemplate :: [String] -> T.AppMonad ()
+makeMatchTemplate []  = throwError "Journal set selection files required!"
+makeMatchTemplate fps = do
+    jsets <- J.combineJSets <$> mapM A.readJSets fps
+    jset  <- asks T.cJSetKey >>= A.getJSet jsets
+    V.runView (V.matchTemplate jset) >>= display
+
+runMatchCmd :: [String] -> T.AppMonad ()
+runMatchCmd [] = throwError "A rank-lists file must be provided!"
+runMatchCmd (fp:_) = do
     (ks, rs) <- (lift . C.readFileErr) fp >>= liftEither . P.parseRankings
     results  <-  mapM (A.runMatch rs) ks
     mapM_ ( \ r -> V.runView (V.viewMatchResult r) >>= display ) results

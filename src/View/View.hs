@@ -33,6 +33,7 @@ module View.View
     , citationTxt
     , citationMkd
       -- Views of match results
+    , matchTemplate
     , viewMatchResult
     ) where
 
@@ -341,6 +342,22 @@ citationMkd x = Vc.write . fill dict $ Temp.citationMkd
 
 -- =============================================================== --
 -- Viewing match results
+
+matchTemplate :: T.JSet a -> T.ViewMonad ()
+-- ^Gnerate blank rank-lists file for use with the match command.
+matchTemplate jset = do
+    let count = length . T.selection $ jset
+        setno = C.tshow . T.setNo    $ jset
+        names = ["red:", "green:", "blue:"]
+    dateStr <- asks $ Vc.dateW . T.cDate
+    Vc.writeLn $ "# Rank-lists for Journal Set " <> setno <> ", " <> dateStr
+    Vc.newLine
+    Vc.writeLn "# The papers to be matched"
+    Vc.writeLn "title: papers"
+    Vc.writeLn . ("    " <>) . Tx.unwords . map C.tshow $ [1 .. count]
+    Vc.newLine
+    Vc.writeLn "# The rank-listed preferences for each person"
+    Vc.writeLns names
 
 viewMatchResult :: T.MatchResult -> T.ViewMonad ()
 viewMatchResult (T.MatchResult t _  _   _ (Left err)) = do
