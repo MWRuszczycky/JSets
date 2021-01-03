@@ -290,10 +290,10 @@ readConfigParam ("by-date", x) =
                          . readFlag $ x
 readConfigParam ("delay", d) =
     T.ConfigGen . configDelay . Tx.unpack $ d
-readConfigParam ("docsum-size", s) =
-    T.ConfigGen . configESumChunkSize . Tx.unpack $ s
 readConfigParam ("email", e) =
     T.ConfigGen $ \ c -> pure $ c { T.cEmail = Just e }
+readConfigParam ("max-docsum", s) =
+    T.ConfigGen . configESumChunkSize . Tx.unpack $ s
 readConfigParam ("max-results", m) =
     T.ConfigGen . configMaxResults . Tx.unpack $ m
 readConfigParam ("no-sort", x) =
