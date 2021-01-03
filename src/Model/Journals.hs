@@ -221,6 +221,7 @@ isFollowedOther :: T.Issue -> Bool
 isFollowedOther x = let followed = T.followed . T.journal $ x
                     in  case T.freq . T.journal $ x of
                              T.EveryNWeeks n -> followed && n > 1
+                             T.OnceMonthly   -> followed
                              T.Monthly       -> followed
                              T.SemiMonthly   -> followed
                              _               -> False
@@ -280,6 +281,7 @@ nextIssue :: T.Issue -> T.Issue
 -- If the frequency is unknown, then assume it is every week.
 nextIssue x = case T.freq . T.theJournal $ x of
                    T.Monthly       -> nextMonthly       x
+                   T.OnceMonthly   -> nextOnceMonthly   x
                    T.SemiMonthly   -> nextSemiMonthly   x
                    T.WeeklyFirst   -> nextWeekly        x
                    T.WeeklyLast    -> nextWeekly        x
@@ -289,13 +291,12 @@ nextIssue x = case T.freq . T.theJournal $ x of
 -- ------------------------------------------------------------------ 
 -- Computing next issues
 
-nextMonthly :: T.Issue -> T.Issue
--- ^Compute the next monthly issue. Each issue is assumed to be
--- published by the last day of each month. The journal must have a
--- Monthly publication frequency.
-nextMonthly x1
+nextOnceMonthly :: T.Issue -> T.Issue
+-- ^Compute the next monthly issue when all you can rely on is that
+-- at least one issue will be published sometime every month.
+nextOnceMonthly x1
     | m2 == 1 && resets = x2 { T.theVolNo = v2, T.theIssNo = 1 }
-    | m2 == 1           = x2 { T.theVolNo = v2 }
+    | m2 == 1           = x2 { T.theVolNo = v2                 }
     | otherwise         = x2
     where (y2,m2,_) = Tm.toGregorian . Tm.addGregorianMonthsClip 1 . T.theDate $ x1
           d2        = Tm.fromGregorian y2 m2 (Tm.gregorianMonthLength y2 m2)
@@ -304,6 +305,24 @@ nextMonthly x1
           x2        = x1 { T.theIssNo = n2, T.theDate = d2 }
           resets    = T.resets . T.theJournal $ x1
 
+nextMonthly :: T.Issue -> T.Issue
+-- ^Compute the next monthly issue.
+-- Add 28 days to the current date, if in the next month, then that
+-- is the next publication date. Otherwise, add 35 days.
+nextMonthly x1
+    | not $ D.sameYear  d1 d2 = x1 { T.theDate  = d2, T.theIssNo = n2y
+                                   ,                  T.theVolNo = v2  }
+    | not $ D.sameMonth d1 d2 = x1 { T.theDate  = d2, T.theIssNo = n2  }
+    | D.sameYear d1 d3        = x1 { T.theDate  = d3, T.theIssNo = n2  }
+    | otherwise               = x1 { T.theDate  = d3, T.theIssNo = n2y
+                                   ,                  T.theVolNo = v2  }
+    where d1  = T.theDate x1
+          d2  = Tm.addDays 28 d1
+          d3  = Tm.addDays 35 d1
+          n2  = succ . T.theIssNo $ x1
+          v2  = succ . T.theVolNo $ x1
+          n2y = if T.resets . T.theJournal $ x1 then 1 else n2
+
 nextSemiMonthly :: T.Issue -> T.Issue
 -- ^Compute the next semimonthly issue.
 -- Add 14 days to the current publication date. If in the next month,
@@ -311,11 +330,13 @@ nextSemiMonthly :: T.Issue -> T.Issue
 -- days from the current date. If in the previous month, then keep
 -- the date plus 14 days. Otherwise, add 21 days to the current date.
 nextSemiMonthly x1
-    | not $ D.sameYear  d1 d2 = x1 { T.theDate = d2, T.theIssNo = n2y, T.theVolNo = v2 }
-    | not $ D.sameMonth d1 d2 = x1 { T.theDate = d2, T.theIssNo = n2                   }
-    | not $ D.sameMonth d1 d3 = x1 { T.theDate = d2, T.theIssNo = n2                   }
-    | D.sameYear d1 d4        = x1 { T.theDate = d4, T.theIssNo = n2                   }
-    | otherwise               = x1 { T.theDate = d4, T.theIssNo = n2y, T.theVolNo = v2 }
+    | not $ D.sameYear  d1 d2 = x1 { T.theDate = d2, T.theIssNo = n2y
+                                   ,                 T.theVolNo = v2  }
+    | not $ D.sameMonth d1 d2 = x1 { T.theDate = d2, T.theIssNo = n2  }
+    | not $ D.sameMonth d1 d3 = x1 { T.theDate = d2, T.theIssNo = n2  }
+    | D.sameYear d1 d4        = x1 { T.theDate = d4, T.theIssNo = n2  }
+    | otherwise               = x1 { T.theDate = d4, T.theIssNo = n2y
+                                   ,                 T.theVolNo = v2  }
     where d1 = T.theDate x1
           d2 = Tm.addDays 14 d1
           d3 = Tm.addDays (negate 14) d1
@@ -346,7 +367,7 @@ nextWeekly x1
 nextEveryNWeeks :: Int -> T.Issue -> T.Issue
 -- ^Compute the next issue for journals publishing exactly every n
 -- weeks. If n < 1, then it is assumed to be weekly. This ensures
--- that interation terminates.
+-- that iteration terminates.
 nextEveryNWeeks n x1
     | n < 1            = nextEveryNWeeks 1 x1
     | D.sameYear d1 d2 = x2 { T.theVolNo = v1     , T.theIssNo = succ i1 }
