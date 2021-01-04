@@ -62,7 +62,7 @@ jsetsDetails :: Text
 jsetsDetails = Tx.intercalate "\n" [ version, sep <> "\n", jsetsHelp ]
 
 version :: Text
-version = "jsets-" <> v <> "-" <> g
+version = "jsets-" <> v <> "-beta-" <> g
     where v = Tx.pack . Ver.showVersion $ Paths.version
           g = Tx.take 7 $(MT.readGitHash)
 

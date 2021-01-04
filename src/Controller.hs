@@ -199,7 +199,7 @@ options =
     , Opt.Option "" [ "max-docsum" ]
       ( Opt.ReqArg
           ( \ x -> T.ConfigGen $ P.configESumChunkSize x )
-          "COUNT"
+          "MAX"
       ) "Max number of PMIDs to submit per ESummary request (default: 300)."
 
     , Opt.Option "" [ "max-results" ]
