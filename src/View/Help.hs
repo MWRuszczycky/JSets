@@ -72,7 +72,7 @@ version = "jsets-" <> v <> "-beta-" <> g
 cmdSummary :: T.Command -> Text
 -- ^Construct a one-line description of the command.
 cmdSummary ( T.Command name _ (hs,_) ) = paddedName <> " : " <> hs
-    where paddedName = Tx.pack name <> Tx.replicate (5 - length name) " "
+    where paddedName = Tx.pack name <> Tx.replicate (8 - length name) " "
 
 cmdHeader :: T.Command -> Text
 -- ^Construct a summary header for detailed command help.

@@ -244,6 +244,13 @@ options =
           "JOURNAL"
       ) "Set the journal field for PubMed queries"
 
+
+    , Opt.Option "" [ "pattern" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ P.configPattern x )
+          "PAT"
+      ) "Set the meeting pattern to PAT (e.g., ab, aab, aabx, etc.)"
+
     , Opt.Option "" [ "pmid" ]
       ( Opt.ReqArg
           ( \ x -> T.ConfigGen $ P.configAddToQuery . T.PMIDQry . Tx.pack $ x )
@@ -256,17 +263,29 @@ options =
           "YEAR"
       ) "Set the year field for PubMed queries"
 
-     , Opt.Option "" [ "issue" ]
-       ( Opt.ReqArg
-           ( \ x -> T.ConfigGen $ P.configIntQuery T.NumberQry x )
-           "ISSUE"
-       ) "Set the issue number field for PubMed queries"
+    , Opt.Option "" [ "issue" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ P.configIntQuery T.NumberQry x )
+          "ISSUE"
+      ) "Set the issue number field for PubMed queries"
 
-     , Opt.Option "" [ "volume" ]
-       ( Opt.ReqArg
-           ( \ x -> T.ConfigGen $ P.configIntQuery T.VolumeQry x )
-           "VOLUME"
-       ) "Set the volume number field for PubMed queries"
+    , Opt.Option "" [ "volume" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ P.configIntQuery T.VolumeQry x )
+          "VOLUME"
+      ) "Set the volume number field for PubMed queries"
+
+    , Opt.Option "" [ "start-day" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ P.configStartDay x )
+          "DATE"
+      ) "Set the meeting start date to DATE (YYYY-MM-DD|MM-DD)"
+
+    , Opt.Option "" [ "skip-day" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ P.configAddSkipDay x )
+          "DATE"
+      ) "Add DATE (YYYY-MM-DD|MM-DD) as a meeting skip day"
 
     -- Flags
 

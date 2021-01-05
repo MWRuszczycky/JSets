@@ -11,6 +11,7 @@ import qualified Data.Map.Strict           as Map
 import qualified Data.Text.IO              as Tx
 import qualified Data.Text                 as Tx
 import qualified AppMonad                  as A
+import qualified Model.Core.Dates          as D
 import qualified Model.Core.Types          as T
 import qualified Model.Core.CoreIO         as C
 import qualified Model.Journals            as J
@@ -31,17 +32,18 @@ import           Control.Monad.Except               ( liftIO, lift
 -- Commands
 
 commands :: [ T.Command ]
--- ^Commands should not be more than five characters long.
-commands = [ T.Command "help"  helpCmd  helpHelp
-           , T.Command "issue" issueCmd issueHelp
-           , T.Command "match" matchCmd matchHelp
-           , T.Command "pmid"  pmidCmd  pmidHelp
-           , T.Command "query" queryCmd queryHelp
-           , T.Command "ranks" ranksCmd ranksHelp
-           , T.Command "read"  readCmd  readHelp
-           , T.Command "refs"  refsCmd  refsHelp
-           , T.Command "toc"   tocCmd   tocHelp
-           , T.Command "year"  yearCmd  yearHelp
+-- ^Commands should not be more than eight characters long.
+commands = [ T.Command "help"     helpCmd     helpHelp
+           , T.Command "issue"    issueCmd    issueHelp
+           , T.Command "match"    matchCmd    matchHelp
+           , T.Command "meetings" meetingsCmd meetingsHelp
+           , T.Command "pmid"     pmidCmd     pmidHelp
+           , T.Command "query"    queryCmd    queryHelp
+           , T.Command "ranks"    ranksCmd    ranksHelp
+           , T.Command "read"     readCmd     readHelp
+           , T.Command "refs"     refsCmd     refsHelp
+           , T.Command "toc"      tocCmd      tocHelp
+           , T.Command "year"     yearCmd     yearHelp
            ]
 
 runCommand :: [String] -> T.AppMonad ()
@@ -99,6 +101,20 @@ runMatchCmd (fp:_) = do
     (ks, rs) <- (lift . C.readFileErr) fp >>= liftEither . P.parseRankings
     results  <-  mapM (A.runMatch rs) ks
     mapM_ ( \ r -> V.runView (V.viewMatchResult r) >>= display ) results
+
+--------------------------------------------------------------------- 
+-- Schedule Literature Review meetings
+
+meetingsHelp :: (Text, Text)
+meetingsHelp = (s, "To be written.")
+    where s = "Schedule Literature Review meetings"
+
+meetingsCmd :: [String] -> T.AppMonad ()
+meetingsCmd _ = do
+    asks T.cStartDay   >>= liftIO . print
+    asks T.cMeetPattern >>= liftIO . print
+    asks T.cPresenters >>= liftIO . print
+    asks T.cSkipDays >>= liftIO . print
 
 ---------------------------------------------------------------------
 -- Look up PMIDs at PubMed
@@ -240,11 +256,11 @@ checkYear y = do
     minYear <- A.references >>= \case
                    [] -> throwError "No references specified."
                    rs -> pure . maximum . map T.year $ rs
-    if minYear <= theYear && theYear <= 2100
+    if minYear <= theYear && theYear <= D.maxYear
        then pure theYear
        else throwError $ unwords [ "YEAR must be between"
                                  , show minYear
-                                 , "and 2100 inclusive."
+                                 , "and " <> show D.maxYear <> " inclusive."
                                  ]
 
 checkFreq :: String -> T.AppMonad Int

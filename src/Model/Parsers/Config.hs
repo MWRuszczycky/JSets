@@ -4,6 +4,7 @@ module Model.Parsers.Config
     ( parseConfig
       -- Configurators
     , configAddToQuery
+    , configAddSkipDay
     , configArguments
     , configDelay
     , configESumChunkSize
@@ -12,7 +13,9 @@ module Model.Parsers.Config
     , configKey
     , configMaxResults
     , configOutputPath
+    , configPattern
     , configPageQuery
+    , configStartDay
     ) where
 
 import qualified Data.Text            as Tx
@@ -20,6 +23,7 @@ import qualified Data.Time            as Tm
 import qualified Data.Attoparsec.Text as At
 import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
+import qualified Model.Core.Dates     as D
 import qualified Model.Parsers.Core   as P
 import           Data.Char                   ( isAlphaNum, toLower
                                              , isDigit             )
@@ -302,6 +306,13 @@ readConfigParam ("no-sort", x) =
                          . readFlag $ x
 readConfigParam ("user",  u) =
     T.ConfigGen $ \ c -> pure $ c { T.cUser  = Just u }
+readConfigParam ("pattern", p) =
+    T.ConfigGen . configPattern . Tx.unpack $ p
+readConfigParam ("presenter", p) =
+    T.ConfigGen $ \ c -> let ps = T.cPresenters c
+                         in  pure $ c { T.cPresenters = ps <> [p] }
+readConfigParam ("skip-day", d) =
+    T.ConfigGen . configAddSkipDay . Tx.unpack $ d
 readConfigParam (p,_) = T.ConfigWarn warning
     where warning = "Unrecognized parameter: " <> p <> " (ignored)"
 
@@ -311,6 +322,17 @@ readConfigParam (p,_) = T.ConfigWarn warning
 configAddToQuery :: T.QueryTerm -> T.Configurator
 configAddToQuery q config = pure $ config { T.cQuery = q:qs}
     where qs = T.cQuery config
+
+configAddSkipDay :: String -> T.Configurator
+configAddSkipDay dayStr config = maybe err go . readDay $ dayStr
+    where yr        = fromIntegral . T.year . T.cDate $ config
+          readDay x = D.readDate x <|> D.readMonthDay yr x
+          ds        = T.cSkipDays config
+          go d      = pure $ config { T.cSkipDays = ds <> [d] }
+          err       = throwError . unwords $
+                          [ "Invalid date:", dayStr <> ", dates should be"
+                          , "specified as YYYY-MM-DD or MM-DD."
+                          ]
 
 configArguments :: [String] -> T.Configurator
 configArguments args config = pure $ config { T.cArguments = args }
@@ -362,9 +384,25 @@ configOutputPath fp config = pure $
            , T.cFormat     = maybe (T.cFormat config) id
                              . C.readFormat . C.extension $ fp }
 
+configPattern :: String -> T.Configurator
+configPattern [] _ =
+    throwError "A meeting pattern must have at least one character."
+configPattern xs@(x:_) config = pure $ config { T.cMeetPattern = map go xs }
+    where go c = c == x
+
 configPageQuery :: String -> T.Configurator
 configPageQuery xs config = go pgno >>= flip configAddToQuery config
     where (rd,rp) = span isDigit . reverse $ xs
           pgno    = T.PageNo (reverse rp) <$> (readMaybe . reverse $ rd)
           go      = maybe err (pure . T.PageQry)
           err     = throwError $ "Invalid page number " <> xs <> "!"
+
+configStartDay :: String -> T.Configurator
+configStartDay dayStr config = maybe err go . readDay $ dayStr
+    where go d      = pure $ config { T.cStartDay = pure d }
+          yr        = fromIntegral . T.year . T.cDate $ config
+          readDay x = D.readDate x <|> D.readMonthDay yr x
+          err       = throwError . unwords $
+                       [ "Invalid date:", dayStr <> ", the start day should be"
+                       , "specified as YYYY-MM-DD or MM-DD."
+                       ]

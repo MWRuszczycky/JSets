@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Model.Core.Dates
-    ( today
+    ( maxYear
+    , today
+    , readDate
+    , readMonthDay
     , firstOfYear
     , firstOfNextYear
     , sameYear
@@ -17,15 +20,42 @@ module Model.Core.Dates
 
 import qualified Data.Time          as Tm
 import qualified Model.Core.Types   as T
-import           Control.Concurrent       ( threadDelay )
 import           Data.Time                ( Day         )
+import           Control.Concurrent       ( threadDelay )
+import           Control.Monad            ( guard       )
+import           Text.Read                ( readMaybe   )
 
 -- =============================================================== --
 -- Working with dates
 
+maxYear :: Num a => a
+maxYear = 2100
+
 today :: IO Day
 -- ^Determine the current.
 today = Tm.utctDay <$> Tm.getCurrentTime
+
+readDate :: String -> Maybe Day
+-- ^Read a date string in the form YYYY-MM-DD.
+readDate (w:x:y:z:'-':m:n:'-':d:c:[]) = do
+    yr <- readMaybe $ w:x:y:z:[]
+    guard $ yr < maxYear
+    mn <- readMaybe $ m:n:[]
+    guard $ mn > 0 && mn < 13
+    dy <- readMaybe $ d:c:[]
+    guard $ dy > 0 && dy <= Tm.gregorianMonthLength yr mn
+    pure $ Tm.fromGregorian yr mn dy
+readDate _ = Nothing
+
+readMonthDay :: Integer -> String -> Maybe Day
+-- ^Read a date string in the form MM-DD with yr as the year.
+readMonthDay yr (m:n:'-':d:c:[]) = do
+    mn <- readMaybe $ m:n:[]
+    guard $ mn > 0 && mn < 13
+    dy <- readMaybe $ d:c:[]
+    guard $ dy > 0 && dy <= Tm.gregorianMonthLength yr mn
+    pure $ Tm.fromGregorian yr mn dy
+readMonthDay _  _ = Nothing
 
 firstOfYear :: Day -> Day
 firstOfYear d = Tm.fromGregorian (fromIntegral $ T.year d) 1 1

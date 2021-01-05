@@ -25,6 +25,9 @@ module Model.Core.Types
     , JSet              (..)
     , JSets             (..)
     , References
+      -- Literature Review Meetings
+    , Presenter
+    , Meeting           (..)
       -- PubMed
     , ESearchTerm
     , Query
@@ -175,6 +178,7 @@ data Config = Config {
     , cOutputPath    :: Maybe FilePath -- file output path
     , cConfigPath    :: Maybe FilePath -- path to the configuration file
     , cJSetKey       :: Maybe Int      -- journal set key
+    , cStartDay      :: Maybe Day      -- First meeting day
     , cFormat        :: Format         -- explicit output format
     , cErrorLog      :: FilePath       -- where to send detailed error info
     , cDate          :: Day            -- date when application started
@@ -183,7 +187,10 @@ data Config = Config {
     , cESumChunkSize :: Int            -- esummary chunk size/PubMed download
     , cReferences    :: [Issue]        -- reference issues
     , cArguments     :: [String]       -- command line arguments
+    , cMeetPattern   :: [Bool]         -- Lit Review meeting pattern
     , cQuery         :: Query          -- arguments for PubMed queries
+    , cPresenters    :: [Presenter]    -- who will present at Lit Reviews
+    , cSkipDays      :: [Day]          -- days to skip when assigning meetings
     , cHelp          :: Bool           -- user requested help
     , cSortJSets     :: Bool           -- sort issues by Journal in output
     , cShowVer       :: Bool           -- show version number flag
@@ -202,6 +209,7 @@ defaultConfig = Config {
     , cOutputPath    = Nothing
     , cConfigPath    = Nothing
     , cJSetKey       = Nothing
+    , cStartDay      = Nothing
     , cFormat        = TXT
     , cErrorLog      = "jsets-errors.log"
     , cDate          = fromGregorian 2020 1 1
@@ -210,7 +218,10 @@ defaultConfig = Config {
     , cESumChunkSize = 300
     , cReferences    = []
     , cArguments     = []
+    , cMeetPattern   = [True, False]
     , cQuery         = []
+    , cPresenters    = []
+    , cSkipDays      = []
     , cHelp          = False
     , cSortJSets     = True
     , cShowVer       = False
@@ -272,6 +283,21 @@ newtype JSets a = JSets [JSet a]
 
 -- |A list of reference issues
 type References = [Issue]
+
+-- ================================================================== 
+-- Literature Review Meetings
+
+-- |Name of someone who will present at a Literature Review meeting
+type Presenter = Text
+
+data Meeting = Meeting {
+      presenters  :: [Presenter] -- who will present
+    , toReview    :: JSet Issue  -- the journal set to present
+    , meetingDate :: Day         -- when the meeting will take place
+    }
+
+instance HasDate Meeting where
+    date = meetingDate
 
 -- =============================================================== --
 -- PubMed
