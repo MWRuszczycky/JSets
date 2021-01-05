@@ -12,6 +12,9 @@ module AppMonad
     , getIssue
       -- Running rank matchings
     , runMatch
+      -- Scheduling Literature Review meetings
+    , scheduleMeetings
+    , scheduleLitRevMeetings
       -- Interactions and timing
     , delay
     , request
@@ -21,13 +24,14 @@ module AppMonad
     , logError
     ) where
 
-import qualified Data.Text                 as Tx
 import qualified Model.Core.CoreIO         as C
-import qualified Model.Core.Types          as T
 import qualified Model.Core.Dates          as D
 import qualified Model.Journals            as J
 import qualified Model.Matching            as Mt
 import qualified Model.Parsers.JournalSets as P
+import qualified Model.Core.Types          as T
+import qualified Data.Time                 as Tm
+import qualified Data.Text                 as Tx
 import qualified View.Core                 as Vc
 import           Data.Text                          ( Text         )
 import           Text.Read                          ( readMaybe    )
@@ -111,6 +115,43 @@ getIssue (i:y:n:_) = do
 
 runMatch :: [(Text, [[Int]])] -> (Text, [Int]) -> T.AppMonad T.MatchResult
 runMatch ranklists (title, indices) = pure $ Mt.match title indices ranklists
+
+-- ================================================================== 
+-- Scheduling Literature Review meetings
+
+scheduleMeetings :: T.AppMonad [T.Meeting ()]
+scheduleMeetings = do
+    days  <- meetingDays
+    pOne  <- asks T.cPresenterOne
+    size  <- asks T.cMeetingSize
+    pat   <- asks $ J.makePattern . T.cMeetPattern
+    ps    <- asks $ J.groupPresenters size pOne . T.cPresenters
+    count <- asks T.cMeetCount
+    pure . take count
+         . zipWith ( \ p m -> m { T.presenters = p } ) ps
+         . J.assignMeetings pat $ days
+
+scheduleLitRevMeetings :: T.JSets T.Issue
+                          -> T.AppMonad [T.Meeting (T.JSet T.Issue) ]
+scheduleLitRevMeetings jsets = do
+    days  <- meetingDays
+    pOne  <- asks T.cPresenterOne
+    size  <- asks T.cMeetingSize
+    pat   <- asks $ J.makePattern . T.cMeetPattern
+    ps    <- asks $ J.groupPresenters size pOne . T.cPresenters
+    count <- asks T.cMeetCount
+    key   <- asks T.cJSetKey
+    pure . take count
+         . zipWith ( \ p m -> m { T.presenters = p } ) ps
+         . J.assignDatedMeetings pat days
+         . J.restrictJSets key $ jsets
+
+meetingDays :: T.AppMonad [Tm.Day]
+meetingDays = do
+    skips <- asks T.cSkipDays
+    today <- asks T.cDate
+    start <- asks $ maybe today id . T.cStartDay
+    pure . filter (not . flip elem skips) . iterate (Tm.addDays 7) $ start
 
 -- =============================================================== --
 -- Interactions and timing

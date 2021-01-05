@@ -19,6 +19,12 @@ module Model.Journals
     , issuesByAbbr
     , isFollowedWeekly
     , isFollowedOther
+      --Working with meetings
+    , restrictJSets
+    , makePattern
+    , groupPresenters
+    , assignMeetings
+    , assignDatedMeetings
       -- Working with journal issues
     , issueAtDate
     , issuesFromDate
@@ -226,6 +232,63 @@ isFollowedOther x = let followed = T.followed . T.journal $ x
                              T.Monthly       -> followed
                              T.SemiMonthly   -> followed
                              _               -> False
+
+-- ================================================================== 
+-- Working with Literature Review meetings
+
+restrictJSets :: T.HasIssue a => Maybe Int -> T.JSets a -> [T.JSet a]
+-- ^Sort the journal sets by key and date and drop all issues having
+-- set number less than the key set number returning a list of JSet.
+restrictJSets Nothing    = sortOn T.date . unpack
+restrictJSets (Just key) = sortOn T.date
+                           . dropWhile ( (< key) . T.setNo )
+                           . sortOn T.setNo
+                           . unpack
+
+makePattern :: [Bool] -> [Bool]
+-- ^Generate a repeating pattern for meeting dates. If the pattern
+-- sequence is empty, then no date is a meeting.
+makePattern [] = []
+makePattern xs
+    | all not xs = []
+    | otherwise  = cycle xs
+
+groupPresenters :: Int -> Maybe T.Presenter -> [T.Presenter] -> [[T.Presenter]]
+-- ^Group presenters into groups of n for meetings possibly starting
+-- midway through the sequence with presenter p. If n < 0 or there
+-- are no presenters, then empty presenter groups are returned. If
+-- the size of the group n is greater than the number presenters,
+-- then every presenter presents in every group.
+groupPresenters _ _       []  = repeat []
+groupPresenters n (Just p) ps = groupPresenters n Nothing $ ys <> xs
+    where (xs,ys) = break (== p) ps
+groupPresenters n Nothing ps
+    | n < 1         = repeat []
+    | n > length ps = groupPresenters (length ps) Nothing ps
+    | otherwise     = C.chunksOf n . cycle $ ps
+
+assignMeetings :: [Bool] -> [Tm.Day] -> [T.Meeting ()]
+assignMeetings []     _      = []
+assignMeetings _      []     = []
+assignMeetings (p:ps) (d:ds)
+    | p         = T.Meeting [] () d : assignMeetings ps ds
+    | otherwise = assignMeetings ps (d:ds)
+
+assignDatedMeetings :: T.HasDate a => [Bool] -> [Tm.Day] -> [a] -> [T.Meeting a]
+-- ^Assign presentation dates to things with dates. The presentation
+-- date must be more than a week after the date of the dated thing.
+-- Presentation dates conform to a pattern. For example, 'tf' means
+-- that meetings take place every other week, 't' means they take
+-- place every week and 'ttff' means meetings take place two weeks in
+-- a row followed by two weeks of no meetings, etc.
+assignDatedMeetings _      _      []     = []
+assignDatedMeetings _      []     _      = []
+assignDatedMeetings []     _      _      = []
+assignDatedMeetings (p:ps) (d:ds) (x:xs)
+    | available && p = T.Meeting [] x d : assignDatedMeetings ps ds xs
+    | p              = assignDatedMeetings (p:ps) ds (x:xs)
+    | otherwise      = assignDatedMeetings ps     ds (x:xs)
+    where available = (< d) . Tm.addDays 7 . T.date $ x
 
 -- =============================================================== --
 -- Working with base journal issues

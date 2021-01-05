@@ -25,7 +25,7 @@ module Model.Core.Types
     , JSet              (..)
     , JSets             (..)
     , References
-      -- Literature Review Meetings
+      -- Meetings
     , Presenter
     , Meeting           (..)
       -- PubMed
@@ -204,10 +204,12 @@ data Config = Config {
     , cMatchTemplate :: Bool           -- generate a match template with <match>
       -- Literature Review
     , cPresenters    :: [Presenter]    -- who will present at Lit Reviews
-    , cFstPresenter  :: Maybe Presenter -- who will present Lit Review first
+    , cPresenterOne  :: Maybe Presenter -- who will present Lit Review first
+    , cMeetingSize   :: Int            -- Number of presenters per meeting
     , cStartDay      :: Maybe Day      -- First meeting day
     , cSkipDays      :: [Day]          -- days to skip when assigning meetings
-    , cMeetPattern   :: [Bool]         -- Lit Review meeting pattern
+    , cMeetPattern   :: [Bool]         -- meeting pattern
+    , cMeetCount     :: Int            -- number of meetings to schedule
     } deriving ( Show )
 
 defaultConfig :: Config
@@ -243,10 +245,12 @@ defaultConfig = Config {
     , cMatchTemplate = False
       -- Literature Review defaults
     , cPresenters    = []
-    , cFstPresenter  = Nothing
+    , cPresenterOne  = Nothing
+    , cMeetingSize   = 3
     , cStartDay      = Nothing
     , cSkipDays      = []
     , cMeetPattern   = [True, False]
+    , cMeetCount     = 10
     }
 
 -- |Describes a JSets command that can be run (e.g., <toc> or <read>)
@@ -301,18 +305,18 @@ newtype JSets a = JSets [JSet a]
 type References = [Issue]
 
 -- ================================================================== 
--- Literature Review Meetings
+-- Meetings
 
--- |Name of someone who will present at a Literature Review meeting
+-- |Name of someone who will present at a meeting
 type Presenter = Text
 
-data Meeting = Meeting {
+data Meeting a = Meeting {
       presenters  :: [Presenter] -- who will present
-    , toReview    :: JSet Issue  -- the journal set to present
+    , toReview    :: a           -- whatever will be presented
     , meetingDate :: Day         -- when the meeting will take place
-    }
+    } deriving ( Show )
 
-instance HasDate Meeting where
+instance HasDate (Meeting a) where
     date = meetingDate
 
 -- =============================================================== --

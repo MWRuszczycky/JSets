@@ -103,18 +103,17 @@ runMatchCmd (fp:_) = do
     mapM_ ( \ r -> V.runView (V.viewMatchResult r) >>= display ) results
 
 --------------------------------------------------------------------- 
--- Schedule Literature Review meetings
+-- Schedule meetings
 
 meetingsHelp :: (Text, Text)
-meetingsHelp = (s, "To be written.")
-    where s = "Schedule Literature Review meetings"
+meetingsHelp = (s, "I haven't written this yet.")
+    where s = "Schedule meetings."
 
 meetingsCmd :: [String] -> T.AppMonad ()
-meetingsCmd _ = do
-    asks T.cStartDay   >>= liftIO . print
-    asks T.cMeetPattern >>= liftIO . print
-    asks T.cPresenters >>= liftIO . print
-    asks T.cSkipDays >>= liftIO . print
+meetingsCmd []    = A.scheduleMeetings >>= liftIO . mapM_ print
+meetingsCmd (x:_) = do
+    ms <- A.readJSets x >>= A.scheduleLitRevMeetings
+    liftIO . mapM_ print $ ms
 
 ---------------------------------------------------------------------
 -- Look up PMIDs at PubMed

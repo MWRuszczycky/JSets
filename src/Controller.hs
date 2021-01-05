@@ -208,6 +208,18 @@ options =
           "MAX"
       ) "Maximum number of PubMed results to return (default: 200)."
 
+    , Opt.Option "" [ "meet-count" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ P.configMeetingCount x )
+          "COUNT"
+      ) "How many meetings to schedule."
+
+    , Opt.Option "" [ "meet-size" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ P.configMeetingSize x )
+          "SIZE"
+      )   "Number of people to present at each meeting."
+
     , Opt.Option "" [ "fmt" ]
       ( Opt.ReqArg
           ( \ x -> T.ConfigGen $ P.configFormat x )
@@ -237,6 +249,13 @@ options =
           ( \ x -> T.ConfigGen $ P.configAddToQuery . T.DOIQry . Tx.pack $ x )
           "DOI"
       ) "Set the doi field for PubMed queries"
+
+    , Opt.Option "" [ "first-presenter" ]
+      ( Opt.ReqArg
+          ( \ x -> T.ConfigGen $ \ c -> pure $
+                      c { T.cPresenterOne = Just . Tx.pack $ x } )
+          "NAME"
+      ) "Set the first Literature Review presenter to NAME."
 
     , Opt.Option "" [ "journal" ]
       ( Opt.ReqArg

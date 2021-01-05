@@ -12,6 +12,8 @@ module Model.Parsers.Config
     , configIntQuery
     , configKey
     , configMaxResults
+    , configMeetingSize
+    , configMeetingCount
     , configOutputPath
     , configPattern
     , configPageQuery
@@ -300,6 +302,10 @@ readConfigParam ("max-docsum", s) =
     T.ConfigGen . configESumChunkSize . Tx.unpack $ s
 readConfigParam ("max-results", m) =
     T.ConfigGen . configMaxResults . Tx.unpack $ m
+readConfigParam ("meet-size", s) =
+    T.ConfigGen . configMeetingSize . Tx.unpack $ s
+readConfigParam ("meet-count", s) =
+    T.ConfigGen . configMeetingCount . Tx.unpack $ s
 readConfigParam ("no-sort", x) =
     T.ConfigGen $ \ c -> maybe ( throwError $ flagError "no-sort" )
                          ( \ b -> pure $ c { T.cSortJSets = not b } )
@@ -339,13 +345,13 @@ configArguments args config = pure $ config { T.cArguments = args }
 
 configDelay :: String -> T.Configurator
 configDelay delay config
-    | d < 1     = throwError $ "Delay time must be a positive integer."
+    | d < 1     = throwError "Delay time must be a positive integer."
     | otherwise = pure $ config { T.cDelay = d }
     where d = maybe 0 id . readMaybe $ delay
 
 configESumChunkSize :: String -> T.Configurator
 configESumChunkSize size config
-    | s < 1     = throwError $ "The ESummary size must be a positive integer."
+    | s < 1     = throwError "The ESummary size must be a positive integer."
     | otherwise = pure $ config { T.cESumChunkSize = s }
     where s = maybe 0 id . readMaybe $ size
 
@@ -365,15 +371,27 @@ configIntQuery q x config = go x >>= flip configAddToQuery config . q
 
 configKey :: String -> T.Configurator
 configKey key config
-    | n < 1     = throwError $ "Key must be a positive integer."
+    | n < 1     = throwError "Key must be a positive integer."
     | otherwise = pure $ config { T.cJSetKey = Just n }
     where n = maybe 0 id . readMaybe $ key
 
 configMaxResults :: String -> T.Configurator
 configMaxResults maxresults config
-    | n < 1     = throwError $ "Maximum results must be a positive integer."
+    | n < 1     = throwError "Maximum results must be a positive integer."
     | otherwise = pure $ config { T.cMaxResults = n }
     where n = maybe 0 id . readMaybe $ maxresults
+
+configMeetingSize :: String -> T.Configurator
+configMeetingSize size config
+    | n < 0     = throwError "Meeting size must be 0 or a positive integer."
+    | otherwise = pure $ config { T.cMeetingSize = n }
+    where n = maybe (negate 1) id . readMaybe $ size
+
+configMeetingCount :: String -> T.Configurator
+configMeetingCount count config
+    | n < 1     = throwError "Meeting count must a positive integer."
+    | otherwise = pure $ config { T.cMeetCount = n }
+    where n = maybe 0 id . readMaybe $ count
 
 configOutputPath :: FilePath -> T.Configurator
 -- ^Configure both the output path as well as the format. This should
