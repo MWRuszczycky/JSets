@@ -56,8 +56,13 @@ initialize :: T.ErrMonad T.Config
 initialize = do
     path   <- ( <> "/.config/jsets/config" ) <$> liftIO getHomeDirectory
     exists <- liftIO . doesFileExist $ path
+    today  <- liftIO Cd.today
+    isTerm <- liftIO . hIsTerminalDevice $ stdout
     pure $ T.defaultConfig
-           { T.cConfigPath = if exists then Just path else Nothing }
+           { T.cConfigPath   = if exists then Just path else Nothing
+           , T.cDate         = today
+           , T.cStdOutIsTerm = isTerm
+           }
 
 configure :: T.Config -> T.ErrMonad ([Text], T.Config)
 -- ^Configuration needs to follow a certain precedence:
@@ -90,12 +95,7 @@ configure config = do
     configFinal <- foldM (flip ($)) configInitByCLI $ remainingSteps
 
     -- Finalize the configuration
-    today  <- liftIO Cd.today
-    isTerm <- liftIO . hIsTerminalDevice $ stdout
     pure . (,) (cliWarnings <> fileWarnings) $ configFinal
-        { T.cDate         = today
-        , T.cStdOutIsTerm = isTerm
-        }
 
 ---------------------------------------------------------------------
 -- Configuration helpers
