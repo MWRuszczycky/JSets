@@ -25,6 +25,8 @@ spec = hspec $ do
         spec_issueAtDate
     describe "Model.Journals.yearlySets" $ do
         spec_yearlySets
+    describe "Model.Journals.makePattern" $ do
+        spec_makePattern
 
 -- =============================================================== --
 -- Working with journal sets
@@ -85,6 +87,31 @@ spec_yearlySets = do
         check_yearly (J.yearlySets 2019 5 testRefs_6W3M) "yearlySets_6W3M5F.txt"
     it "works with 3 monthly & 6 weekly issues at 52 week freq" $ do
         check_yearly (J.yearlySets 2019 52 testRefs_6W3M) "yearlySets_6W3M52F.txt"
+
+-- =============================================================== --
+-- Working with Meetings
+
+spec_makePattern :: Spec
+spec_makePattern = do
+    it "works with empty patterns" $ do
+        test_makePattern ""      ""
+    it "works with all False patterns" $ do
+        test_makePattern "f"     ""
+        test_makePattern "ff"    ""
+        test_makePattern "fff"   ""
+    it "works with different finite patterns containing True" $ do
+        test_makePattern "t"     "tttttttttt"
+        test_makePattern "tf"    "tftftftftf"
+        test_makePattern "ft"    "ftftftftft"
+        test_makePattern "ttff"  "ttffttfftt"
+        test_makePattern "tfftf" "tfftftfftf"
+        test_makePattern "fftft" "fftftfftft"
+
+test_makePattern :: String -> String -> IO ()
+test_makePattern xs ys = go (map f xs) `shouldBe` map f ys
+    where f 't' = True
+          f _   = False
+          go    = take 10 . J.makePattern
 
 -- =============================================================== --
 -- Working with journal issues
