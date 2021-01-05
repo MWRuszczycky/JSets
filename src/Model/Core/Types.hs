@@ -173,64 +173,80 @@ data ConfigStep =
 
 -- |Application configuration
 data Config = Config {
-      cUser          :: Maybe Text     -- user's name
+      -- General configuraton
+      cArguments     :: [String]       -- command line arguments
+    , cDate          :: Day            -- date when application started
+    , cStdOutIsTerm  :: Bool           -- stdout is the terminal
+    , cUser          :: Maybe Text     -- user's name
     , cEmail         :: Maybe Text     -- user's email
+    , cFormat        :: Format         -- explicit output format
+    , cTerse         :: Bool           -- do not produce messages
+      -- Special command flags
+    , cHelp          :: Bool           -- user requested help
+    , cShowVer       :: Bool           -- show version number flag
+      -- File paths
     , cOutputPath    :: Maybe FilePath -- file output path
     , cConfigPath    :: Maybe FilePath -- path to the configuration file
-    , cJSetKey       :: Maybe Int      -- journal set key
-    , cStartDay      :: Maybe Day      -- First meeting day
-    , cFormat        :: Format         -- explicit output format
     , cErrorLog      :: FilePath       -- where to send detailed error info
-    , cDate          :: Day            -- date when application started
-    , cDelay         :: Integer        -- delay (sec) between PubMed requests
+      -- Journal sets
+    , cJSetKey       :: Maybe Int      -- journal set key
+    , cReferences    :: [Issue]        -- reference issues
+    , cSortJSets     :: Bool           -- sort issues by Journal in output
+    , cYearlyByDate  :: Bool           -- group issues by date with <year> cmd
+      -- PubMed
+    , cQuery         :: Query          -- arguments for PubMed queries
     , cMaxResults    :: Int            -- maximum results from an ESearch query
     , cESumChunkSize :: Int            -- esummary chunk size/PubMed download
-    , cReferences    :: [Issue]        -- reference issues
-    , cArguments     :: [String]       -- command line arguments
-    , cMeetPattern   :: [Bool]         -- Lit Review meeting pattern
-    , cQuery         :: Query          -- arguments for PubMed queries
-    , cPresenters    :: [Presenter]    -- who will present at Lit Reviews
-    , cSkipDays      :: [Day]          -- days to skip when assigning meetings
-    , cHelp          :: Bool           -- user requested help
-    , cSortJSets     :: Bool           -- sort issues by Journal in output
-    , cShowVer       :: Bool           -- show version number flag
-    , cMatchDetails  :: Bool           -- show detailed match output
-    , cTerse         :: Bool           -- do not produce messages
-    , cStdOutIsTerm  :: Bool           -- stdout is the terminal
+    , cDelay         :: Integer        -- delay (sec) between PubMed requests
     , cOnlyPMIDs     :: Bool           -- only return PMIDs from PubMed query
-    , cYearlyByDate  :: Bool           -- group issues by date with <year> cmd
+      -- Matching
+    , cMatchDetails  :: Bool           -- show detailed match output
     , cMatchTemplate :: Bool           -- generate a match template with <match>
+      -- Literature Review
+    , cPresenters    :: [Presenter]    -- who will present at Lit Reviews
+    , cFstPresenter  :: Maybe Presenter -- who will present Lit Review first
+    , cStartDay      :: Maybe Day      -- First meeting day
+    , cSkipDays      :: [Day]          -- days to skip when assigning meetings
+    , cMeetPattern   :: [Bool]         -- Lit Review meeting pattern
     } deriving ( Show )
 
 defaultConfig :: Config
 defaultConfig = Config {
-      cUser          = Nothing
+      -- General defaults
+      cArguments     = []
+    , cDate          = fromGregorian 2020 1 1
+    , cStdOutIsTerm  = True
+    , cUser          = Nothing
     , cEmail         = Nothing
+    , cFormat        = TXT
+    , cTerse         = False
+      -- Default command flags
+    , cHelp          = False
+    , cShowVer       = False
+      -- Default file paths
     , cOutputPath    = Nothing
     , cConfigPath    = Nothing
-    , cJSetKey       = Nothing
-    , cStartDay      = Nothing
-    , cFormat        = TXT
     , cErrorLog      = "jsets-errors.log"
-    , cDate          = fromGregorian 2020 1 1
-    , cDelay         = 1
+      -- Default journal set parameters
+    , cJSetKey       = Nothing
+    , cReferences    = []
+    , cSortJSets     = True
+    , cYearlyByDate  = False
+      -- Default PubMed parameters
+    , cQuery         = []
     , cMaxResults    = 200
     , cESumChunkSize = 300
-    , cReferences    = []
-    , cArguments     = []
-    , cMeetPattern   = [True, False]
-    , cQuery         = []
-    , cPresenters    = []
-    , cSkipDays      = []
-    , cHelp          = False
-    , cSortJSets     = True
-    , cShowVer       = False
-    , cMatchDetails  = False
-    , cTerse         = False
-    , cStdOutIsTerm  = True
+    , cDelay         = 1
     , cOnlyPMIDs     = False
-    , cYearlyByDate  = False
+      -- Default matching parameters
+    , cMatchDetails  = False
     , cMatchTemplate = False
+      -- Literature Review defaults
+    , cPresenters    = []
+    , cFstPresenter  = Nothing
+    , cStartDay      = Nothing
+    , cSkipDays      = []
+    , cMeetPattern   = [True, False]
     }
 
 -- |Describes a JSets command that can be run (e.g., <toc> or <read>)
