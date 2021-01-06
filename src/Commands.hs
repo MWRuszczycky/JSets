@@ -110,10 +110,11 @@ meetingsHelp = (s, "I haven't written this yet.")
     where s = "Schedule meetings."
 
 meetingsCmd :: [String] -> T.AppMonad ()
-meetingsCmd []    = A.scheduleMeetings >>= liftIO . mapM_ print
-meetingsCmd (x:_) = do
-    ms <- A.readJSets x >>= A.scheduleLitRevMeetings
-    liftIO . mapM_ print $ ms
+meetingsCmd []    = A.scheduleMeetings >>= V.runView . V.viewMeetings
+                                       >>= display
+meetingsCmd (x:_) = A.readJSets x >>= A.scheduleLitRevMeetings
+                                  >>= V.runView . V.viewLitRevMeetings
+                                  >>= display
 
 ---------------------------------------------------------------------
 -- Look up PMIDs at PubMed

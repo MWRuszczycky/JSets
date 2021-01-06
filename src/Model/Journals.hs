@@ -267,6 +267,7 @@ groupPresenters n Nothing ps
     | n > length ps = groupPresenters (length ps) Nothing ps
     | otherwise     = C.chunksOf n . cycle $ ps
 
+-- TODO: Write tests
 assignMeetings :: [Bool] -> [Tm.Day] -> [T.Meeting ()]
 assignMeetings []     _      = []
 assignMeetings _      []     = []
@@ -274,6 +275,7 @@ assignMeetings (p:ps) (d:ds)
     | p         = T.Meeting [] () d : assignMeetings ps ds
     | otherwise = assignMeetings ps (d:ds)
 
+-- TODO: Write tests
 assignDatedMeetings :: T.HasDate a => [Bool] -> [Tm.Day] -> [a] -> [T.Meeting a]
 -- ^Assign presentation dates to things with dates. The presentation
 -- date must be more than a week after the date of the dated thing.

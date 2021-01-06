@@ -13,14 +13,17 @@ module View.View
     , jsetsTxt
     , jsetsMkd
     , jsetMkd
-      -- Views of journal sets of Contents
+      -- Views of journal sets of ToCs
     , viewToCs
     , jsetContentTxt
     , jsetContentMkd
     , jsetContentHtml
+      -- Views of meetings
+    , viewMeetings
+    , viewLitRevMeetings
       -- Views of rankings
     , viewRanks
-      -- Views of Issues, Selections and Contents
+      -- Views of Issues, Selections and ToCs
     , showIssue
     , issueTxt
     , issueMkd
@@ -53,6 +56,7 @@ import           Data.Maybe               ( mapMaybe             )
 import           Data.Monoid              ( Endo (..), appEndo   )
 import           Data.Ord                 ( comparing            )
 import           Data.Text                ( Text                 )
+import           Data.Time                ( Day                  )
 import           View.Templates           ( fill                 )
 
 -- =============================================================== --
@@ -231,7 +235,104 @@ jsetContentHtml cs jset = do
     date  <- asks T.cDate
     Vc.write . Html.tocsHtml name email date jset $ cs
 
--- ==================================================================
+-- =============================================================== -- 
+-- Views of meetings
+
+viewMeetings :: [T.Meeting ()] -> T.ViewMonad ()
+viewMeetings ms = do
+    asks T.cFormat >>= \case
+        T.MKD -> meetingsMkd ms
+        T.CSV -> meetingsCsv ms
+        _     -> Vc.separate Vc.newLine . map meetingTxt $ ms
+
+viewLitRevMeetings :: T.HasIssue a => [T.Meeting (T.JSet a)] -> T.ViewMonad ()
+viewLitRevMeetings ms = do
+    asks T.cFormat >>= \case
+        T.MKD -> litRevMkd ms
+        T.CSV -> litRevCsv ms
+        _     -> Vc.separate Vc.newLine . map litRevTxt $ ms
+
+meetingStart :: T.ViewMonad Day
+meetingStart = do
+    today <- asks T.cDate
+    asks $ maybe today id . T.cStartDay
+
+-- ------------------------------------------------------------------
+-- As Text
+
+meetingTxt :: T.Meeting () -> T.ViewMonad ()
+meetingTxt (T.Meeting ps _ d) = do
+    Vc.writeLn . Vc.dateW $ d
+    Vc.writeLns . map ( "  " <>) $ ps
+
+litRevTxt :: T.HasIssue a => T.Meeting (T.JSet a) -> T.ViewMonad ()
+litRevTxt (T.Meeting ps x d) = do
+    Vc.writeLn $ Vc.dateW d <> ": " <> Vc.jsetTHeader x
+    Vc.writeLns . map ("  " <>) $ ps
+
+-- ------------------------------------------------------------------ 
+-- As CSV
+
+meetingsCsv :: [T.Meeting ()] -> T.ViewMonad ()
+meetingsCsv ms = do
+    start <- meetingStart
+    Vc.writeLn $ "# Meetings beginning " <> Vc.dateN start
+    Vc.writeLn $ "# date,presenters..."
+    mapM_ eachMeetingCsv ms
+
+eachMeetingCsv :: T.Meeting () -> T.ViewMonad ()
+eachMeetingCsv (T.Meeting ps _ d) = do
+    let names = map ( \ name -> Vc.bracket '"' '"' name ) ps
+        xs    = Vc.dateN d : names
+        sep   = Vc.write ","
+    Vc.separate sep . map Vc.write $ xs
+    Vc.newLine
+
+litRevCsv :: T.HasIssue a => [T.Meeting (T.JSet a)] -> T.ViewMonad ()
+litRevCsv ms = do
+    start <- meetingStart
+    Vc.writeLn $ "# Literature Review beginning" <> Vc.dateN start
+    Vc.writeLn $ "# date,set-number,available,presenters..."
+    mapM_ eachLitRevCsv ms
+
+eachLitRevCsv :: T.HasIssue a => T.Meeting (T.JSet a) -> T.ViewMonad ()
+eachLitRevCsv (T.Meeting ps j d) = do
+    let names = map ( \ name -> Vc.bracket '"' '"' name ) ps
+        xs    = [ Vc.dateN d, C.tshow . T.setNo $ j, Vc.dateN j ] <> names
+        sep   = Vc.write ","
+    Vc.separate sep . map Vc.write $ xs
+    Vc.newLine
+
+-- ------------------------------------------------------------------ 
+-- As Markdown
+
+meetingsMkd :: [T.Meeting ()] -> T.ViewMonad ()
+meetingsMkd ms = do
+    start <- meetingStart
+    Vc.writeLn $ "# Meetings beginning " <> Vc.dateW start
+    Vc.newLine
+    Vc.separate Vc.newLine . map eachMeetingMkd $ ms
+
+eachMeetingMkd :: T.Meeting () -> T.ViewMonad ()
+eachMeetingMkd (T.Meeting ps _ d) = do
+    Vc.writeLn $ "## " <> Vc.dateW d
+    Vc.newLine
+    Vc.writeLns . map ( "* " <>) $ ps
+
+litRevMkd :: T.HasIssue a => [T.Meeting (T.JSet a)] -> T.ViewMonad ()
+litRevMkd ms = do
+    start <- meetingStart
+    Vc.writeLn $ "# Literature Review beginning " <> Vc.dateW start
+    Vc.newLine
+    Vc.separate Vc.newLine . map eachLitRevMkd $ ms
+
+eachLitRevMkd :: T.HasIssue a => T.Meeting (T.JSet a) -> T.ViewMonad ()
+eachLitRevMkd (T.Meeting ps x d) = do
+    Vc.writeLn $ "## " <> Vc.dateW d <> ": " <> Vc.jsetTHeader x
+    Vc.newLine
+    Vc.writeLns . map ( "* " <>) $ ps
+
+-- =============================================================== --
 -- Viewing rankings
 
 viewRanks :: T.Citations -> T.JSet a -> T.ViewMonad ()

@@ -10,6 +10,7 @@ module View.Core
     , showPicoSec
       -- Text formatting of journal sets, issues, citations...
     , jsetHeader
+    , jsetTHeader
     , jsetVHeader
     , volIss
     , authorLine
@@ -99,15 +100,22 @@ showPicoSec x
 -- Journal sets
 
 jsetHeader :: T.HasDate a => T.JSet a -> Text
--- Formatted journal set header formatted with its availability date.
+-- ^Formatted journal set header formatted with its availability date.
 -- Dates are listed year-month-day. For example: "1 | 2020-04-30"
 jsetHeader jset = Tx.unwords [ C.tshow . T.setNo $ jset
                              , "|"
                              , dateN $ jset
                              ]
 
+jsetTHeader :: T.HasDate a => T.JSet a -> Text
+-- ^Terse formatting of a journal set header with availability date.
+-- Dates are listed year-month-day. For example,
+-- "Journal Set 1 (2020-04-30)"
+jsetTHeader jset = "Journal Set " <> nstr <> " " <> dateP jset
+    where nstr = C.tshow . T.setNo $ jset
+
 jsetVHeader :: T.HasDate a => T.JSet a -> Text
--- Verbose formatting of journal set headers with availability date.
+-- ^Verbose formatting of journal set headers with availability date.
 -- For example: "Journal Set 1 | April 30, 2020"
 jsetVHeader jset = Tx.unwords [ "Journal Set"
                               , C.tshow . T.setNo $ jset
@@ -119,7 +127,7 @@ jsetVHeader jset = Tx.unwords [ "Journal Set"
 -- Issues
 
 volIss :: T.HasIssue a => a -> Text
--- Format the volume and issue number of an issue as "vol:number"
+-- ^Format the volume and issue number of an issue as "vol:number"
 volIss iss = Tx.intercalate ":" $ map C.tshow [ T.volNo iss, T.issNo iss ]
 
 ---------------------------------------------------------------------
