@@ -8,6 +8,7 @@ module Model.Journals
     , updateToC
     , correctCitation
     , resolveCitationIssue
+    , sortToC
       -- Working with journal sets
     , pack
     , unpack
@@ -38,13 +39,15 @@ module Model.Journals
 
 import qualified Model.Core.Core      as C
 import qualified Model.Core.Dates     as D
+import qualified Data.Map.Strict      as Map
+import qualified Data.Set             as Set
 import qualified Model.Core.Types     as T
 import qualified Data.Time            as Tm
-import           Data.Maybe                  ( mapMaybe     )
-import           Data.List                   ( find, foldl' )
-import           Data.Time                   ( Day          )
-import           Data.Text                   ( Text         )
-import           Data.List                   ( sortOn       )
+import           Data.Maybe                  ( mapMaybe       )
+import           Data.List                   ( find, foldl'   )
+import           Data.Time                   ( Day            )
+import           Data.Text                   ( Text           )
+import           Data.List                   ( sortOn, sortBy )
 
 -- =============================================================== --
 -- Working with citations and selections
@@ -94,6 +97,16 @@ resolveCitationIssue refs x = maybe x id rx
                     let key = T.abbr . T.journal $ r
                     iss <- lookupIssue refs key ( T.volNo x, T.issNo x )
                     pure $ x { T.pubIssue = iss }
+
+sortToC :: Ord a => T.Citations -> (T.Citation -> a) -> T.ToC -> T.ToC
+-- ^Sort the contents of a Table of Contents by some orderable part
+-- of the citations.
+sortToC cs f toc@(T.ToC _ _ pmids) = toc { T.contents = sortBy go pmids}
+    where go x y = case (Map.lookup x cs, Map.lookup y cs) of
+                        (Nothing, Nothing) -> EQ
+                        (Nothing, _      ) -> LT
+                        (_,       Nothing) -> GT
+                        (Just cx, Just cy) -> compare (f cx) (f cy)
 
 -- =============================================================== --
 -- Working with journal sets

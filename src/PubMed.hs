@@ -323,10 +323,12 @@ getToCs (T.JSet n issues sel) = do
     cites <- getCitations wreq pmids
     -- Clean up: 1. Update ToCs with any PMIDs that were user-specified.
     --           2. Correct parsed issues with configured issues if possible.
+    --           3. Sort all the ToCs by page number.
     rs <- A.references
     let fixedToCs  = map (J.updateToC selIDs) tocs
         fixedCites = Map.map (J.correctCitation rs fixedToCs) cites
-    pure ( fixedCites, T.JSet n fixedToCs selIDs )
+        finalToCs  = map (J.sortToC fixedCites T.pages) fixedToCs
+    pure ( fixedCites, T.JSet n finalToCs selIDs )
 
 getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
 -- ^Get the all citations asssociated with a given journal issue and
