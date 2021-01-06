@@ -62,8 +62,4 @@ You can then install the updated version usinge `stack install` or run it throug
 
 ## To Do
 
-* Add bimonthly and arbitrary publication frequencies.
-* Allow direct queries for PubMed IDs and citations.
-* Resolve PMIDs for citations specified by the user.
-* Make the toc html more user friendly.
 * Write a man page.
