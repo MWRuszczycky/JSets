@@ -7,6 +7,16 @@
 user:  Manager's Name # Name of the person managing Literature Review
 email: your@email.com # Contact email for the manager.
 
+# Presenters at meetings can be specified using <presenter> or its
+# abbreviation <p>. The presentation order is determined by the order
+# in which the presenters are listed.
+
+presenter: Ms. Green
+presenter: Mr. Blue
+p:         Ms. Orange
+p:         Mr. Red
+p:         Dr. Brown
+
 # journal: <journal name>/<unique abbreviation>
 #   pubmed:     <unique key for PubMed lookup>
 #   frequency:  <publication frequency>

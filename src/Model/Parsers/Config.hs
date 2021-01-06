@@ -314,6 +314,7 @@ readConfigParam ("user",  u) =
     T.ConfigGen $ \ c -> pure $ c { T.cUser  = Just u }
 readConfigParam ("pattern", p) =
     T.ConfigGen . configPattern . Tx.unpack $ p
+readConfigParam ("p", p) = readConfigParam ("presenter", p)
 readConfigParam ("presenter", p) =
     T.ConfigGen $ \ c -> let ps = T.cPresenters c
                          in  pure $ c { T.cPresenters = ps <> [p] }
