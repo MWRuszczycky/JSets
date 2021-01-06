@@ -39,7 +39,8 @@ import qualified View.View            as V
 import qualified View.Core            as Vc
 import           Data.Text                    ( Text         )
 import           Data.List                    ( nub          )
-import           Data.Maybe                   ( catMaybes    )
+import           Data.Maybe                   ( catMaybes
+                                              , isNothing    )
 import           Lens.Micro                   ( (.~), (&)    )
 import           Network.Wreq.Session         ( newSession   )
 import           Control.Monad.Reader         ( when, asks   )
@@ -220,9 +221,9 @@ handleMissingCitations :: [T.PMID] -> T.AppMonad ()
 -- ^Handler for PMIDs that do not return a citation from PubMed.
 handleMissingCitations [] = do
     paint <- A.getPainter T.Green
-    A.logMessage $ paint "No missing citations.\n"
+    A.logMessage $ paint "ESummary found citations for all PMIDs.\n"
 handleMissingCitations ms =
-    A.logError "There were missing citations!"
+    A.logError "ESummary did not find citations for all PMIDs!"
                "The following PMIDs were requested but not found:"
                $ Tx.unlines ms
 
@@ -243,7 +244,13 @@ resolveSelections :: C.WebRequest -> [T.Selection] -> T.AppMonad [T.Selection]
 resolveSelections wreq xs = do
     let (wID, woID) = C.splitOn J.isPMID xs
     A.logMessage $ resolveSelectionMsg (length wID) (length woID)
-    nub . (<> wID) . catMaybes <$> delayMapM (getSelection wreq) woID
+    results <- delayMapM (getSelection wreq) woID
+    paintR  <- A.getPainter T.Red
+    paintG  <- A.getPainter T.Green
+    if any isNothing results
+        then A.logMessage $ paintR "All selections not resolved to PMIDs!\n"
+        else A.logMessage $ paintG "All selections resolved to PMIDs.\n"
+    pure . nub . (<> wID) . catMaybes $ results
 
 getSelection :: C.WebRequest -> T.Selection -> T.AppMonad (Maybe T.Selection)
 -- ^Wraps getSelections and requres that only one PMID be returned
@@ -277,8 +284,8 @@ getSelections _      (T.ByWeb       x) = do
 resolveSelectionMsg :: Int -> Int -> Text
 resolveSelectionMsg nWithID nNoID
     | nNoID == 0 = mainMsg <> "\n"
-    | otherwise  = mainMsg <> ", " <> nNoIDStr <> " require resolution...\n"
-    where mainMsg  = "There are " <> totalStr <> " articles selected"
+    | otherwise  = mainMsg <> " " <> nNoIDStr <> " require resolution...\n"
+    where mainMsg  = "There are " <> totalStr <> " articles selected..."
           totalStr = C.tshow $ nWithID + nNoID
           nNoIDStr = C.tshow nNoID
 

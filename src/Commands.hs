@@ -161,6 +161,7 @@ queryESearchJSON wreq x = PM.eSearch wreq x >>= \case
                      A.logError msg hdr . Tx.pack $ err
 
 queryESummaryJSON :: C.WebRequest -> [T.PMID] -> T.AppMonad ()
+queryESummaryJSON _    []    = A.logMessage "No PubMed IDs were found.\n"
 queryESummaryJSON wreq pmids = PM.eSummary wreq pmids >>= \case
     Right json -> display json
     Left  err  -> do paint <- A.getPainter T.Red
@@ -169,6 +170,7 @@ queryESummaryJSON wreq pmids = PM.eSummary wreq pmids >>= \case
                      A.logError msg hdr . Tx.pack $ err
 
 queryCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad ()
+queryCitations _    []    = A.logMessage "No PubMed IDs were found.\n"
 queryCitations wreq pmids = do
     cs <- PM.getCitations wreq pmids
     rs <- A.references
