@@ -30,6 +30,8 @@ spec = hspec $ do
         spec_makePattern
     describe "Model.Journals.groupPresenters" $ do
         spec_groupPresenters
+    describe "Models.Journals.assignMeetings" $ do
+        spec_assignMeetings
 
 -- =============================================================== --
 -- Working with journal sets
@@ -179,6 +181,42 @@ test_groupPresenters ::
     Int -> Maybe T.Presenter -> [T.Presenter] -> [Tx.Text] -> IO ()
 test_groupPresenters n mbP ps expected = result `shouldBe` expected
     where result = map Tx.concat . take 5 . J.groupPresenters n mbP $ ps
+
+spec_assignMeetings :: Spec
+spec_assignMeetings = do
+    let days = take 20 . iterate (Tm.addDays 7) $ Tm.fromGregorian 2021 1 4
+    it "works with null inputs" $ do
+        test_assignMeetings []                          days []
+        test_assignMeetings (repeat True)               []   []
+        test_assignMeetings (cycle [True, True, False]) []   []
+    it "works with non-null inputs" $ do
+        let days1 = [ d | (n,d) <- zip [1..] days, odd  n        ]
+            days2 = [ d | (n,d) <- zip [1..] days, even n        ]
+            days3 = [ d | (n,d) <- zip [1..] days, rem  n 3 /= 0 ]
+            days4 = [ d | (n,d) <- zip [1..] days, rem  n 3 == 0 ]
+            days5 = [ d | (n,d) <- zip [2..] days, rem  n 3 == 0 ]
+            days6 = [ d | (n,d) <- zip [1..] days,
+                         (even n && even (quot n     2))
+                      || (odd n  && even (quot (n+1) 2)) ]
+            days7 = [ d | (n,d) <- zip [1..] days,
+                         (even n && odd (quot n     2))
+                      || (odd n  && odd (quot (n+1) 2)) ]
+            days8 = [ d | (n,d) <- zip [1..] days, rem n 4 /= 0 ]
+            days9 = [ d | (n,d) <- zip [4..] days, rem n 4 == 0 ]
+        test_assignMeetings (cycle [True]                     ) days days
+        test_assignMeetings (cycle [True, False]              ) days days1
+        test_assignMeetings (cycle [False, True]              ) days days2
+        test_assignMeetings (cycle [True, True, False]        ) days days3
+        test_assignMeetings (cycle [False, False, True]       ) days days4
+        test_assignMeetings (cycle [False, True, False]       ) days days5
+        test_assignMeetings (cycle [False, False, True, True] ) days days6
+        test_assignMeetings (cycle [True, True, False, False] ) days days7
+        test_assignMeetings (cycle [True, True, True, False]  ) days days8
+        test_assignMeetings (cycle [True, False, False, False]) days days9
+
+test_assignMeetings :: [Bool] -> [Tm.Day] -> [Tm.Day] -> IO ()
+test_assignMeetings pat ds expected = result `shouldBe` expected
+    where result = map T.meetingDate . J.assignMeetings pat $ ds
 
 -- =============================================================== --
 -- Working with journal issues

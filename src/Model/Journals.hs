@@ -40,7 +40,6 @@ module Model.Journals
 import qualified Model.Core.Core      as C
 import qualified Model.Core.Dates     as D
 import qualified Data.Map.Strict      as Map
-import qualified Data.Set             as Set
 import qualified Model.Core.Types     as T
 import qualified Data.Time            as Tm
 import           Data.Maybe                  ( mapMaybe       )
@@ -280,7 +279,6 @@ groupPresenters n Nothing ps
     | n > length ps = groupPresenters (length ps) Nothing ps
     | otherwise     = C.chunksOf n . cycle $ ps
 
--- TODO: Write tests
 assignMeetings :: [Bool] -> [Tm.Day] -> [T.Meeting ()]
 assignMeetings []     _      = []
 assignMeetings _      []     = []
