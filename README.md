@@ -2,64 +2,131 @@
 
 ## Overview
 
-*JSets* is a tool customized for managing literature review in the laboratory where I work.
+**JSets** is a tool customized for managing Literature Review in the laboratory where I work.
 
-The basic work flow involves the laboratory following a set collection of journals that may change periodically. Every other week a selection of articles from a set of issues from these journals is reviewed and discussed in *Literature Review*. *JSets* helps in maintaining the set of issues and associated articles that will be reviewed during each *Literature Review*.
+The basic work flow involves the laboratory following a set of published journals.
+The issues of these journals published throughout the year are grouped into *journal sets*.
+The journal sets are then reviewed during periodic *Literature Review* meetings.
+The review process entails members of the lab selecting articles for review from the journal set.
+These articles are then proposed to the boss, who then makes a final selection of approximately a dozen articles for review.
+The selected articles are then assigned to those lab members who are scheduled to present at the next Literature Review meeting.
+*JSets* streamlines this process and makes everything electronic.
 
-The journals that are followed are specified in a configuration file. Each journal must be specified with a reference issue and a publication frequency from which all future issues can be computed.
+## Literature Review
 
-A set of all issues for review in a given *Literature Review* is called a *journal set* and the corresponding selection of articles for review is called a *selection*. A collection of 26 journal sets (i.e., every two weeks) for an entire year can be constructed using the `year` command. You can also specify journal set frequencies other than every two weeks. Once constructed, this collection can then be edited, saved and used for the remainder of the year. Each journal set is dated according to when all issues in the set are expected to be published.
+### Prior to JSets
 
-Given a collection of journal sets, a selection is created and assigned to the graduate students for review during *Literature Review* according to the following work flow:
-1. A table of contents `html` document is created for the journal set using the `toc` command and sent to those students who will be presenting. This document allows the students to propose their own selections for review.
-2. The proposed selections are collected and used to construct another table of contents `html` document with the articles proposed for review highlighted. This is again done using the `toc` command with the selection files returned by the students. The resulting document is sent to the boss. The boss then makes his own selection, which is final.
-3. The boss's selection is used to generate an html document for ranking the articles selected for review using the `ranks` command. This document is then sent to the students, who use it to indicate their preference for reviewing each article in the selection.
-4. The preferences are used by the `match` command to assign the articles to each student for presentation during the *Literature Review* meeting. This attempts to match each student to the articles according to their preferences using the *Hungarian Algorithm*.
+The Literature Review work flow described above raises a number of logistical questions:
 
-### PubMed
+* Which issues of each journal are to be included in each journal set?
+* When are all issues in a given journal set expected to be published?
+* When should Literature Review meetings be scheduled, and who should present at each meeting?
+* How should you collect the tables of contents for all issues in a journal set together to facilitate selecting articles for review?
+* How should selections from multiple presenters be collected together and submitted to the boss for review?
+* Once a selection is finalized, how should the articles be assigned to the presenters according to their preferences?
 
-*JSets* works closely with [PubMed](https://pubmed.ncbi.nlm.nih.gov/) to determine what articles are in each issue of a configured journal. Therefore, the *JSets* features will not all work with journals that are not tracked by *PubMed*. However, *JSets* *does not* require that journal articles also be available at [PubMed Central](https://www.ncbi.nlm.nih.gov/pmc/). I have also found that every once in a while a journal issue does not appear to be consistently indexed at *PubMed* so that it cannot be accessed using the standard search parameters that *JSets* uses. Consequently, *JSets* will fail to find such issue contents; however, when this happens you have the option to enter a URL directly to the table of contents at the publisher's website.
+Previously, these questions were addressed in a somewhat haphazard way.
+Some unfortunate person was assigned the task of scheduling the meetings
+and keeping track of what issues would be in each journal set.
+Furthermore, article selections involved downloading the tables of contents for each issue in the journal set, printing them out and annotating the printouts by hand.
+Article assignments were then negotiated between the presenters.
+This wasted a lot of time and paper and became a particular problem when many people were forced to work from home in 2020.
+
+*Most importantly*, I became the unfortunate person in charge of all this in 2020.
+
+### After JSets
+
+*JSets* is a simple command line utility that addresses all of the above logistical problems.
+Reference issues from all followed journals are collected together in a configuration file.
+These reference issues are then used to compute future issues with publication dates usually correct to within a day or two.
+This allows all journal sets in a given year to be computed along with their availability dates using the `year` command.
+Literature Review meetings and presenters can then be assigned to the journal sets using the `meetings` command.
+
+Article selections for a given journal set are then handled with the `toc` command.
+This will use
+[PubMed](https://pubmed.ncbi.nlm.nih.gov)
+to create an html document with all citations associated with each issue in a journal set.
+The html document is interactive and allows you to select articles using checkboxes and also enter unlisted articles via their digital object identifiers (DOI) or PubMed ID (PMID).
+The html document can then generate a small text file containing all of your selections,
+which can then be sent back to the Literature Review administrator.
+These selection files can also be used with the `toc` command to generate a table of contents html file with the selected files highlighted for review by the boss.
+The boss then submits the final selection file.
+
+Articles are assigned in a two step process.
+First, the `ranks` command is used with the final selection to generate an html file that allows each presenter to rank the selected article in order of preference.
+The resulting ranks can then be used to assign the articles to the presenters using the
+[Hungarian Algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm)
+so as to maximize their preferences.
+
+All of this is can be done electronically via email correspondence.
+
+## PubMed & Current Limitations
+
+*JSets* works closely with [PubMed](https://pubmed.ncbi.nlm.nih.gov/) to determine what articles are in each issue of a configured journal.
+*JSets* also allows you to submit queries directly to *PubMed* from the command line.
+
+However, this also introduces some limitations.
+
+For example, not all journals are properly registered at *PubMed*,
+and *JSets* will currently not work with these journals.
+Furthemore, in some cases an issue may already be published and all of its articles registered at *PubMed*;
+however, *PubMed* does not recognize them as being part of the published issue.
+*JSets* provides a way to handle this scenario by allowing you to include a link to the publisher's website in the tables of contents html document and enter PubMed IDs or DOI links for any selected articles directly.
+In the future, I hope to add additional support for selecting articles via DOI links alone without relying on PubMed.
 
 ## Getting help
 
-*JSets* has a considerable amount of help documentation available (in case I forget how to use it). General help information can be accessed using the `--help/-h` option. This option will also list all of the available commands and options. Help for a specific command can be accessed using
-```sh
-jsets help command_name
+*JSets* has a considerable amount of help documentation available (in case I forget how to use it),
+though much of it is still rough.
+General help information can be accessed using the `--help/-h` option.
+This option will also list all of the available commands and options.
+Help for a specific command can be accessed using
+```bash
+$ jsets help command_name
 ```
+Finally, an actual *man page* for *JSets* is in the works.
 
 ## Installation & configuration
 
 ### Installing *JSets*
 
-*JSets* uses the [Haskell Tool Stack](https://docs.haskellstack.org/en/stable/README/). To clone and build the repository, run the following in your terminal:
-```sh
-clone https://github.com/MWRuszczycky/JSets.git
-cd JSets
-stack build
+*JSets* uses the [Haskell Tool Stack](https://docs.haskellstack.org/en/stable/README/).
+To clone and build the repository, run the following in your terminal:
+```bash
+$ clone https://github.com/MWRuszczycky/JSets.git
+$ cd JSets
+$ stack build
 ```
 To run JSets in the cloned repository without installing, create the alias
-```
-alias jsets='stack exec jsets --'
+```bash
+$ alias jsets='stack exec jsets --'
 ```
 To locally install *JSets*, use
-```sh
-stack install
+```bash
+$ stack install
 ```
 
 ### Configuring *JSets*
 
-*JSets* also requires a configuration file be provided that lists the journals that are reviewed during each *Literature Review*. A sample configuration files is provided in the `res/config/` that you can use as a template. You can specify a configuration file using the `--config/-c` option or you can create it as the `~/.config/jsets/config` file in your home directory.
+*JSets* also requires a configuration file.
+This file lists the reference issues for the followed journals
+as well as the list of presenters.
+A sample configuration files is provided in the `res/config/` directory of this repository that you can use as a template.
+You can specify a configuration file using the `--config/-c` option,
+or you can create a default configuration file `~/.config/jsets/config` in your home directory.
 
 ### Updating *JSets*
 
 To update *JSets* to the newest version, change to the *JSets* repository directory and run the following:
-```sh
-git pull origin master
-stack clean --full
-stack build
+```bash
+$ git pull origin master
+$ stack clean --full
+$ stack build
 ```
-You can then install the updated version usinge `stack install` or run it through *Stack* inside the *JSets* repository with `stack exec jsets --`.
+You can then install the updated version using `stack install` or run it through *Stack* inside the *JSets* repository with `stack exec jsets --`.
 
 ## To Do
 
 * Write a man page.
+* Include installation instructions for *NixOS*.
+* Allow articles selected by DOI to be resolved via direct doi-query without relying on *PubMed*. This will allow articles to be selected even if they are not registered at *PubMed*.
