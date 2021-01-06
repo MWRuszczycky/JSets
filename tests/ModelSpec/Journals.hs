@@ -4,6 +4,7 @@ module ModelSpec.Journals
     ) where
 
 import qualified Data.Time            as Tm
+import qualified Data.Text            as Tx
 import qualified Data.Text.IO         as Tx
 import qualified Model.Core.Types     as T
 import qualified Mock.References      as TR
@@ -27,6 +28,8 @@ spec = hspec $ do
         spec_yearlySets
     describe "Model.Journals.makePattern" $ do
         spec_makePattern
+    describe "Model.Journals.groupPresenters" $ do
+        spec_groupPresenters
 
 -- =============================================================== --
 -- Working with journal sets
@@ -112,6 +115,70 @@ test_makePattern xs ys = go (map f xs) `shouldBe` map f ys
     where f 't' = True
           f _   = False
           go    = take 10 . J.makePattern
+
+spec_groupPresenters :: Spec
+spec_groupPresenters = do
+    it "works with no presenters" $ do
+        test_groupPresenters 0 Nothing    [] [ "", "", "", "", "" ]
+        test_groupPresenters 1 Nothing    [] [ "", "", "", "", "" ]
+        test_groupPresenters 3 Nothing    [] [ "", "", "", "", "" ]
+        test_groupPresenters 3 (Just "A") [] [ "", "", "", "", "" ]
+    it "works with one presenter" $ do
+        let ps1 = [ "A" ]
+        test_groupPresenters (-1) Nothing    ps1 [ "", "", "", "", "" ]
+        test_groupPresenters 0    Nothing    ps1 [ "", "", "", "", "" ]
+        test_groupPresenters 0    (Just "A") ps1 [ "", "", "", "", "" ]
+        test_groupPresenters 0    (Just "B") ps1 [ "", "", "", "", "" ]
+        test_groupPresenters 1    Nothing    ps1 [ "A", "A", "A", "A", "A" ]
+        test_groupPresenters 3    Nothing    ps1 [ "A", "A", "A", "A", "A" ]
+        test_groupPresenters 3    (Just "A") ps1 [ "A", "A", "A", "A", "A" ]
+        test_groupPresenters 3    (Just "B") ps1 [ "A", "A", "A", "A", "A" ]
+    it "works with multiple presenters" $ do
+        let ps2 = [ "A", "B" ]
+            ps3 = [ "A", "B", "C", "D", "E", "F" ]
+        test_groupPresenters (-1) Nothing ps2
+            [ "", "", "", "", "" ]
+        test_groupPresenters 0 Nothing    ps2
+            [ "", "", "", "", "" ]
+        test_groupPresenters 1 Nothing    ps2
+            [ "A", "B", "A", "B", "A" ]
+        test_groupPresenters 1 (Just "B") ps2
+            [ "B", "A", "B", "A", "B" ]
+        test_groupPresenters 2 Nothing    ps2
+            [ "AB", "AB", "AB", "AB", "AB" ]
+        test_groupPresenters 2 (Just "B") ps2
+            [ "BA", "BA", "BA", "BA", "BA" ]
+        test_groupPresenters 3 Nothing    ps2
+            [ "AB", "AB", "AB", "AB", "AB" ]
+        test_groupPresenters 3 (Just "A") ps2
+            [ "AB", "AB", "AB", "AB", "AB" ]
+        test_groupPresenters 3 (Just "B") ps2
+            [ "BA", "BA", "BA", "BA", "BA" ]
+        test_groupPresenters 0 Nothing    ps3
+            [ "", "", "", "", "" ]
+        test_groupPresenters 1 Nothing    ps3
+            [ "A", "B", "C", "D", "E" ]
+        test_groupPresenters 1 (Just "D") ps3
+            [ "D", "E", "F", "A", "B" ]
+        test_groupPresenters 3 Nothing    ps3
+            [ "ABC", "DEF", "ABC", "DEF", "ABC" ]
+        test_groupPresenters 4 Nothing    ps3
+            [ "ABCD", "EFAB", "CDEF", "ABCD", "EFAB" ]
+        test_groupPresenters 4 (Just "A") ps3
+            [ "ABCD", "EFAB", "CDEF", "ABCD", "EFAB" ]
+        test_groupPresenters 4 (Just "X") ps3
+            [ "ABCD", "EFAB", "CDEF", "ABCD", "EFAB" ]
+        test_groupPresenters 4 (Just "C") ps3
+            [ "CDEF", "ABCD", "EFAB", "CDEF", "ABCD" ]
+        test_groupPresenters 8 Nothing    ps3
+            [ "ABCDEF", "ABCDEF", "ABCDEF", "ABCDEF", "ABCDEF" ]
+        test_groupPresenters 8 (Just "E") ps3
+            [ "EFABCD", "EFABCD", "EFABCD", "EFABCD", "EFABCD" ]
+
+test_groupPresenters ::
+    Int -> Maybe T.Presenter -> [T.Presenter] -> [Tx.Text] -> IO ()
+test_groupPresenters n mbP ps expected = result `shouldBe` expected
+    where result = map Tx.concat . take 5 . J.groupPresenters n mbP $ ps
 
 -- =============================================================== --
 -- Working with journal issues
