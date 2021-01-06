@@ -273,7 +273,7 @@ assignMeetings []     _      = []
 assignMeetings _      []     = []
 assignMeetings (p:ps) (d:ds)
     | p         = T.Meeting [] () d : assignMeetings ps ds
-    | otherwise = assignMeetings ps (d:ds)
+    | otherwise = assignMeetings ps ds
 
 -- TODO: Write tests
 assignDatedMeetings :: T.HasDate a => [Bool] -> [Tm.Day] -> [a] -> [T.Meeting a]
