@@ -302,6 +302,7 @@ citationMkd :: Template
 -- doi     : doi of citation
 -- authors : authors of the cited article
 -- journal : journal name
+-- year    : publication year
 -- volIss  : volume issue pair
 -- pages   : page range
 -- pmid    : pubmed id

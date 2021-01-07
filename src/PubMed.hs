@@ -28,26 +28,26 @@ module PubMed
     , getCitationsDOI
     ) where
 
-import qualified AppMonad             as A
-import qualified Data.Text            as Tx
-import qualified Data.Map.Strict      as Map
-import qualified Model.Core.Core      as C
-import qualified Model.Core.CoreIO    as C
-import qualified Model.Core.Types     as T
-import qualified Model.Journals       as J
-import qualified Model.Parsers.PubMed as P
-import qualified Network.Wreq         as Wreq
-import qualified View.View            as V
-import qualified View.Core            as Vc
-import           Data.Text                    ( Text       )
-import           Data.List                    ( nub        )
-import           Data.Maybe                   ( catMaybes
-                                              , isNothing  )
-import           Lens.Micro                   ( (.~), (&)  )
-import           Network.Wreq.Session         ( newSession )
-import           Control.Monad.Reader         ( when, asks )
-import           Control.Monad.Except         ( liftIO
-                                              , runExceptT )
+import qualified AppMonad                as A
+import qualified Data.Text               as Tx
+import qualified Data.Map.Strict         as Map
+import qualified Model.Core.Core         as C
+import qualified Model.Core.CoreIO       as C
+import qualified Model.Core.Types        as T
+import qualified Model.Journals          as J
+import qualified Model.Parsers.Citations as P
+import qualified Network.Wreq            as Wreq
+import qualified View.View               as V
+import qualified View.Core               as Vc
+import           Data.Text                       ( Text       )
+import           Data.List                       ( nub        )
+import           Data.Maybe                      ( catMaybes
+                                                 , isNothing  )
+import           Lens.Micro                      ( (.~), (&)  )
+import           Network.Wreq.Session            ( newSession )
+import           Control.Monad.Reader            ( when, asks )
+import           Control.Monad.Except            ( liftIO
+                                                 , runExceptT )
 
 -- =============================================================== --
 -- PubMed interface
@@ -398,7 +398,7 @@ doiQuery = Wreq.defaults & Wreq.header "Accept" .~ [ hdr ]
     where hdr = "application/x-research-info-systems"
 
 getCitationsDOI :: C.WebRequest -> String
-                   -> T.AppMonad (Either T.ErrString [(Text,Text)])
+                   -> T.AppMonad (Either T.ErrString T.Citation)
 getCitationsDOI wreq doi = do
     result <- liftIO . runExceptT . wreq doiQuery . doiUrl $ doi
     pure $ result >>= P.parseCitationRIS

@@ -422,6 +422,8 @@ citationTxt x = do
     Vc.writeLn . Vc.authorLine $ x
     Vc.write . T.name . T.journal . T.issue $ x
     Vc.space
+    Vc.write . Vc.bracket '(' ')' . C.tshow . T.year $ x
+    Vc.space
     Vc.write . Vc.volIss . T.issue $ x
     Vc.write ","
     Vc.space
@@ -436,6 +438,7 @@ citationMkd x = Vc.write . fill dict $ Temp.citationMkd
                               , ( "doi",     T.doi x                          )
                               , ( "authors", Vc.authorLine x                  )
                               , ( "journal", T.name . T.journal . T.issue $ x )
+                              , ( "year",    C.tshow . T.year $ x             )
                               , ( "volIss",  Vc.volIss . T.issue $ x          )
                               , ( "pages",   C.tshow . T.pages $ x            )
                               , ( "pmid",    T.pmid x                         )

@@ -37,7 +37,7 @@ library jsets-internal
                       , Model.Parsers.CSV
                       , Model.Parsers.JSON
                       , Model.Parsers.JournalSets
-                      , Model.Parsers.PubMed
+                      , Model.Parsers.Citations
                       , Model.Parsers.Rankings
                       , PubMed
                       , View.Core

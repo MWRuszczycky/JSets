@@ -89,9 +89,9 @@ doiCmd []    = throwError "A doi must be provided!"
 doiCmd (x:_) = do
     wreq <- PM.getWreqSession
     PM.getCitationsDOI wreq x >>= \case
-        Right result -> liftIO . mapM_ print $ result
-        Left  err    -> do display "DOI Failure:"
-                           liftIO $ putStrLn err
+        Right cite -> V.runView (V.viewCitation cite) >>= display
+        Left  err  -> do display "DOI Failure:"
+                         liftIO $ putStrLn err
 
 ---------------------------------------------------------------------
 -- Match ranking for distributing papers

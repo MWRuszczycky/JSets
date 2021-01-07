@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Model.Parsers.PubMed
+module Model.Parsers.Citations
     ( parseCitations
     , parsePMIDs
     , parseCitationRIS
@@ -12,6 +12,7 @@ import qualified Data.Map.Strict      as Map
 import qualified Model.Parsers.Core   as P
 import qualified Model.Core.Types     as T
 import qualified Data.Text            as Tx
+import           Control.Monad                ( guard, replicateM  )
 import           Control.Applicative          ( (<|>), many, some  )
 import           Data.Char                    ( isAlphaNum         )
 import           Data.Text                    ( Text               )
@@ -91,14 +92,17 @@ getPages json = do
          Right ps -> pure ps
          Left  _  -> pure T.Online
 
+parsePage :: At.Parser T.PageNo
+parsePage = do
+    prefix <- many At.letter
+    suffix <- P.unsigned'
+    pure $ T.PageNo prefix suffix
+
 parsePageNumbers :: At.Parser T.PageRange
 parsePageNumbers = do
-    prefix0 <- many At.letter
-    suffix0 <- P.unsigned'
-    At.char '-'
-    prefix1 <- many At.letter
-    suffix1 <- P.unsigned'
-    pure $ T.InPrint (T.PageNo prefix0 suffix0) (T.PageNo prefix1 suffix1)
+    start <- parsePage
+    stop  <- (At.char '-' *> parsePage) <|> pure start
+    pure $ T.InPrint start stop
 
 parseDate :: At.Parser Day
 parseDate = fromGregorian <$> P.unsigned <*> month <*> day
@@ -122,18 +126,101 @@ parseDate = fromGregorian <$> P.unsigned <*> month <*> day
 -- Parsing Research Information Systems (RIS) citations
 -- See: https://en.wikipedia.org/wiki/RIS_(file_format)
 
--- parseCitationRIS :: Text -> Either T.ErrString T.Citation
--- parseCitationRIS txt = At.parseOnly (many risPair) txt >>= readCitationRIS
+type ParsedRIS = [(Text,Text)]
 
-parseCitationRIS :: Text -> Either T.ErrString [(Text, Text)]
-parseCitationRIS txt = At.parseOnly (many risPair) txt
+parseCitationRIS :: Text -> Either T.ErrString T.Citation
+parseCitationRIS txt = let err = "Cannot Read parsed RIS:\n" <> Tx.unpack txt
+                        in  At.parseOnly parseRIS txt
+                            >>= maybe (Left err) pure . readRIS
+
+parseRIS :: At.Parser ParsedRIS
+parseRIS = do
+    At.string "TY"
+    risHyphen
+    At.skipWhile $ not . At.isEndOfLine
+    At.endOfLine
+    pairs <- some risPair
+    At.string "ER"
+    risHyphen
+    At.skipSpace
+    pure pairs
 
 risPair :: At.Parser (Text,Text)
 risPair = do
-    key <- fmap Tx.pack . some $ At.satisfy isAlphaNum
-    At.skipSpace
-    At.char '-'
-    P.horizontalSpaces
+    key <- fmap Tx.pack . replicateM 2 $ At.satisfy isAlphaNum
+    guard $ key /= "ER"
+    risHyphen
     val <- At.takeTill At.isEndOfLine
     At.endOfLine
     pure (key, val)
+
+risHyphen :: At.Parser ()
+risHyphen = At.skipSpace *> At.char '-' *> P.horizontalSpaces
+
+-- ------------------------------------------------------------------
+-- Reading the RIS data into a citation
+
+readRIS :: ParsedRIS -> Maybe T.Citation
+readRIS ris = T.Citation <$> risTitle   ris
+                         <*> risAuthors ris
+                         <*> risIssue   ris
+                         <*> risPages   ris
+                         <*> risDOI     ris
+                         <*> risPMID    ris
+                         <*> pure True
+
+risTitle :: ParsedRIS -> Maybe Text
+risTitle = lookup "TI"
+
+risAuthors :: ParsedRIS -> Maybe [Text]
+risAuthors = pure . foldr go []
+    where go ("AU",x) xs = x:xs
+          go _        xs = xs
+
+risDOI :: ParsedRIS -> Maybe Text
+risDOI = lookup "DO"
+
+risPMID :: ParsedRIS -> Maybe Text
+risPMID = fmap ("DOI:" <>) . risDOI
+
+risPages :: ParsedRIS -> Maybe T.PageRange
+-- "SP" is start page but may include the page range
+-- "EP" is the end page.
+risPages ris =
+    let s = At.parseOnly parsePageNumbers . maybe "" id . lookup "SP" $ ris
+        e = At.parseOnly parsePage        . maybe "" id . lookup "EP" $ ris
+    in  case (s, e) of
+             (Left _,                Left _ ) -> pure T.Online
+             (Right x,               Left _ ) -> pure x
+             (Left _,                Right y) -> pure $ T.InPrint y y
+             (Right (T.InPrint x _), Right y) -> pure $ T.InPrint x y
+             _                                -> pure T.Online
+
+risIssue :: ParsedRIS -> Maybe T.Issue
+risIssue ris = T.Issue <$> risDate ris
+                       <*> ( risInt ris "VL" <|> pure 0 )
+                       <*> ( risInt ris "IS" <|> pure 0 )
+                       <*> risJournal ris
+
+risJournal :: ParsedRIS -> Maybe T.Journal
+risJournal = fmap go . lookup "T2"
+    where go j = T.Journal j j j T.UnknownFreq True 20 False
+
+risDate :: ParsedRIS -> Maybe Day
+-- "PY" publication year, but may contain a date
+-- "DA" date in the format YYYY/MM/DD
+risDate ris = go "DA" <|> go "PY"
+    where go x = lookup x ris >>= risParseDate
+
+risInt :: ParsedRIS -> Text -> Maybe Int
+risInt ris key = lookup key ris >>= C.readMaybeTxt
+
+risParseDate :: Text -> Maybe Day
+risParseDate txt = either (const Nothing) pure . At.parseOnly go $ txt
+    where go = do y  <- P.unsigned
+                  (At.char '/' *> pure ()) <|> At.endOfInput
+                  md <- At.sepBy P.unsigned' $ At.char '/'
+                  case md of
+                       (m:[])   -> pure $ fromGregorian y m   1
+                       (m:d:[]) -> pure $ fromGregorian y m   d
+                       _        -> pure $ fromGregorian y 12 31
