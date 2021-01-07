@@ -34,6 +34,7 @@ import           Control.Monad.Except               ( liftIO, lift
 commands :: [ T.Command ]
 -- ^Commands should not be more than eight characters long.
 commands = [ T.Command "help"     helpCmd     helpHelp
+           , T.Command "doi"      doiCmd      doiHelp
            , T.Command "issue"    issueCmd    issueHelp
            , T.Command "match"    matchCmd    matchHelp
            , T.Command "meetings" meetingsCmd meetingsHelp
@@ -75,6 +76,22 @@ issueHelp = (s, H.issueHelp)
 
 issueCmd :: [String] -> T.AppMonad ()
 issueCmd args = A.getIssue args >>= runQuery
+
+-- ------------------------------------------------------------------ 
+-- Directly download a citation via DOI (bypasses PubMed)
+
+doiHelp :: (Text, Text)
+doiHelp = (s, "I still need to write this.")
+    where s = "Directly download a citation via its DOI (bypasses PubMed)"
+
+doiCmd :: [String] -> T.AppMonad ()
+doiCmd []    = throwError "A doi must be provided!"
+doiCmd (x:_) = do
+    wreq <- PM.getWreqSession
+    PM.getCitationsDOI wreq x >>= \case
+        Right result -> liftIO . mapM_ print $ result
+        Left  err    -> do display "DOI Failure:"
+                           liftIO $ putStrLn err
 
 ---------------------------------------------------------------------
 -- Match ranking for distributing papers

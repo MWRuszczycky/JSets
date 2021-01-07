@@ -24,6 +24,8 @@ module PubMed
       -- PubMed web interface: tables of contents
     , getToC
     , getToCs
+      -- Direct DOI requests bypassing PubMed
+    , getCitationsDOI
     ) where
 
 import qualified AppMonad             as A
@@ -37,15 +39,15 @@ import qualified Model.Parsers.PubMed as P
 import qualified Network.Wreq         as Wreq
 import qualified View.View            as V
 import qualified View.Core            as Vc
-import           Data.Text                    ( Text         )
-import           Data.List                    ( nub          )
+import           Data.Text                    ( Text       )
+import           Data.List                    ( nub        )
 import           Data.Maybe                   ( catMaybes
-                                              , isNothing    )
-import           Lens.Micro                   ( (.~), (&)    )
-import           Network.Wreq.Session         ( newSession   )
-import           Control.Monad.Reader         ( when, asks   )
+                                              , isNothing  )
+import           Lens.Micro                   ( (.~), (&)  )
+import           Network.Wreq.Session         ( newSession )
+import           Control.Monad.Reader         ( when, asks )
 import           Control.Monad.Except         ( liftIO
-                                              , runExceptT   )
+                                              , runExceptT )
 
 -- =============================================================== --
 -- PubMed interface
@@ -378,3 +380,25 @@ handleMissingPMIDs pmids iss = do
                   , "    https://" ]
     url <- A.request msg
     pure $ T.ToC iss url pmids
+
+-- =============================================================== -- 
+-- Downloading citations by DOI only (no PubMed)
+-- See https://citation.crosscite.org/docs.html
+--     https://www.doi.org/doi_handbook/5_Applications.html
+
+doiUrl :: String -> String
+doiUrl x = "https://doi.org/" <> x
+
+doiQuery :: Wreq.Options
+-- This will return json, but also includes all the cited references
+-- hdr = "application/vnd.citationstyles.csl+json"
+-- This much simpler, but it is not json
+-- "application/x-research-info-systems"
+doiQuery = Wreq.defaults & Wreq.header "Accept" .~ [ hdr ]
+    where hdr = "application/x-research-info-systems"
+
+getCitationsDOI :: C.WebRequest -> String
+                   -> T.AppMonad (Either T.ErrString [(Text,Text)])
+getCitationsDOI wreq doi = do
+    result <- liftIO . runExceptT . wreq doiQuery . doiUrl $ doi
+    pure $ result >>= P.parseCitationRIS

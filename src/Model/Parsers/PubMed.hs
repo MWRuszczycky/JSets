@@ -2,16 +2,18 @@
 module Model.Parsers.PubMed
     ( parseCitations
     , parsePMIDs
+    , parseCitationRIS
     ) where
 
 import qualified Data.Attoparsec.Text as At
-import qualified Data.Text            as Tx
-import qualified Data.Map.Strict      as Map
-import qualified Model.Core.Types     as T
 import qualified Model.Core.Core      as C
 import qualified Model.Parsers.JSON   as JS
+import qualified Data.Map.Strict      as Map
 import qualified Model.Parsers.Core   as P
-import           Control.Applicative          ( (<|>), many        )
+import qualified Model.Core.Types     as T
+import qualified Data.Text            as Tx
+import           Control.Applicative          ( (<|>), many, some  )
+import           Data.Char                    ( isAlphaNum         )
 import           Data.Text                    ( Text               )
 import           Data.Time                    ( Day, fromGregorian )
 
@@ -115,3 +117,23 @@ parseDate = fromGregorian <$> P.unsigned <*> month <*> day
                    , At.string "Nov" *> At.skipSpace *> pure 11
                    , At.string "Dec" *> At.skipSpace *> pure 12
                    ]
+
+-- =============================================================== --
+-- Parsing Research Information Systems (RIS) citations
+-- See: https://en.wikipedia.org/wiki/RIS_(file_format)
+
+-- parseCitationRIS :: Text -> Either T.ErrString T.Citation
+-- parseCitationRIS txt = At.parseOnly (many risPair) txt >>= readCitationRIS
+
+parseCitationRIS :: Text -> Either T.ErrString [(Text, Text)]
+parseCitationRIS txt = At.parseOnly (many risPair) txt
+
+risPair :: At.Parser (Text,Text)
+risPair = do
+    key <- fmap Tx.pack . some $ At.satisfy isAlphaNum
+    At.skipSpace
+    At.char '-'
+    P.horizontalSpaces
+    val <- At.takeTill At.isEndOfLine
+    At.endOfLine
+    pure (key, val)
