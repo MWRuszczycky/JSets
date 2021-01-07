@@ -25,7 +25,7 @@ module PubMed
     , getToC
     , getToCs
       -- Direct DOI requests bypassing PubMed
-    , getCitationsDOI
+    , getCitationDOI
     ) where
 
 import qualified AppMonad                as A
@@ -383,22 +383,31 @@ handleMissingPMIDs pmids iss = do
 
 -- =============================================================== -- 
 -- Downloading citations by DOI only (no PubMed)
+-- DOI citations are downloaded in the Research Information Systems
+-- (RIS) format.
 -- See https://citation.crosscite.org/docs.html
 --     https://www.doi.org/doi_handbook/5_Applications.html
+--     https://en.wikipedia.org/wiki/RIS
 
 doiUrl :: String -> String
 doiUrl x = "https://doi.org/" <> x
 
 doiQuery :: Wreq.Options
--- This will return json, but also includes all the cited references
--- hdr = "application/vnd.citationstyles.csl+json"
--- This much simpler, but it is not json
--- "application/x-research-info-systems"
 doiQuery = Wreq.defaults & Wreq.header "Accept" .~ [ hdr ]
     where hdr = "application/x-research-info-systems"
 
-getCitationsDOI :: C.WebRequest -> String
-                   -> T.AppMonad (Either T.ErrString T.Citation)
-getCitationsDOI wreq doi = do
-    result <- liftIO . runExceptT . wreq doiQuery . doiUrl $ doi
-    pure $ result >>= P.parseCitationRIS
+getCitationDOI :: C.WebRequest -> String -> T.AppMonad (Maybe T.Citation)
+-- ^Attempt to download and parse a single citation using its doi.
+-- This function does not throw exceptions. If the citation cannot be
+-- obtained, an error is logged and a Nothing is returned.
+getCitationDOI wreq doi = do
+    let url = doiUrl doi
+    paintOK <- A.getPainter T.Green
+    A.logMessage $ "Requesting doi " <> Tx.pack doi <> "..."
+    ris <- liftIO . runExceptT . wreq doiQuery $ url
+    case ris >>= P.parseCitationRIS of
+         Right c   -> A.logMessage (paintOK "OK\n") *> pure (Just c)
+         Left  err -> let msg = "Failed"
+                          hdr = "Failed doi download or parse: " <> url
+                      in  A.logError msg (Tx.pack hdr) (Tx.pack err)
+                          *> pure Nothing

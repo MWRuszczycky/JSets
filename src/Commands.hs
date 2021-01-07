@@ -21,6 +21,7 @@ import qualified View.View                 as V
 import qualified View.Help                 as H
 import           Data.Text                          ( Text           )
 import           Data.List                          ( find           )
+import           Data.Maybe                         ( catMaybes      )
 import           Text.Read                          ( readMaybe      )
 import           Control.Monad                      ( when           )
 import           Control.Monad.Reader               ( asks           )
@@ -85,13 +86,11 @@ doiHelp = (s, "I still need to write this.")
     where s = "Directly download a citation via its DOI (bypasses PubMed)"
 
 doiCmd :: [String] -> T.AppMonad ()
-doiCmd []    = throwError "A doi must be provided!"
-doiCmd (x:_) = do
-    wreq <- PM.getWreqSession
-    PM.getCitationsDOI wreq x >>= \case
-        Right cite -> V.runView (V.viewCitation cite) >>= display
-        Left  err  -> do display "DOI Failure:"
-                         liftIO $ putStrLn err
+doiCmd [] = throwError "A doi must be provided!"
+doiCmd xs = do
+    wreq  <- PM.getWreqSession
+    cites <- mapM (PM.getCitationDOI wreq) xs >>= pure . catMaybes
+    V.runView ( V.viewCitations cites ) >>= display
 
 ---------------------------------------------------------------------
 -- Match ranking for distributing papers
