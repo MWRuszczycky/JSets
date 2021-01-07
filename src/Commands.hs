@@ -207,7 +207,7 @@ ranksCmd fps = do
     jset  <- asks T.cJSetKey >>= A.getJSet jsets
     wreq  <- PM.getWreqSession
     let sel = T.selection jset
-    sel' <- PM.resolveSelections wreq $ sel
+    sel' <- PM.tryResolveToPMIDs wreq $ sel
     when ( (length . J.pmidsInSelection) sel /= length sel' ) A.delay
     cites <- PM.getCitations wreq . J.pmidsInSelection $ sel'
     V.runView ( V.viewRanks cites jset ) >>= display
