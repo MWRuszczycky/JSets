@@ -206,10 +206,14 @@ ranksCmd fps = do
     jsets <- J.combineJSets <$> mapM A.readJSets fps
     jset  <- asks T.cJSetKey >>= A.getJSet jsets
     wreq  <- PM.getWreqSession
-    let sel = T.selection jset
-    sel' <- PM.tryResolveToPMIDs wreq $ sel
-    when ( (length . J.pmidsInSelection) sel /= length sel' ) A.delay
-    cites <- PM.getCitationsPMID wreq . J.pmidsInSelection $ sel'
+    sel   <- PM.tryResolveToPMIDs wreq . T.selection $ jset
+    let selPMIDs = J.pmidsInSelection sel
+        selDOIs  = J.doisInSelection  sel
+    when ( length selPMIDs /= length sel ) A.delay
+    A.logMessage . PM.doiCleanupMsg $ length selDOIs
+    citesDOIs  <- PM.getCitationsDOI  wreq selDOIs
+    citesPMIDs <- PM.getCitationsPMID wreq selPMIDs
+    let cites = Map.union citesPMIDs citesDOIs
     V.runView ( V.viewRanks cites jset ) >>= display
 
 ---------------------------------------------------------------------

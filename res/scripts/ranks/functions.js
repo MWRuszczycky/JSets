@@ -21,7 +21,7 @@ function formatRanks(rs) {
 
     str = "<br>most preferred : ";
 
-    for (i = 0; i < rs.length; i++) {
+    for (let i = 0; i < rs.length; i++) {
         if (i === rs.length - 1) {
             str += rs[i][0] + " : least preferred";
         } else if (rs[i][1] === rs[i + 1][1]) {
@@ -38,7 +38,7 @@ function createRanks() {
 // Create ranks and update page
     let xs    = document.getElementsByClassName("_citation");
     let ranks = [];
-    for (i = 0; i < xs.length; i++) {
+    for (let i = 0; i < xs.length; i++) {
         let v = xs[i].value;
         if (isAnInt(v)) {
             ranks.push([i + 1, Number(v)]);

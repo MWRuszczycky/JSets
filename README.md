@@ -62,17 +62,14 @@ All of this is can be done electronically via email correspondence.
 
 ## PubMed & Current Limitations
 
-*JSets* works closely with [PubMed](https://pubmed.ncbi.nlm.nih.gov/) to determine what articles are in each issue of a configured journal.
-*JSets* also allows you to submit queries directly to *PubMed* from the command line.
+*JSets* works closely with [PubMed](https://pubmed.ncbi.nlm.nih.gov/) to determine what articles are in each issue of a configured journal,
+and this is how the `toc` command effectively works.
+*JSets* also allows you to submit queries directly to *PubMed* from the command line as well as direct DOI lookups.
 
 However, this also introduces some limitations.
-
-For example, not all journals are properly registered at *PubMed*,
-and *JSets* will currently not work with these journals.
-Furthemore, in some cases an issue may already be published and all of its articles registered at *PubMed*;
-however, *PubMed* does not recognize them as being part of the published issue.
-*JSets* provides a way to handle this scenario by allowing you to include a link to the publisher's website in the tables of contents html document and enter PubMed IDs or DOI links for any selected articles directly.
-In the future, I hope to add additional support for selecting articles via DOI links alone without relying on PubMed.
+For example, *JSets* will not be able to determine the tables of contents for journal isses that are not properly registered at *PubMed*.
+Nevertheless, the `toc` command will allow you to enter URLs to the publisher's website for any issue that returns fewer than the expected number of articles from a *PubMed* query.
+Furthermore, *JSets* can also handle articles selected from journals that are not configured as well as articles that are not registered at *PubMed*.
 
 ## Getting help
 
@@ -129,4 +126,3 @@ You can then install the updated version using `stack install` or run it through
 
 * Write a man page.
 * Include installation instructions for *NixOS*.
-* Allow articles selected by DOI to be resolved via direct doi-query without relying on *PubMed*. This will allow articles to be selected even if they are not registered at *PubMed*.

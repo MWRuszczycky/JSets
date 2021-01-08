@@ -24,6 +24,7 @@ module PubMed
       -- PubMed web interface: tables of contents
     , getToC
     , getToCs
+    , doiCleanupMsg
       -- Direct DOI requests bypassing PubMed
     , getCitationsDOI
     , getCitationDOI
@@ -252,7 +253,7 @@ tryResolveToPMIDs wreq xs = do
 tryResolveToPMID :: C.WebRequest -> T.Selection -> T.AppMonad T.Selection
 -- ^Try to resolve DOI and Web selections to PMID selections using
 -- ESearch. PMID selections are returned as is. DOI selections are
--- resolved as specified by resolevDOIToPMID. Web selections are used
+-- resolved as specified by resolveDOIToPMID. Web selections are used
 -- to query the user for a DOI or PMID.
 tryResolveToPMID _    x@(T.ByBndPMID _ _) = pure x
 tryResolveToPMID _    x@(T.ByPMID      _) = pure x
@@ -282,13 +283,13 @@ resolveDOItoPMID wreq toPMID toDOI doi = do
     paintWarn   <- A.getPainter T.Yellow
     paintOK     <- A.getPainter T.Green
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
-        okMsg   = paintOK   "OK "         <> timeMsg <> "\n"
-        missMsg = paintWarn "None found " <> timeMsg <> "\n"
+        okMsg   = paintOK   "OK "      <> timeMsg <> "\n"
+        missMsg = paintWarn "No PMID " <> timeMsg <> "\n"
     case result of
-        []   -> A.logMessage missMsg *> pure ( toDOI doi )
-        p:[] -> A.logMessage okMsg   *> pure ( toPMID p  )
-        ps   -> badDOISelectionError doi ( Tx.unlines ps )
-                *> tryResolveToPMID wreq ( T.ByWeb doi   )
+         []   -> A.logMessage missMsg *> pure ( toDOI doi )
+         p:[] -> A.logMessage okMsg   *> pure ( toPMID p  )
+         ps   -> badDOISelectionError doi ( Tx.unlines ps )
+                 *> tryResolveToPMID wreq ( T.ByWeb doi   )
 
 requestResolutionHelp :: Text -> T.AppMonad Text
 -- ^Request help from the user in resolving a web locator to either a
@@ -409,9 +410,9 @@ handleMissingPMIDs pmids iss = do
         m    = paint . C.tshow . T.mincount . T.journal $ iss
         name = paint . V.showIssue $ iss
         msg  = Tx.concat
-                  [ "  There were " <> n <> " articles found at PubMed for "
-                  , name <> "\n  However, at least " <> m <> " were expected."
-                  , "\n  Enter an alternate ToC URL or press <enter> to skip:\n"
+                  [ "  " <> n <> " PMID(s) found at PubMed for "
+                  , name <> "\n  At least " <> m <> " were expected:"
+                  , " Enter a ToC URL or blank to skip,\n"
                   , "    https://" ]
     url <- A.request msg
     pure $ T.ToC iss url pmids
@@ -442,7 +443,7 @@ getCitationDOI :: C.WebRequest -> T.DOI -> T.AppMonad (Maybe T.Citation)
 -- obtained, an error is logged and a Nothing is returned.
 getCitationDOI wreq doi = do
     let url = doiUrl . Tx.unpack $ doi
-    A.logMessage $ "Requesting doi " <> doi <> "..."
+    A.logMessage $ "Direct doi lookup for " <> doi <> "..."
     paintOK <- A.getPainter T.Green
     (t, result) <- C.timeIt $ liftIO . runExceptT . wreq doiQuery $ url
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
