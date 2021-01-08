@@ -248,34 +248,31 @@ tryResolveToPMIDs wreq xs = do
 -- Helpers
 
 tryResolveToPMID :: C.WebRequest -> T.Selection -> T.AppMonad T.Selection
--- ^Try to resolve DOI and Web selections to PMID selections. PMID
--- selections are returned as is. DOI selections are resolved as
--- specified by resolevDOIToPMID. Web selections are used to query
--- the user for a DOI or PMID.
+-- ^Try to resolve DOI and Web selections to PMID selections using
+-- ESearch. PMID selections are returned as is. DOI selections are
+-- resolved as specified by resolevDOIToPMID. Web selections are used
+-- to query the user for a DOI or PMID.
 tryResolveToPMID _    x@(T.ByBndPMID _ _) = pure x
 tryResolveToPMID _    x@(T.ByPMID      _) = pure x
 tryResolveToPMID wreq (T.ByBndDOI i  d) = do
     resolveDOIToPMID wreq (T.ByBndPMID i) (T.ByBndDOI i) d
 tryResolveToPMID wreq (T.ByDOI d) = do
     resolveDOIToPMID wreq T.ByPMID T.ByDOI d
-tryResolveToPMID _ x@(T.ByWeb w) = do
-    paintY <- A.getPainter T.Yellow
-    let msg = Tx.concat [ "Cannot resolve locator: " <> paintY w <> "\n"
-                        , "    Enter PMID, DOI or blank to skip: "       ]
-    response <- A.request msg
+tryResolveToPMID wreq x@(T.ByWeb w) = do
+    response <- requestResolutionHelp w
     case Tx.unpack response of
         ""            -> pure x
-        '1':'0':'.':_ -> pure . T.ByDOI  $ response
+        '1':'0':'.':_ -> tryResolveToPMID wreq . T.ByDOI $ response
         pmid          -> pure . T.ByPMID . Tx.pack $ pmid
 
 resolveDOIToPMID :: C.WebRequest
                     -> (Text -> T.Selection) -> (Text -> T.Selection)
                     -> Text -> T.AppMonad T.Selection
 -- ^Helper function for tryResolveToPMID. Tries to resolve a doi
--- to a PMID. If a single PMID is found it is returned as the
--- correspondig PMID selection. If no PMIDs are found, the doi is
--- returned as the corresponding DOI selection. If multiple PMIDs are
--- found, then there is a problem with the doi, since it should
+-- to a PMID using ESearch. If a single PMID is found it is returned
+-- as the correspondig PMID selection. If no PMIDs are found, the doi
+-- is returned as the corresponding DOI selection. If multiple PMIDs
+-- are found, then there is a problem with the doi, since it should
 -- uniquely identify a citation, so a Web selection is returned.
 resolveDOIToPMID wreq toPMID toDOI doi = do
     A.logMessage $ "Resolving doi " <> doi <> " to PMID..."
@@ -286,6 +283,15 @@ resolveDOIToPMID wreq toPMID toDOI doi = do
         p:[] -> A.logMessage (paintOK   "OK\n"         ) *> pure (toPMID p)
         ps   -> badDOISelectionError doi (Tx.unlines ps)
                 *> tryResolveToPMID wreq (T.ByWeb doi)
+
+requestResolutionHelp :: Text -> T.AppMonad Text
+-- ^Request help from the user in resolving a web locator to either a
+-- PMID or a DOI.
+requestResolutionHelp x = do
+    paintY <- A.getPainter T.Yellow
+    A.request $ Tx.concat [ "Cannot resolve locator: " <> paintY x <> "\n"
+                          , "    Enter PMID, DOI or blank to skip: "
+                          ]
 
 badDOISelectionError :: Text -> Text -> T.AppMonad ()
 badDOISelectionError doi err = A.logError msg hdr err
