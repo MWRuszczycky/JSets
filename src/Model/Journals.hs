@@ -6,7 +6,9 @@ module Model.Journals
     , pmidsInSelection
     , doisInSelection
     , selectionsToPMIDs
+    , isBound
     , fakePMID
+    , isTruePMID
     , updateToC
     , correctCitation
     , resolveCitationIssue
@@ -44,6 +46,7 @@ import qualified Model.Core.Dates     as D
 import qualified Data.Map.Strict      as Map
 import qualified Model.Core.Types     as T
 import qualified Data.Time            as Tm
+import qualified Data.Text            as Tx
 import           Data.Maybe                  ( mapMaybe       )
 import           Data.List                   ( find, foldl'   )
 import           Data.Time                   ( Day            )
@@ -71,6 +74,8 @@ doisInSelection = mapMaybe go
           go _                = Nothing
 
 selectionsToPMIDs :: [T.Selection] -> [T.PMID]
+-- ^Convert a selection to a simple PMID. DOI selections are faked,
+-- while Web selections are ignored.
 selectionsToPMIDs = mapMaybe go
     where go (T.ByBndPMID _ x) = Just x
           go (T.ByPMID      x) = Just x
@@ -78,8 +83,19 @@ selectionsToPMIDs = mapMaybe go
           go (T.ByDOI       x) = Just . fakePMID $ x
           go _                 = Nothing
 
+isBound :: T.Selection -> Bool
+-- ^Determine if a selection is bound to an issue.
+isBound (T.ByBndPMID _ _) = True
+isBound (T.ByBndDOI  _ _) = True
+isBound _                 = False
+
 fakePMID :: T.DOI -> T.PMID
+-- ^Create a PMID when only a DOI is available.
 fakePMID = ("DOI:" <>)
+
+isTruePMID :: T.PMID -> Bool
+-- ^Determine whether a PMID is a true PMID or fabricated from a DOI.
+isTruePMID = (== "DOI:") . Tx.take 4
 
 updateToC :: [T.Selection] -> T.ToC -> T.ToC
 -- ^Add any selected PMID that is bound to a specific Issue to that
@@ -93,13 +109,11 @@ updateToC sel x = x { T.contents = foldl' go (T.contents x) sel }
           go ps _                 = ps
 
 correctCitation :: T.References -> [T.ToC] -> T.Citation -> T.Citation
--- ^Correct the issue of a citation if the journal is configured and
--- determine whether the citation is an extra-citation.
+-- ^Correct the issue of a citation if the journal is configured.
 correctCitation rs tocs c = maybe resolved id . C.choice . map go $ tocs
-    where resolved = resolveCitationIssue rs $ c { T.isExtra = True }
+    where resolved = resolveCitationIssue rs c
           go toc   = if elem (T.pmid c) . T.contents $ toc
-                        then Just $ c { T.pubIssue = T.issue toc
-                                      , T.isExtra  = False }
+                        then Just $ c { T.pubIssue = T.issue toc }
                         else Nothing
 
 resolveCitationIssue :: T.References -> T.Citation -> T.Citation

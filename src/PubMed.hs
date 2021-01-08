@@ -348,10 +348,12 @@ getToCs (T.JSet n issues sel) = do
     refs      <- A.references
         -- Combine the citations from PubMed and direct DOI lookup.
     let allCites   = Map.union pmidCites doiCites
-        -- Update ToCs with any user-specified citations.
+        -- Update ToCs with any user-specified citations. This may be
+        -- necessary if an issue is not properly indexed at PubMed,
+        -- but the articles themselves are still registered at PubMed.
         fixedToCs  = map (J.updateToC sel') tocs
         -- Determine whether each citation is in one of the ToCs and
-        -- correct its issue field, otherwise desginate it as 'extra'.
+        -- if so correct its issue field from the naively parsed value.
         finalCites = Map.map (J.correctCitation refs fixedToCs) $ allCites
         -- Sort all the ToCs by page number.
         finalToCs  = map (J.sortToC finalCites T.pages) fixedToCs

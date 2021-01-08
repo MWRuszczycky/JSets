@@ -500,7 +500,6 @@ data Citation = Citation {
     , pages    :: PageRange -- page numbers of the article
     , doi      :: DOI       -- digital object identifier
     , pmid     :: PMID      -- PubMed ID (or another unique identifier tag)
-    , isExtra  :: Bool      -- article does not belong to an issue in a JSet
     } deriving ( Show, Eq )
 
 instance HasDate Citation where

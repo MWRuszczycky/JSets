@@ -20,14 +20,23 @@ import           View.Templates           ( fill, fillNone )
 -- =============================================================== --
 -- Helper functions
 
-citationClass :: T.Citation -> Text
--- ^Generate a class name for a citation. If the issue is an extra
--- citation, then it gets the class name
---     extra-citations
--- Otherwise, it gets the class name of the issue.
-citationClass c
-    | T.isExtra c = "extra-citations"
-    | otherwise   = issueClass c
+citationClass :: [T.Selection] -> T.Citation -> Text
+-- ^Generate an HTML class name for a citation.
+-- All unselected citations are bound to a ToC via their issue field.
+-- A selected citation may or may not be bound to a ToC.
+-- If bound to a ToC, the class is the class name of the issue.
+-- If not bound to a ToC, the class name is 'extra-citations'.
+-- The issue of the citation is assumed to have been corrected using
+-- Model.Journals.correctCitation (see PubMed.getToCs); however, if
+-- bound to a ToC issue the binding issue is nevertheless used to
+-- compute the class, because this is always read from a reference.
+citationClass sel c = foldr go (issueClass c) sel
+    where extraClass             = "extra-citations"
+          go (T.ByPMID      p) x = if p == T.pmid c then extraClass   else x
+          go (T.ByDOI       d) x = if d == T.doi  c then extraClass   else x
+          go (T.ByBndPMID i p) x = if p == T.pmid c then issueClass i else x
+          go (T.ByBndDOI  i d) x = if d == T.doi  c then issueClass i else x
+          go _                 x = x
 
 issueClass :: T.HasIssue a => a -> Text
 -- Generate the class name of an issue. The format is,
@@ -138,11 +147,12 @@ tocEntries cs sel (T.ToC iss url pmids) = fill dict Temp.issueMissingLinkedHtml
                                ]
 
 tocExtra :: T.Citations -> T.JSet T.ToC -> Text
--- ^Construct html for all extra citations in journal set. Any
--- PMIDs that are not bound to an issue are placed in the extra
--- citations section. So, all citations are rendered as selected.
+-- ^Construct html for all extra citations in journal set. All
+-- PMID and DOI selections that are not bound to an issue go in the
+-- extra citations section, and all are rendered as selected. If a
+-- citation could not be found for a selection, then it is skipped.
 tocExtra cs (T.JSet _ _ sel) = fill dict Temp.tocsExtraCitationHtml
-    where pmids = J.selectionsToPMIDs sel
+    where pmids = J.selectionsToPMIDs . filter (not . J.isBound) $ sel
           cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
           dict  = Map.fromList [ ("citations", cstxt ) ]
 
@@ -266,7 +276,7 @@ citationDict :: [T.Selection] -> T.Citation -> Map.Map Text Text
 citationDict sel c = Map.fromList xys
     where xys = [ ("id",       T.pmid c                          )
                 , ("selected", classSelected sel c               )
-                , ("class",    citationClass     c               )
+                , ("class",    citationClass sel c               )
                 , ("type",     "checkbox"                        )
                 , ("href",     T.doi c                           )
                 , ("title",    T.title c                         )
