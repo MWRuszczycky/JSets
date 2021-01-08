@@ -17,6 +17,7 @@ import           Control.Applicative          ( (<|>), many, some  )
 import           Data.Char                    ( isAlphaNum         )
 import           Data.Text                    ( Text               )
 import           Data.Time                    ( Day, fromGregorian )
+import           Model.Journals               ( fakePMID           )
 
 -- =============================================================== --
 -- Parsing PubMed Entrez ESearch results
@@ -181,7 +182,7 @@ risDOI :: ParsedRIS -> Maybe Text
 risDOI = lookup "DO"
 
 risPMID :: ParsedRIS -> Maybe Text
-risPMID = fmap ("DOI:" <>) . risDOI
+risPMID = fmap fakePMID . risDOI
 
 risPages :: ParsedRIS -> Maybe T.PageRange
 -- "SP" is start page but may include the page range

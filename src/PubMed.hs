@@ -18,13 +18,14 @@ module PubMed
     , getPMIDs
       -- PubMed web interface: eSummary & citation requests
     , eSummary
-    , getCitations
+    , getCitationsPMID
       -- PubMed web interface: resolving selections
     , tryResolveToPMIDs
       -- PubMed web interface: tables of contents
     , getToC
     , getToCs
       -- Direct DOI requests bypassing PubMed
+    , getCitationsDOI
     , getCitationDOI
     ) where
 
@@ -41,6 +42,7 @@ import qualified View.View               as V
 import qualified View.Core               as Vc
 import           Data.Text                       ( Text       )
 import           Data.List                       ( nub        )
+import           Data.Maybe                      ( catMaybes  )
 import           Lens.Micro                      ( (.~), (&)  )
 import           Network.Wreq.Session            ( newSession )
 import           Control.Monad.Reader            ( when, asks )
@@ -176,14 +178,14 @@ eSummary :: C.WebRequest -> [T.PMID] -> T.AppMonad (Either T.ErrString Text)
 eSummary wreq pmids =
     liftIO . runExceptT . wreq (eSummaryQuery pmids) $ eSummaryUrl
 
-getCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
+getCitationsPMID :: C.WebRequest -> [T.PMID] -> T.AppMonad T.Citations
 -- ^Wrapper for downloadCitations that breaks up the request into
 -- chunks to prevent PubMed from complaining about there being too
 -- many PMIDs in the request. Also handles informing the user if
 -- there are PMIDs requested that did not return a document summary.
 -- This function does not throw any exceptions. If the request fails,
 -- then a error message is produced and the error details are logged.
-getCitations wreq pmids = do
+getCitationsPMID wreq pmids = do
     size <- asks T.cESumChunkSize
     A.logMessage $ eSummaryMsg (length pmids)
     (missing,cites) <- fmap unzip . delayMapM (downloadCitations wreq)
@@ -255,9 +257,9 @@ tryResolveToPMID :: C.WebRequest -> T.Selection -> T.AppMonad T.Selection
 tryResolveToPMID _    x@(T.ByBndPMID _ _) = pure x
 tryResolveToPMID _    x@(T.ByPMID      _) = pure x
 tryResolveToPMID wreq (T.ByBndDOI i  d) = do
-    resolveDOIToPMID wreq (T.ByBndPMID i) (T.ByBndDOI i) d
+    resolveDOItoPMID wreq (T.ByBndPMID i) (T.ByBndDOI i) d
 tryResolveToPMID wreq (T.ByDOI d) = do
-    resolveDOIToPMID wreq T.ByPMID T.ByDOI d
+    resolveDOItoPMID wreq T.ByPMID T.ByDOI d
 tryResolveToPMID wreq x@(T.ByWeb w) = do
     response <- requestResolutionHelp w
     case Tx.unpack response of
@@ -265,24 +267,28 @@ tryResolveToPMID wreq x@(T.ByWeb w) = do
         '1':'0':'.':_ -> tryResolveToPMID wreq . T.ByDOI $ response
         pmid          -> pure . T.ByPMID . Tx.pack $ pmid
 
-resolveDOIToPMID :: C.WebRequest
-                    -> (Text -> T.Selection) -> (Text -> T.Selection)
-                    -> Text -> T.AppMonad T.Selection
+resolveDOItoPMID :: C.WebRequest
+                    -> (T.PMID -> T.Selection) -> (T.DOI -> T.Selection)
+                    -> T.DOI -> T.AppMonad T.Selection
 -- ^Helper function for tryResolveToPMID. Tries to resolve a doi
 -- to a PMID using ESearch. If a single PMID is found it is returned
 -- as the correspondig PMID selection. If no PMIDs are found, the doi
 -- is returned as the corresponding DOI selection. If multiple PMIDs
 -- are found, then there is a problem with the doi, since it should
 -- uniquely identify a citation, so a Web selection is returned.
-resolveDOIToPMID wreq toPMID toDOI doi = do
+resolveDOItoPMID wreq toPMID toDOI doi = do
     A.logMessage $ "Resolving doi " <> doi <> " to PMID..."
-    paintWarn <- A.getPainter T.Yellow
-    paintOK   <- A.getPainter T.Green
-    getPMIDs wreq (T.ByDOI doi) >>= \case
-        []   -> A.logMessage (paintWarn "None found\n" ) *> pure (toDOI doi)
-        p:[] -> A.logMessage (paintOK   "OK\n"         ) *> pure (toPMID p)
-        ps   -> badDOISelectionError doi (Tx.unlines ps)
-                *> tryResolveToPMID wreq (T.ByWeb doi)
+    (t, result) <- C.timeIt $ getPMIDs wreq (T.ByDOI doi)
+    paintWarn   <- A.getPainter T.Yellow
+    paintOK     <- A.getPainter T.Green
+    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
+        okMsg   = paintOK   "OK "         <> timeMsg <> "\n"
+        missMsg = paintWarn "None found " <> timeMsg <> "\n"
+    case result of
+        []   -> A.logMessage missMsg *> pure ( toDOI doi )
+        p:[] -> A.logMessage okMsg   *> pure ( toPMID p  )
+        ps   -> badDOISelectionError doi ( Tx.unlines ps )
+                *> tryResolveToPMID wreq ( T.ByWeb doi   )
 
 requestResolutionHelp :: Text -> T.AppMonad Text
 -- ^Request help from the user in resolving a web locator to either a
@@ -293,7 +299,7 @@ requestResolutionHelp x = do
                           , "    Enter PMID, DOI or blank to skip: "
                           ]
 
-badDOISelectionError :: Text -> Text -> T.AppMonad ()
+badDOISelectionError :: T.DOI -> Text -> T.AppMonad ()
 badDOISelectionError doi err = A.logError msg hdr err
     where msg = "Invalid doi: " <> doi
           hdr = "Multiple PMIDs found for doi: " <> doi
@@ -319,33 +325,37 @@ getToCs :: T.JSet T.Issue -> T.AppMonad (T.Citations, T.JSet T.ToC)
 -- Delays are used to avoid exceeding the request limit at PubMed.
 getToCs (T.JSet n issues sel) = do
     wreq <- getWreqSession
-    -- First, the PMIDs from the user selection. Some of these may
-    -- require an eSearch query to PubMed. The PMIDs are wrapped as
-    -- Selections in order to bind them to issues as necessary.
-    selIDs <- tryResolveToPMIDs wreq sel
-    -- Get all the PMIDs associated with each issue's ToC. We need an
-    -- extra delay here to ensure that the last two requests are not
-    -- in the same second of time as the next two.
+    -- Try to resolve selection to PMIDs. Some of these may require
+    -- an eSearch query to PubMed or input from the user. The PMIDs
+    -- are wrapped as Selections to bind them to issues if possible.
+    sel' <- tryResolveToPMIDs wreq sel
+    -- Not all of the DOIs will always get resolved to PMIDs. So, we
+    -- try to find the citations for these DOIs directly.
+    let selPMIDs = J.pmidsInSelection sel'
+        selDOIs  = J.doisInSelection  sel'
+    A.logMessage . doiCleanupMsg $ length selDOIs
+    doiCites <- getCitationsDOI wreq selDOIs
+    -- Now get the PMIDs associated with each issue. An extra delay
+    -- is added to ensure no overlap with previous PubMed requests.
     A.delay
-    A.logMessage $ tocsESearchMsg (length issues)
+    A.logMessage . tocsESearchMsg $ length issues
     tocs <- delayMapM (getToC wreq) issues
-    let pmids = C.addUnique (J.pmidsInSelection selIDs) . concatMap T.contents
-                $ tocs
+    let pmids = C.addUnique selPMIDs . concatMap T.contents $ tocs
     -- Once we have all the PMIDs, we can place the eSummary requests
-    -- to get the associated citations. However, PubMed will not allow
-    -- too many eSummary PMIDs to be queried in a single request. So,
-    -- we have to break up the requests into chunks. Chunks of 400
-    -- will fail, but 350 seems to work (default is 300).
+    -- to get the associated citations registered at PubMed.
     A.delay
-    cites <- getCitations wreq pmids
-    -- Clean up: 1. Update ToCs with any PMIDs that were user-specified.
-    --           2. Correct parsed issues with configured issues if possible.
-    --           3. Sort all the ToCs by page number.
-    rs <- A.references
-    let fixedToCs  = map (J.updateToC selIDs) tocs
-        fixedCites = Map.map (J.correctCitation rs fixedToCs) cites
-        finalToCs  = map (J.sortToC fixedCites T.pages) fixedToCs
-    pure ( fixedCites, T.JSet n finalToCs selIDs )
+    pmidCites <- getCitationsPMID wreq pmids
+    refs      <- A.references
+        -- Combine the citations from PubMed and direct DOI lookup.
+    let allCites   = Map.union pmidCites doiCites
+        -- Update ToCs with any user-specified citations.
+        fixedToCs  = map (J.updateToC sel') tocs
+        -- Determine whether each citation is in one of the ToCs and
+        -- correct its issue field, otherwise desginate it as 'extra'.
+        finalCites = Map.map (J.correctCitation refs fixedToCs) $ allCites
+        -- Sort all the ToCs by page number.
+        finalToCs  = map (J.sortToC finalCites T.pages) fixedToCs
+    pure ( finalCites, T.JSet n finalToCs sel' )
 
 getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
 -- ^Get the all citations asssociated with a given journal issue and
@@ -353,12 +363,12 @@ getToC :: C.WebRequest -> T.Issue -> T.AppMonad T.ToC
 getToC wreq iss = do
     A.logMessage $ "Downloading PMIDs for " <> V.showIssue iss <> "..."
     (t, result) <- C.timeIt $ eSearch wreq iss
-    paintG      <- A.getPainter T.Green
-    paintY      <- A.getPainter T.Yellow
+    paintOK     <- A.getPainter T.Green
+    paintWarn   <- A.getPainter T.Yellow
     let timeMsg = "(" <> Vc.showPicoSec t <> ")"
         errMsg  = "Failed to obtain PMIDs for" <> V.showIssue iss
-        missMsg = paintY "Missing PMIDs " <> timeMsg <> "\n"
-        okMsg   = paintG "OK " <> timeMsg <> "\n"
+        missMsg = paintWarn "Missing PMIDs " <> timeMsg <> "\n"
+        okMsg   = paintOK   "OK " <> timeMsg <> "\n"
     case result >>= P.parsePMIDs of
          Left  err   -> do A.logError "Failed" errMsg $ Tx.pack err
                            pure $ T.ToC iss Tx.empty []
@@ -372,8 +382,16 @@ getToC wreq iss = do
 -- Messaging during the tocs download process
 
 tocsESearchMsg :: Int -> Text
+tocsESearchMsg 0 = "No issues to request PMIDs for...\n"
+tocsESearchMsg 1 = "ESearch: Requesting PMIDs for 1 issue...\n"
 tocsESearchMsg n = Tx.unwords
     [ "ESearch: Requesting PMIDs for", C.tshow n, "issues...\n" ]
+
+doiCleanupMsg :: Int -> Text
+doiCleanupMsg 0 = "No unresolved DOIs...\n"
+doiCleanupMsg 1 = "Attempting to find citation for 1 unresolved DOI...\n"
+doiCleanupMsg n = Tx.unwords
+    [ "Attempting to find citations for", C.tshow n, "unresolved DOIs...\n" ]
 
 ---------------------------------------------------------------------
 -- Handler and checker functions for when there may be problems with
@@ -411,17 +429,24 @@ doiQuery :: Wreq.Options
 doiQuery = Wreq.defaults & Wreq.header "Accept" .~ [ hdr ]
     where hdr = "application/x-research-info-systems"
 
-getCitationDOI :: C.WebRequest -> String -> T.AppMonad (Maybe T.Citation)
+getCitationsDOI :: C.WebRequest -> [T.DOI] -> T.AppMonad T.Citations
+getCitationsDOI wreq dois = let go = map ( \ c -> (T.pmid c, c) )
+                            in  mapM (getCitationDOI wreq) dois
+                                >>= pure . Map.fromList . go . catMaybes
+
+getCitationDOI :: C.WebRequest -> T.DOI -> T.AppMonad (Maybe T.Citation)
 -- ^Attempt to download and parse a single citation using its doi.
 -- This function does not throw exceptions. If the citation cannot be
 -- obtained, an error is logged and a Nothing is returned.
 getCitationDOI wreq doi = do
-    let url = doiUrl doi
+    let url = doiUrl . Tx.unpack $ doi
+    A.logMessage $ "Requesting doi " <> doi <> "..."
     paintOK <- A.getPainter T.Green
-    A.logMessage $ "Requesting doi " <> Tx.pack doi <> "..."
-    ris <- liftIO . runExceptT . wreq doiQuery $ url
-    case ris >>= P.parseCitationRIS of
-         Right c   -> A.logMessage (paintOK "OK\n") *> pure (Just c)
+    (t, result) <- C.timeIt $ liftIO . runExceptT . wreq doiQuery $ url
+    let timeMsg = "(" <> Vc.showPicoSec t <> ")"
+        okMsg   = paintOK "OK " <> timeMsg <> "\n"
+    case result >>= P.parseCitationRIS of
+         Right c   -> A.logMessage okMsg *> pure (Just c)
          Left  err -> let msg = "Failed"
                           hdr = "Failed doi download or parse: " <> url
                       in  A.logError msg (Tx.pack hdr) (Tx.pack err)

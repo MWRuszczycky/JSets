@@ -4,7 +4,9 @@ module Model.Journals
     ( -- Working with citations and selections
       isPMID
     , pmidsInSelection
-    , pmidsInSelectionFree
+    , doisInSelection
+    , selectionsToPMIDs
+    , fakePMID
     , updateToC
     , correctCitation
     , resolveCitationIssue
@@ -62,10 +64,22 @@ pmidsInSelection = mapMaybe go
           go (T.ByPMID      x) = Just x
           go _                 = Nothing
 
-pmidsInSelectionFree :: [T.Selection] -> [T.PMID]
-pmidsInSelectionFree = mapMaybe go
-    where go (T.ByPMID x) = Just x
-          go _            = Nothing
+doisInSelection :: [T.Selection] -> [T.DOI]
+doisInSelection = mapMaybe go
+    where go (T.ByBndDOI _ x) = Just x
+          go (T.ByDOI      x) = Just x
+          go _                = Nothing
+
+selectionsToPMIDs :: [T.Selection] -> [T.PMID]
+selectionsToPMIDs = mapMaybe go
+    where go (T.ByBndPMID _ x) = Just x
+          go (T.ByPMID      x) = Just x
+          go (T.ByBndDOI  _ x) = Just . fakePMID $ x
+          go (T.ByDOI       x) = Just . fakePMID $ x
+          go _                 = Nothing
+
+fakePMID :: T.DOI -> T.PMID
+fakePMID = ("DOI:" <>)
 
 updateToC :: [T.Selection] -> T.ToC -> T.ToC
 -- ^Add any selected PMID that is bound to a specific Issue to that

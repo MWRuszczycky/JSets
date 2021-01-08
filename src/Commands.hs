@@ -89,7 +89,7 @@ doiCmd :: [String] -> T.AppMonad ()
 doiCmd [] = throwError "A doi must be provided!"
 doiCmd xs = do
     wreq  <- PM.getWreqSession
-    cites <- mapM (PM.getCitationDOI wreq) xs >>= pure . catMaybes
+    cites <- mapM (PM.getCitationDOI wreq . Tx.pack) xs >>= pure . catMaybes
     V.runView ( V.viewCitations cites ) >>= display
 
 ---------------------------------------------------------------------
@@ -188,7 +188,7 @@ queryESummaryJSON wreq pmids = PM.eSummary wreq pmids >>= \case
 queryCitations :: C.WebRequest -> [T.PMID] -> T.AppMonad ()
 queryCitations _    []    = A.logMessage "No PubMed IDs were found.\n"
 queryCitations wreq pmids = do
-    cs <- PM.getCitations wreq pmids
+    cs <- PM.getCitationsPMID wreq pmids
     rs <- A.references
     let citations = map (J.resolveCitationIssue rs) . Map.elems $ cs
     V.runView ( V.viewCitations citations ) >>= display
@@ -209,7 +209,7 @@ ranksCmd fps = do
     let sel = T.selection jset
     sel' <- PM.tryResolveToPMIDs wreq $ sel
     when ( (length . J.pmidsInSelection) sel /= length sel' ) A.delay
-    cites <- PM.getCitations wreq . J.pmidsInSelection $ sel'
+    cites <- PM.getCitationsPMID wreq . J.pmidsInSelection $ sel'
     V.runView ( V.viewRanks cites jset ) >>= display
 
 ---------------------------------------------------------------------

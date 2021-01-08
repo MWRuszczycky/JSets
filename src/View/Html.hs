@@ -44,12 +44,18 @@ classSelected :: [T.Selection] -> T.Citation -> Text
 classSelected sel c
     | isSelected = " class=\"selected\""
     | otherwise  = ""
-    where isSelected = elem (T.pmid c) . J.pmidsInSelection $ sel
+    where isSelected = elem (T.pmid c) . J.selectionsToPMIDs $ sel
 
 adminDefault :: Maybe Text -> Text
 -- ^Handler for missing user names and emails.
 adminDefault Nothing  = "the journal sets administrator"
 adminDefault (Just x) = x
+
+formatPMID :: T.Citation -> Text
+formatPMID c = let pmid = T.pmid c
+               in  case Tx.take 4 $ pmid of
+                        "DOI:" -> "Unregistered"
+                        _      -> pmid
 
 -- =============================================================== --
 -- HTML component compositors for journal set tables of contents
@@ -134,9 +140,9 @@ tocEntries cs sel (T.ToC iss url pmids) = fill dict Temp.issueMissingLinkedHtml
 tocExtra :: T.Citations -> T.JSet T.ToC -> Text
 -- ^Construct html for all extra citations in journal set. Any
 -- PMIDs that are not bound to an issue are placed in the extra
--- citations section. So, all citations are renderd as selected.
+-- citations section. So, all citations are rendered as selected.
 tocExtra cs (T.JSet _ _ sel) = fill dict Temp.tocsExtraCitationHtml
-    where pmids = J.pmidsInSelectionFree sel
+    where pmids = J.selectionsToPMIDs sel
           cstxt = Tx.intercalate "\n" . map (tocEntry cs sel) $ pmids
           dict  = Map.fromList [ ("citations", cstxt ) ]
 
@@ -269,5 +275,5 @@ citationDict sel c = Map.fromList xys
                 , ("volume",   C.tshow . T.volNo   . T.issue $ c )
                 , ("number",   C.tshow . T.issNo   . T.issue $ c )
                 , ("pages",    C.tshow . T.pages   $ c           )
-                , ("pmid",     T.pmid c                          )
+                , ("pmid",     formatPMID c                      )
                 ]

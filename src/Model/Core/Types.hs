@@ -40,6 +40,7 @@ module Model.Core.Types
     , ToC               (..)
       -- Table of contents and citations
     , PMID
+    , DOI
     , Selection         (..)
     , Citation          (..)
     , Citations
@@ -444,6 +445,9 @@ instance MayMix ToC where
 -- |A PubMed ID
 type PMID = Text
 
+-- |A digital object identifier
+type DOI  = Text
+
 -- |Structured data type representing user citation selections.
 -- Normally the selection should be by PMID; however, in some cases
 -- the user may specify a DOI, or some web identifier (e.g., website,
@@ -490,13 +494,13 @@ instance CanQuery Selection where
 
 -- |Information about an article in an issue of a journal
 data Citation = Citation {
-      title    :: Text
-    , authors  :: [Text]
-    , pubIssue :: Issue
-    , pages    :: PageRange
-    , doi      :: Text
-    , pmid     :: PMID
-    , isExtra  :: Bool
+      title    :: Text      -- title of the article
+    , authors  :: [Text]    -- authors of the article
+    , pubIssue :: Issue     -- journal issue the article was published
+    , pages    :: PageRange -- page numbers of the article
+    , doi      :: DOI       -- digital object identifier
+    , pmid     :: PMID      -- PubMed ID (or another unique identifier tag)
+    , isExtra  :: Bool      -- article does not belong to an issue in a JSet
     } deriving ( Show, Eq )
 
 instance HasDate Citation where
