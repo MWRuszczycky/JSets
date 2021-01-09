@@ -454,13 +454,13 @@ matchTemplate jset = do
         setno = C.tshow . T.setNo    $ jset
         names = ["red:", "green:", "blue:"]
     dateStr <- asks $ Vc.dateW . T.cDate
-    Vc.writeLn $ "# Rank-lists for Journal Set " <> setno <> ", " <> dateStr
+    Vc.writeLn $ "# Match file for Journal Set " <> setno <> ", " <> dateStr
     Vc.newLine
-    Vc.writeLn "# The papers to be matched"
-    Vc.writeLn "title: papers"
+    Vc.writeLn "# Articles to be matched to presenters"
+    Vc.writeLn "title: articles"
     Vc.writeLn . ("    " <>) . Tx.unwords . map C.tshow $ [1 .. count]
     Vc.newLine
-    Vc.writeLn "# The rank-listed preferences for each person"
+    Vc.writeLn "# Presenter preferences for each article"
     Vc.writeLns names
 
 viewMatchResult :: T.MatchResult -> T.ViewMonad ()

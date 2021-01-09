@@ -78,22 +78,18 @@ configure :: T.Config -> T.ErrMonad ([Text], T.Config)
 -- 4. General command line configurators are then applied. This
 --    ensures that command line parameters take precedence over
 --    any parameters set in a configuration file.
--- 5. Finally, configure any parameters not available to the user,
---    and return any warnings encountered.
 configure config = do
     -- Initialize the configuration from the command line
     cliSteps <- commandLineConfigSteps
     let (cliInits, cliGenerals) = getConfigurators cliSteps
         cliWarnings             = getWarnings      cliSteps
     configInitByCLI <- foldM (flip ($)) config cliInits
-
     -- Apply all the remaining configuration steps in the proper order
     fileSteps <- fileConfigSteps configInitByCLI
     let (fileInits, fileGenerals) = getConfigurators fileSteps
         fileWarnings              = getWarnings      fileSteps
         remainingSteps            = fileInits <> fileGenerals <> cliGenerals
     configFinal <- foldM (flip ($)) configInitByCLI $ remainingSteps
-
     -- Finalize the configuration
     pure . (,) (cliWarnings <> fileWarnings) $ configFinal
 
