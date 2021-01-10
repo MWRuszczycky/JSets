@@ -1,0 +1,735 @@
+.TH JSETS 1 2021-01-04 JSets-2.5.0 "JSets Manual"
+.SH NAME
+JSets \- A utility to manage journal sets for Literature Review
+.SH SYNOPSIS
+.B jsets\fR
+[ \fBcommand\fR [\fIargument\fR]... [\fIoption\fR]...
+| \fB\-\-help\fR
+| \fB\-\-version\fR ]
+.SH DESCRIPTION
+.SS General
+JSets helps to keep track of which issues to review for Literature Review.
+It also facilitates the selection of articles from those issues.
+Finally, JSets helps to assign the selected articles for review.
+.PP
+JSets works closely with PubMed and provides a basic command line interface for making ESearch and ESummary queries at PubMed.
+.SS The basic workflow
+.IP 1. 3
+The \fByear\fR command is used to generate the journal sets for a given year based on a set of configured journals.
+.IP 2. 3
+The \fBmeetings\fR command is used to schedule the meetings and presenters for Literature Review.
+.IP 3. 3
+The \fBtoc\fR command is used to generate an interactive HTML document containing the tables of contents for all issues in a given journal set.
+.IP 4. 3
+The tables-of-contents HTML document can be used to construct a selection file listing the articles one is interested in reviewing.
+.IP 5. 3
+Multiple selection files can be combined using the \fBtoc\fR command and used to generate another tables-of-contents file with the selected articles highlighted.
+.IP 6. 3
+The highlighted tables of contents are sent to the boss for the final selection.
+.IP 7. 3
+The \fBranks\fR command is used with the final selection to generate an HTML document that can be used to rank the selected articles by preference.
+.IP 8. 3
+The \fBmatch\fR command is used to assign the articles to each presenter based on their preferences.
+.\" -----------------------------------------------------------------
+.SH GENERAL OPTIONS
+Long options can be abbreviated when unique.
+For example, \fB\-\-output\fR can be abbreviated as \fB\-\-out\fR.
+.\"
+.TP
+.BR \-h ", " \-\-help
+Display a summary of options and commands.
+.\"
+.TP
+.BR -v ", " \-\-version
+Display the current version and Git commit hash.
+.\"
+.TP
+.BR -c ", " \-\-config =\fIfile\fR
+Set the configuration file to \fIfile\fR.
+.\"
+.TP
+.BR -o ", " \-\-output =\fIfile\fR
+Set the output file to \fIfile\fR.
+The output file extension will also set the output format unless overridden by the \fB\-\-fmt\fR option.
+Not all output formats are supported by all commands.
+.\"
+.TP
+.BR \-\-user =\fIname\fR
+Set the user name to \fIname\fR.
+.\"
+.TP
+.BR \-\-delay =\fInumber\fR
+Set the delay between every pair of consecutive PubMed requests to \fInumber\fR seconds.
+The minimum delay is 1 sec,
+which is also the default.
+PubMed will not allow more than 3 requests per second.
+.\"
+.TP
+.BR \-\-email =\fIemail\fR
+Set the user email to \fIemail\fR.
+.\"
+.TP
+.BR \-k ", " \-\-key =\fInumber\fR
+Select journal set \fInumber\fR when reading a journal sets file.
+.\"
+.TP
+.BR \-\-max-docsum =\fInumber\fR
+The maximum \fInumber\fR of PubMed IDs to send in a single ESummary request to PubMed.
+The default is 300.
+.\"
+.TP
+.BR \-\-max-results =\fInumber\fR
+The maximum \fInumber\fR of results to return from a PubMed ESearch request.
+The default is 200.
+.\"
+.TP
+.BR \-\-fmt = txt | html | md | csv | json
+Set the output to text (\fBtxt\fR), HTML (\fBhtml\fR), Markdown (\fBmd\fR) CSV (\fBcsv\fR) or JSON (\fBjson\fR).
+This option will override any inferences made based on the output file extension.
+Not all output formats are supported by all commands.
+.TP
+.BR \-t ", " \-\-terse
+Do not display messages or interactive requests accepting all defaults instead.
+.\" -----------------------------------------------------------------
+.SH CONFIGURATION
+.SS General
+JSets requires journals be configured with reference issues in order to compute and validate future issues.
+Many commands (e.g., \fByear\fR, \fBissue\fR & \fBread\fR) require journals to be configured with reference issues.
+This is done with a configuration file that can be specified with the \fB\-\-config\fR option.
+Alternatively, JSets will search for a default configuration file named \fBconfig\fR in the \fB.config/jsets/\fR directory of the user's home directory
+(i.e., \fB~/.config/jsets/config\fR).
+The configuration file can also be used to specify frequently used options so that they do not need to be repeatedly specified at the command line.
+However, command line options will always take precedence over any options read from a configuration file.
+.PP
+Comment lines beginning with a hash (#) can also be included in the configuration file.
+Parameters are configured using colon-separated key-value pairs.
+The parameter value can have spaces without requiring quoting.
+For example,
+.RS
+user: Ms. Blue
+.RE
+assigns the \fIvalue\fR "Ms. Blue" to the parameter \fBuser\fR.
+.SS JSets Parameters
+General configuration parameters must be specified before the journal reference issues.
+.\"
+.TP
+.BR by-date ": " yes | no | true | false
+When computing yearly journal sets with the \fByear\fR command,
+sort all issues by date before grouping into journal sets (see \fByear\fR command).
+.\"
+.TP
+.BR delay ": " \fIseconds\fR
+PubMed allows only 3 web requests per second;
+therefore, JSets places a minimum 1 second delay between every two consecutive PubMed requests.
+The \fBdelay\fR option allows this delay to be extended to \fIseconds\fR.
+The \fB\-\-delay\fR command line option will override this settings.
+.\"
+.TP
+.BR email ": " \fIaddress\fR
+Set the JSets administrator email to \fIaddress\fR.
+This email will be incorporated into the \fBtoc\fR and \fBranks\fR output when formatted as HTML.
+The email is not included in any web-requests.
+This parameter is overridden by the \fB\-\-email\fR command line option.
+.\"
+.TP
+.BR max-docsum ": " \fIcount\fR
+Do not include more than \fIcount\fR PubMed IDs in a single ESummary request to PubMed.
+Submitting too many PubMed IDs can lead to a blocked request.
+The default value is 300.
+This parameter is overridden by the \fB\-\-max-docsum\fR command line option.
+.\"
+.TP
+.BR max-results ": " \fIcount\fR
+Limit the number of results from a PubMed ESearch request to \fIcount\fR.
+This parameter affects the \fBquery\fR, \fBissue\fR and \fBtoc\fR commands.
+The default value is 200.
+This parameter is overridden by the \fB\-\-max-results\fR command line option.
+.\"
+.TP
+.BR meet-size ": " \fIcount\fR
+The number of presenters to schedule for each meeting when using the \fBmeetings\fR command.
+The default value is 3.
+This parameter is overridden by the \fB\-\-meet-size\fR command line option.
+.\"
+.TP
+.BR meet-count ": " \fIcount\fR
+Number of meetings to schedule when using the \fBmeetings\fR command.
+The default value is 10.
+This parameter is overridden by the \fB\-\-meet-count\fR command line option.
+.\"
+.TP
+.BR user ": " \fIname\fR
+Set the \fIname\fR of the JSets administrator.
+This value is incorporated into the HTML output of the \fBtoc\fR and \fBranks\fR commands.
+The user \fIname\fR is not included in any web-requests.
+This parameter is overridden by the \fB\-\-user\fR command line option.
+.\"
+.TP
+.BR pattern ": " \fIpattern\fR
+Use the specified \fIpattern\fR frequency when scheduling meetings with the \fBmeetings\fR command.
+See \fBmeetings\fR command for a description of meeting patterns and examples.
+The default is \fBxy\fR indicating meetings take place every other week.
+This parameter is overridden by the \fB\-\-pattern\fR command line option.
+.\"
+.TP
+.BR p ", " presenter ": " \fIname\fR
+Add a meeting presenter for use with the \fBmeetings\fR command.
+This parameter can be specified multiple times to create an ordered list of presenters.
+.\"
+.TP
+.BR skip-day ": " \fIyyyy-mm-dd\fR | \fImm-dd\fR
+Specify a date that should be skipped when scheduling meetings with the \fBmeetings\fR command.
+The current year is used when no year is specified.
+This parameter can be specified multiple times to create a list of skip-days.
+Additional skip-days can be specified with the \fB\-\-skip-day\fR command line option.
+.\"
+.SS Reference Issues
+Journal reference issues must be specified after the general configuration parameters in order for them to parse correctly.
+A journal reference always begins with the \fBjournal\fR key-value pair followed by the remaining journal-specific key-value pairs in any order.
+Only the \fBfollowed\fR key-value pair is optional (all others must be provided).
+.\"
+.TP
+.BR journal ": " \fIname\fR/\fIabbreviation\fR
+Specifiy the \fIname\fR and \fIabbreviation\fR for the journal.
+Both are required separated by a forward-slash.
+The \fIname\fR and \fIabbreviation\fR can contain spaces and be the same;
+however, they must be unique to the configured journal.
+This must be the first key-value pair for each configured journal.
+.\"
+.TP
+.BR pubmed ": " \fIname\fR
+The name of the journal as it registered at PubMed.
+.\"
+.TP
+.BR followed ": " yes | no | true | false
+Should the issue be incorporated into yearly journal sets when using the \fByear\fR command.
+This allows JSets the ability to work with issues from journals that are not regularly followed.
+This parameter is optional (default \fBtrue\fR).
+.\"
+.TP
+.BR frequency ": " weekly " " \fInumber\fR | \fBweekly-first\fR | \fBweekly-last\fR | \fBmonthly\fR | \fBmid-monthly\fR | \fBend-monthly\fR | \fBsemimonthly\fR
+The publication frequency of the journal.
+A \fBweekly\fR journal is published every \fInumber\fR weeks with no exceptions.
+A \fBweekly-first\fR journal is published every week except for the first week of the year.
+A \fBweekly-last\fR journal is published every week except for the last week of the year.
+A \fBmonthly\fR journal is published 12 times a year every 28 or 35 days.
+These types of journals tend to publish early in the month.
+A \fBmid-monthly\fR journal publishes every 28 or 35 days but only after the 14-th of every month.
+A \fBend-monthly\fR journal is only assumed to be published by the end of every month.
+A \fBsemimonthly\fR journal is published 24 times a year every 14 or 21 days.
+.\"
+.TP
+.BR resets ": " yes | no | true | false
+Does the issue number of the journal reset to 1 each year.
+.\"
+.TP
+.BR mincount ": " \fInumber\fR
+Minimum \fInumber\fR of articles expected to be published in each issue of the journal.
+When executing the \fBtoc\fR command,
+this number is used to judge whether the table of contents for the issue is incompletely registered at PubMed.
+If so, the user is offered the option to provide a URL to the publisher's website for the issue.
+.\"
+.TP
+.BR volume ": " \fInumber\fR
+The volume \fInumber\fR of the reference issue.
+If the volume changes within the same year (e.g., Science & Nature),
+then the publication year of the reference should be used instead.
+JSets does not use the volume number for PubMed searches,
+so it is essentially cosmetic.
+.\"
+.TP
+.BR issue ": " \fInumber\fR
+The issue \fInumber\fR of the reference issue.
+.\"
+.TP
+.BR year ": " \fInumber\fR
+The publication year of the reference issue.
+.\"
+.TP
+.BR month ": " january | february | march | ...
+The publication month of the reference issue.
+.\"
+.TP
+.BR day ": " \fInumber\fR
+The publication calendar day of the reference issue.
+.\" -----------------------------------------------------------------
+.SH JOURNAL SET & SELECTION FILES
+.SS Journal set files
+A journal set file lists one or more journal sets along with the issues of each configured journal they contain.
+A journal set file for the entire year can be created using the \fByear\fR command and supplied to many JSet commands including \fBread\fR, \fBranks\fR, \fBtoc\fR, etc., if formatted as text or CSV.
+Journal sets and issues are dated according to their expected availability,
+which is recomputed each time the file is read.
+Therefore, it is possible to edit a journal set file if you need to move issues around.
+.SS Selection files
+A selection file is a journal set file in text format that includes articles selected or proposed for review.
+Selections are indicated as indented PubMed IDs following the issue sub-header, a doi address or an arbitrary web locator.
+Selection files are created using the HTML output of the \fBtoc\fR command and can be read by several commands including \fBread\fR, \fBranks\fR and \fBtoc\fR.
+They generally should not be created or edited manually.
+When used as input to the \fBtoc\fR command with HTML output formatting,
+the selected articles will be highlighted.
+.\" -----------------------------------------------------------------
+.SH COMMAND help
+.SS Synopsis
+.B jsets help\fR [\fIcommand\fR]
+.SS Description
+Display a summary of help information and some common example uses for a JSets \fIcommand\fR.
+.\"
+.\" -----------------------------------------------------------------
+.SH COMMAND doi
+.SS Synopsis
+.B jsets doi \fIdoi\fR [\fIdoi\fR]... [\fIoption\fR]...
+.SS Description
+Obtain citations via direct doi lookup.
+JSets primarily uses PubMed for citation lookup (see the \fBquery\fR and \fBpmid\fR commands);
+however, some articles are not registered at PubMed.
+The \fBdoi\fR command allows the citations for these articles to be obtained directly.
+.SS Formats
+Text (\fBtxt\fR, default) and Markdown (\fBmkd\fR, \fBmd\fR).
+.\"
+.\" -----------------------------------------------------------------
+.SH COMMAND issue
+.SS Synopsis
+.B jsets issue\fR \fIabbreviation\fR \fIyear\fR \fInumber\fR
+[\fB\-\-pmids-only\fR]
+[\fIoption\fR]...
+.\"
+.SS Description
+Submit an ESearch request for all articles in a published issue of a configured journal.
+The issue is designated by its journal \fIabbreviation\fR, publication \fIyear\fR and issue \fInumber\fR.
+The issue must be either the configured reference for the journal or published after the reference issue.
+The \fIabbreviation\fR must be quoted if it contains spaces.
+.PP
+See also: \fBpmid\fR & \fBquery\fR.
+.\"
+.SS Additional Options
+.TP
+.BR \-\-pmids-only
+Only perform an ESearch request returning just the PubMed IDs of the registered articles.
+.SS Formats
+Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and JSON (\fBjson\fR).
+Use of the JSON format will result in only the requested JSON object being returned unparsed.
+.SS Examples
+In the following examples, Proc. Natl. Acad. Sci. has been configured with abbreviation 'PNAS'.
+.PP
+Print all the PubMed IDs registered at PubMed for issue 3 of Proc. Natl. Acad. Sci. (2018):
+.RS 3
+$ jsets issue PNAS 2019 3 --pmids-only
+.RE
+.PP
+Save all citations in issue 3 of Proc. Natl. Acad. Sci. (2018) as Markdown:
+.RS 3
+$ jsets issue PNAS 2018 3 --output=result.md
+.RE
+.PP
+Return the ESearch JSON object for issue 3 of Proc. Natl. Acad. Sci. (2018):
+.RS 3
+$ jsets issue PNAS 2018 3 --output=result.json --pmids-only
+.RE
+.PP
+Return the ESummary JSON object for issue 3 of Proc. Natl. Acad. Sci. (2018):
+.RS 3
+$ jsets issue PNAS 2018 3 --output=result.json
+.RE
+.\" -----------------------------------------------------------------
+.SH COMMAND match
+.SS Synopsis
+.B jsets match \fIfile\fR
+[ \fB\-\-match-details\fR
+| \fB\-\-match-template\fR [\fB\-\-key=\fInumber\fR] ]
+.\"
+.SS Description
+Match articles with presenters according to their preferences as specified in a match \fIfile\fR.
+Multiple matchings can be performed from a single match file.
+.PP
+See also: \fBranks\fR.
+.PP
+The match file takes the form (comments begin with #):
+.PP
+.RS 5
+    # Match file for Journal Set 21, January 9, 2021:
+
+    # Articles to be matched to presenters
+    title: long
+        1 2 5 7 8 9 10 12 13
+    title: short
+        3 4 6 11
+
+    # Presenter preferences for each article
+    green  : 12 > 1 > 3 > 5 > 11 > 8
+    blue   : 1 > 2 > 3 > 7 = 8 > 13 > 11 = 12 > 9 > 4 = 6 > 5 > 10
+    red    : 8
+    yellow :
+.RE
+.PP
+This example describes two matches involving 13 articles and four presenters (green, blue, red & yellow).
+The two matches are user-named 'long' and 'short' with the <title> keyword.
+The papers in each match will be assigned in separate matching runs.
+The rankings indicate that blue prefers article 1 the most, 10 the least and is indifferent with respect to articles 7 and 8, but prefers them both more than 13 and less than 3.
+Note that green has no preference with respect to articles 2, 7, 9, etc., and red prefers article 8 but does not care about any of the others.
+Yellow has no preferences whatsoever.
+Rankings formatted in this way can be easily created using the HTML document generated with the \fBranks\fR command.
+.PP
+The articles in each match are scored as follows:
+.RS 3
+.IP 1. 3
+The match is restricted to those articles listed under the corresponding <title> field.
+.IP 2. 3
+The lowest score is 1.
+.IP 3. 3
+If there are no preferences, then all articles are scored a 1.
+.IP 4. 3
+The articles in each ranking are divided into a 'favored' half and a 'disfavored' half.
+If there is an odd number of articles ranked, then there will be an odd number of 'favored' articles.
+.IP 5. 3
+The most preferred, favored articles are scored beginning with the number of articles in the match down.
+Equally ranked articles get the same score.
+.IP 6. 3
+The least preferred, disfavored articles are scored beginning with 1 up.
+Equally ranked articles get the same score.
+.IP 7. 3
+Unranked articles all get the same score equal to the maximum score of the disfavored articles plus one.
+.IP 8. 3
+Phantom articles are introduced so that the number of articles is a multiple of the number of presenters.
+.IP 9. 3
+Phantom articles all get the same score equal to the maximum score of the favored articles plus one.
+.RE
+.PP
+The assignment is then performed to maximize the total score of the preferences using the Hungarian Algorithm.
+Phantom articles represent being assigned no article to present.
+If the number of articles is greater than the number of presenters and there are multiple phantom articles,
+then it is possible for one person to get assigned more than one phantom article.
+This can be mitigated by further subdividing the articles into separate matches.
+.\"
+.SS Additional Options
+.TP
+.BR \-\-match-details
+Display the presenter scores assigned to each article during each match.
+.TP
+.BR \-\-match-template
+Generate a dated template match file from a selection or journal set \fIfile\fR.
+If a file containing multiple selections or journal sets is used,
+then the corresponding journal set \fInumber\fR must also be provided.
+.\" ----------------------------------------------------------------- 
+.SH COMMAND meetings
+.SS Synopsis
+.B jsets meetings [\fIfile\fR] [\fB\-\-key=\fInumber\fR] [\fIoption\fR]...
+.SS Description
+Schedule meeting dates based on some recurring frequency pattern.
+If a journal sets \fIfile\fR is provided,
+then the meetings are paired with the journal sets such that the journal sets become available at least one week before the meeting date.
+If the \fB\-\-key=\fInumber\fR option is used,
+then the scheduled meetings will begin with that journal set.
+If no journal sets \fIfile\fR is provided,
+then meetings are scheduled as early as possible.
+The \fB\-\-meet-count\fR option can be used to set how many meetings to compute (default 10).
+The first possible meeting date is set with the \fB\-\-start-day\fR option,
+with the default date being the day the command is run.
+Dates that should always be skipped are set with the \fB\-\-skip-day\fR option.
+The meeting frequency is set using the \fB\-\-pattern\fR option and a two character pattern (see \fBAdditional Options\fR and \fBExamples\fR below).
+The presenters at each meeting are listed in the configuration file and cycled for each meeting.
+The number of presenters at each meeting can be set with the \fB\-\-meet-size\fR option.
+The first presenter in the presenter cycle is always the first configured;
+however, the meetings can be initialized to start anywhere in the presenter list using the \fB\-\-first-presenter\fR option.
+Many of the above options can be configured and do not need to be specified at the command line.
+.PP
+See also: \fBCONFIGURATION\fR.
+.SS Additional Options
+.\"
+.TP
+.BR \-\-first-presenter=\fIname\fR
+Where in the list of configured presenters to start cycling the names.
+The first configured presenter is the default.
+.\"
+.TP
+.BR \-\-key=\fInumber\fR
+Start the meetings with journal set \fInumber\fR from the input file.
+.\"
+.TP
+.BR \-\-meet-count=\fInumber\fR
+The number of meetings to schedule (default 10).
+.\"
+.TP
+.BR \-\-meet-size=\fInumber\fR
+The \fInumber\fR of presenters at each meeting (default 3).
+If zero, then no presenters are scheduled.
+If the \fInumber\fR is greater than the number of presenters configured,
+then every configured presenter is assumed to present at every meeting.
+.\"
+.TP
+.BR \-\-patern=\fIpattern\fR
+The frequency pattern for the meetings beginning with the start day.
+The pattern indicates the maximum frequency at which the meetings will take place,
+because days may be skipped or incompatible with the one-week lead time when journal sets become available.
+The \fIpattern\fR is specified as a string composed of two distinct characters representing sequential weeks.
+The first character indicates when a meeting takes place,
+and the other character indicates when a meeting does not take place
+(the actual characters used do not matter).
+The pattern then repeats as weeks are scheduled or skipped.
+For example,
+.PP
+.RS 10
+\fBxy\fR meetings take place every other week.
+This is the default pattern.
+.PP
+\fBx\fR meetings take place every week.
+.PP
+\fBxxy\fR meetings take place two weeks in a row followed by a skipped week.
+.PP
+\fBxxyy\fR meetings take place two weeks in a row followed by two skipped weeks.
+.PP
+\fBxyx\fR same as \fBxxy\fR, but the first meeting is followed by a skipped week.
+.RE
+.\"
+.TP
+.BR \-\-skip-day=\fIyyyy-mm-dd\fR ", " \fImm-dd\fR
+A day when a meeting cannot take place.
+If no year is provided, then the current year is used.
+This option can be specified repeatedly.
+.\"
+.TP
+.BR \-\-start-day=\fIyyyy-mm-dd\fR ", " \fImm-dd\fR
+The first available meeting day.
+If no year is provided,
+then the current year is used.
+.SS Formats
+Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and CSV (\fBcsv\fR).
+.SS Examples
+.PP
+Schedule 20 meetings with 2 presenters each, every other week beginning on January 11, 2021, skipping January 18, 2021:
+.RS 3
+$ jsets meetings --meet-count=20 --meet-size=2 --start-day=2021-01-11 --skip-day=2021-01-18
+.RE
+.PP
+Schedule meetings every three weeks for the journal sets in jsets2021.txt with 3 presenters each beginning with Ms. Green and the same start day as the previous example:
+.RS 3
+$ jsets meetings jsets2021.txt --first-presenter="Ms. Green" --start-day=2021-01-11 --pattern=xyy
+.RE
+.\" -----------------------------------------------------------------
+.SH COMMAND pmid
+.SS Synopsis
+.B jsets pmid \fIpmid\fR...
+.SS Description
+Download one or more citations from PubMed according to their PubMed IDs.
+The command composes all the listed PubMed IDs into a single ESearch request that is sent to PubMed.
+The parsed citation results are returned in the lexicographic order of the PubMed IDs.
+.SS Formats
+Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and JSON (\fBjson\fR).
+Use of the JSON format will result in only the requested JSON object being returned unparsed.
+.SS Examples
+Request citations as formatted text for the PubMed IDs 6626520 and 28874588:
+.RS 3
+$ jsets pmid 6626520 28874588
+.RE
+.PP
+Same as above, but save as the composite ESearch JSON object:
+.RS 3
+$ jsets pmid 6626520 28874588 --output=result.json
+.RE
+.\" ----------------------------------------------------------------- 
+.SH COMMAND query
+.SS Synopsis
+.B jsets query \fIterm\fR... [\fIoption\fR]...
+.SS Description
+Submit a query directly to PubMed.
+The \fIterm\fR arguments will be composed into a single, untagged search string and submitted as an ESearch request.
+Additional tagged terms can be included in the search using the \fIoption\fRs (see below).
+The PubMed IDs returned from the ESearch request will then be resubmitted as an ESummary request to obtain the corresponding citations.
+.PP
+See also: \fBpmid\fR & \fBissue\fR.
+.SS Additional Options
+.TP
+.BR \-\-author= \fIauthor\fR
+Set the author field of the query to \fIauthor\fR.
+.TP
+.BR \-\-title= \fItitle\fR
+Set the title field of the query to \fItitle\fR.
+.TP
+.BR \-\-page= \fIpage\fR
+Set the page field of the query to \fIpage\fR.
+.TP
+.BR \-\-doi= \fIdoi\fR
+Set the doi field of the query to \fIdoi\fR.
+.TP
+.BR \-\-journal= \fIname\fR
+Set the journal field of the query to \fIname\fR.
+.TP
+.BR \-\-pmid= \fIpmid\fR
+Set the PubMed ID (pmid) field of the query to \fIpmid\fR.
+.TP
+.BR \-\-year= \fIyear\fR
+Set the ppdat (publication date) field of the query to \fIyear\fR.
+.TP
+.BR \-\-issue= \fInumber\fR
+Set the issue field of the query to \fInumber\fR.
+.TP
+.BR \-\-volume= \fInumber\fR
+Set the volume field of the query to \fInumber\fR.
+.TP
+.BR \-\-pmids-only
+Return only the PubMed IDs from the ESearch without submitting a subsequent ESummary query.
+.SS Formats
+Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and JSON (\fBjson\fR).
+Use of the JSON format will result in only the requested JSON object being returned unparsed.
+.SS Examples
+.PP
+Return the first 100 citations queried with the phrase "Radical SAM enzymes" and save as Markdown:
+.RS 3
+$ jsets query Radical SAM enzymes --max-results=100 --output=results.md
+.RE
+.PP
+A query for the just the PubMed IDs:
+.RS 3
+$ jsets query Radical SAM enzymes --max-result=100 --pmids-only
+.RE
+.PP
+Return only the JSON object for the previous ESearch query:
+.RS 3
+$ jsets query Radical SAM enzymes --max-result=100 --pmids-only --output=result.json
+.RE
+.PP
+Query for "kinetic isotope effect" by the authors Cleland and Cook in the journal Biochemitry:
+.RS 3
+$ jsets query kinetic isotepe effect --author=Cleland --author=Cook --journal=Biochemistry
+.RE
+.\" ------------------------------------------------------------------
+.SH COMMAND ranks
+.SS Synopsis
+.B jsets ranks \fIfile\fR [\fIfile\fR]... [\fB\-\-key=\fInumber\fR]
+.SS Description
+Collect selection \fIfile\fRs for a journal set together to into a document for ranking.
+The selection files can be generated using the HTML output of the \fBtoc\fR command.
+If the selection files include more than one journal set,
+then the \fB\-\-key\fR option needs to be used to specify the journal set \fInumber\fR.
+The HTML output of the \fBranks\fR command allows users to input their preferences for each article in the selection and generate a ranking in the format described for the \fBmatch\fR command.
+.PP
+See also: \fBtoc\fR & \fBmatch\fR.
+.SS Formats
+Text (\fBtxt\fR, default) and Markdown (\fBmkd\fR, \fBmd\fR).
+The \fBranks\fR output with the HTML format (\fBhtml\fR) is an interactive webpage that allows users to rank their article preferences.
+The resulting preferences can the be used directly as input to the \fBmatch\fR command.
+.SS Examples
+Collect a selection file together for article ranking by the presenters:
+.RS 3
+$ jsets ranks selection.txt --output=ranks.html
+.RE
+.\" -----------------------------------------------------------------
+.SH COMMAND read
+.SS Synopsis
+.B jsets read \fIfile\fR [\fIfile\fR]...
+[\fB\-\-key=\fInumber\fR]
+[\fIoption\fR]...
+.SS Description
+Reads one or more \fIfile\fRs containing one or more journal sets formatted as either csv or txt.
+These files can be first generated using the \fByear\fR command and then edited.
+All journal sets are collected together between files by their journal set number.
+If only a single journal set is desired, its set \fInumber\fR can be specified with \fB\-\-key\fR.
+The \fBread\fR command can be used to convert journal set files between different formats.
+.PP
+See also: \fByear\fR.
+.SS Formats
+The \fBread\fR command accepts journal set files formatted as either text or csv.
+The supported output formats are text (default, \fBtxt\fR), Markdown (\fBmd\fR or \fBmkd\fR) and CSV (\fBcsv\fR).
+.SS Examples
+.PP
+Print the issues in journal set 5 from the file jsets2019.txt:
+.RS 3
+$ jsets read jsets2019.txt --key=5
+.RE
+.PP
+Convert the text-formatted journal sets in jsets2019.txt to a csv-formatted file:
+.RS 3
+$ jsets read jsets2019.txt --output=jsets2019.csv
+.RE
+.\" -----------------------------------------------------------------
+.SH COMMAND refs
+.SS Synopsis
+.B jsets refs \fR[\fB\-\-config=\fIfile\fR] [\fB\-\-terse\fR]
+.SS Description
+Display the configured references in the configuration \fIfile\fR.
+If no configuration \fIfile\fR is provided, then the default configuration file is used instead.
+When the \fB\-\-terse\fR option is used,
+only the journal names and abbreviations are listed.
+.PP
+See also: \fBCONFIGURATION\fR.
+.SS Additional Options
+.TP
+.B \-\-terse
+Only print the journal name, PubMed name and abbreviation for each configured journal.
+.\" -----------------------------------------------------------------
+.SH COMMAND toc
+.SS Synopsis
+.B jsets toc \fIfile\fR [\fIfile\fR]... [\fB\-\-key=\fInumber\fR] [\fIoption\fR]...
+.SS Description
+Generates tables-of-contents files from a journal set or selection.
+The command downloads content information for each issue in a specified journal set in \fIfile\fR and generates output with all the corresponding citations under each issue header.
+If more than one \fIfile\fR is provided as an argument, then the journal sets in each of the files are collected together by journal set number.
+If there is only one journal set in the resulting collection, then no set number is necessary, and the single journal set will be used to query PubMed for content information.
+If there are multiple journal sets, then a journal set \fInumber\fR must be provided using the \fB\-\-key\fR option.
+.PP
+When the output format is HTML,
+the tables-of-contents output will be an interactive webpage that can be used to select articles for review and generate a selection file.
+Selection files can also be used with the \fBtoc\fR command to generate tables-of-contents output.
+If tables-of-contents are generated as HTML from a selection file,
+then the selected articles will be highlighted.
+.PP
+See also: \fBquery\fR & \fBissue\fR.
+.SS Formats
+Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and HTML (\fBhtml\fR).
+The use of the HTML format allows interactive selection of articles for review.
+Journal sets files can be read as either CSV or text.
+.SS Examples
+Generate an interactive tables-of-contents file from journal set 5 in the file jsets2020.txt:
+.RS 3
+$ jsets toc jsets2020.txt --key=5 --output=toc5.html
+.RE
+.PP
+Generate an interactive tables-of-contents from multiple selection files (selected articles will be highlighted):
+.RS 3
+$ jsets toc selection1.txt selection2.txt selection3.txt --output=toc.html
+.RE
+.PP
+Same as above using a glob pattern
+.RS 3
+$ jsets toc selection?.txt --output=toc.html
+.RE
+.\" -----------------------------------------------------------------
+.SH COMMAND year
+.SS Synopsis
+.B jsets year \fIyear\fR [\fIweeks\fR] [\fIoption\fR]...
+.SS Description
+Compute journal sets for all configured and followed journals in the specified \fIyear\fR.
+The journal sets are computed at a frequency of every \fIweeks\fR (default 2).
+The dates listed in a journal sets file computed using the \fB\-\-year\fR command are for the user's information only.
+Therefore, the journal sets file can be edited to move issues between journal sets as necessary.
+The journal set dates can then be recomputed using the \fBread\fR command.
+.PP
+See also: \fBread\fR & \fBCONFIGURATION\fR.
+.SS Additional Options
+.TP
+.BR \-\-by-date
+Sort issues by date before grouping them into journal sets.
+This will tend to make the journal sets become available sooner.
+In contrast, the default behavior is to group the weekly journals separately from non-weekly journals.
+The default behavior thus tries to get an equal number of issues of each weekly journal in each journal set.
+.SS Formats
+Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and CSV (\fBhtml\fR).
+The text and CSV formats can be read by other commands.
+The text format is equivalent to a selection file with no selections.
+.SS Examples
+Generate 26 journal sets (2 week frequency) covering 2019 and save as a text file:
+.RS 3
+$ jsets year 2019 --output=jsets2019.txt
+.RE
+.PP
+Generate 52 journal sets (1 week frequency) covering 2020 and save as a CSV file:
+.RS 3
+$ jsets year 2020 1 --output=jsets2020.csv
+.RE
+.\" -----------------------------------------------------------------
+.SH AUTHOR
+Written by Mark W. Ruszczycky (mwruszczycky@gmail.com)
+.SH COPYING
+JSets is free, open-source software maintained with full documentation and licensing information at
+.RS
+https://github.com/MWRuszczycky/JSets
+.RE

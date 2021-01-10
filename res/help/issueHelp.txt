@@ -1,8 +1,41 @@
-Usage: jsets issue ABBREVIATION YEAR NUMBER
+SYNOPSIS
+    jsets issue ABBREVIATION YEAR NUMBER [--pmids-only] [OPTION]...
 
-Submit a request for all articles in a published issue of a configured
-journal. The journal is specified by its abbreviated title and the
-issue by its year of publication and issue number. The issue must be
-published after the corresponding reference issue for the journal.
-Use the --pmids-only option to only return the PMIDs for the article
-in the issue. Use --fmt=JSON to return only the json response.
+DESCRIPTION
+    Submit an ESearch request for all articles in a published issue of a
+    configured journal. The issue is designated by its ABBREVIATION, publication
+    YEAR and issue NUMBER. The issue must be either the configured reference for
+    the journal or published after the reference issue. The abbreviation must be
+    quoted if it contains spaces.
+
+    See also: pmid & query.
+
+ADDITIONAL OPTIONS
+    --pmids-only
+        Only perform an ESearch request returning just the PubMed IDs of the
+        registered articles.
+
+FORMATS
+    Text (txt, default), Markdown (mkd, md) and JSON (json). Use of the JSON
+    format will result in only the requested JSON object being returned
+    unparsed.
+
+EXAMPLES
+    In the following examples, Proc. Natl. Acad. Sci. has been configured with
+    abbreviation 'PNAS'.
+
+    Print all the PubMed IDs registered at PubMed for issue 3 of Proc. Natl.
+    Acad. Sci. (2018):
+        $ jsets issue PNAS 2019 3 --pmids-only
+
+    Save all citations in issue 3 of Proc. Natl. Acad. Sci. (2018) as Markdown:
+        $ jsets issue PNAS 2018 3 --output=result.md
+
+    Save all citations in issue 3 of Proc. Natl. Acad. Sci. (2018) as Markdown:
+        $ jsets issue PNAS 2018 3 --output=result.md
+
+    Return ESearch JSON object for issue 3 of Proc. Natl. Acad. Sci. (2018):
+        $ jsets issue PNAS 2018 3 --output=result.json --pmids-only
+
+    Return ESummary JSON object for issue 3 of Proc. Natl. Acad. Sci. (2018):
+        $ jsets issue PNAS 2018 3 --output=result.json

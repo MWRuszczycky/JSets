@@ -81,7 +81,11 @@ Help for a specific command can be accessed using
 ```bash
 $ jsets help command_name
 ```
-Finally, an actual *man page* for *JSets* is in the works.
+The document `JSets/res/help/jsets.1` is the draft *man-page* for *JSets*.
+It can be read from the main repository directory using
+```bash
+$ man res/help/jsets.1
+```
 
 ## Installation & configuration
 
@@ -124,5 +128,6 @@ You can then install the updated version using `stack install` or run it through
 
 ## To Do
 
-* Write a man page.
-* Include installation instructions for *NixOS*.
+* Write installers or better installation instructions.
+* Include copying information for binary distributions.
+* Write more tests.

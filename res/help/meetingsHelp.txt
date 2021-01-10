@@ -1,0 +1,83 @@
+SYNOPSIS
+    jsets meetings [FILE] [--key=NUMBER] [OPTION]...
+
+DESCRIPTION
+    Schedule meeting dates based on some recurring frequency pattern. If a
+    journal sets FILE is provided, then the meetings are paired with the journal
+    sets such that the journal sets become available at least one week before
+    the meeting date. If the --key=NUMBER option is used, then the scheduled
+    meetings will begin with that journal set. If no journal sets FILE is
+    provided, then meetings are scheduled as early as possible. The --meet-count
+    option can be used to set how many meetings to compute (default  10). The
+    first possible meeting date is set with the --start-day option, with the
+    default date being the day the command is run. Dates that should always be
+    skipped are set with the --skip-day option. The meeting frequency is set
+    using the --pattern option and a two character pattern (see ADDITIONAL
+    OPTIONS and EXAMPLES below). The presenters at each meeting are listed in
+    the configuration file and cycled for each meeting. The number of presenters
+    at each meeting can be set with the --meet-size option. The first presenter
+    in the presenter cycle is always the first configured; however, the meetings
+    can be initialized to start anywhere in the presenter list using the
+    --first-presenter option. Many of the above options can be configured and do
+    not need to be specified at the command line.
+
+ADDITIONAL OPTIONS
+    --first-presenter=NAME
+        Where in the list of configured presenters to start cycling the names.
+        The first configured presenter is the default.
+
+    --key=number
+        Start the meetings with journal set NUMBER from the input file.
+
+    --meet-count=NUMBER
+        The NUMBER of meetings to schedule (default 10).
+
+    --meet-size=NUMBER
+        The NUMBER of presenters at each meeting (default 3). If zero, then no
+        presenters are scheduled. If the number is greater than the number of
+        presenters configured, then every configured presenter is assumed to
+        present at every meeting.
+
+    --patern=PATTERN
+        The frequency PATTERN for the meetings beginning with the start day.
+        The PATTERN indicates the maximum frequency at which the meetings will
+        take place, because days may be skipped or incompatible with the
+        one-week lead time when journal sets become available. The PATTERN is
+        specified as a string composed of two distinct characters representing
+        sequential weeks. The first character indicates when a meeting takes
+        place, and the other character indicates when a meeting does not take
+        place (the actual characters used do not matter). The PATTERN then
+        repeats as dates are scheduled or skipped. For example,
+
+            xy meetings take place every other week. This is the default.
+
+            x meetings take place every week.
+
+            xxy meetings take place two weeks in a row followed by a skip-week.
+
+            xxyy meetings occur two weeks in a row followed by two skip-weeks.
+
+            xyx same as xxy, but the first meeting is followed by a skip-week.
+
+    --skip-day=yyyy-mm-dd, mm-dd
+        A day when a meeting cannot take place. If no year is provided, then the
+        current year is used. This option can be specified repeatedly.
+
+    --start-day=yyyy-mm-dd, mm-dd
+        The first available meeting day. If no year is provided, then the
+        current year is used.
+
+FORMATS
+    Text (txt, default), Markdown (mkd, md) and CSV (csv).
+
+EXAMPLES
+    Schedule 20 meetings with 2 presenters each, every other week beginning
+    on January 11, 2021, skipping January 18, 2021:
+        $ jsets meetings --meet-count=20 --meet-size=2\
+                         --start-day=2021-01-11 --skip-day=2021-01-18
+
+    Schedule meetings every three weeks for the journal sets in jsets2021.txt
+    with 3 presenters each beginning with Ms. Green and the same start day as
+    the previous example:
+        $ jsets meetings jsets2021.txt --first-presenter="Ms. Green"\
+                                       --start-day=2021-01-11 --pattern=xyy

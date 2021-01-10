@@ -1,11 +1,63 @@
-Usage: jsets query TERM [TERM]
+SYNOPSIS
+    jsets query TERM... [OPTION]...
 
-Options: --author=AUTHOR --title=TITLE --page=PAGE --doi=DOI --journal=JOURNAL
-         --pmid=PMID --year=YEAR --issue=ISSUENUMBER --volume=VOLUME
+DESCRIPTION
+    Submit a query directly to PubMed. The TERM arguments will be composed into
+    a single, untagged search string and submitted as an ESearch request.
+    Additional tagged terms can be included in the search using the OPTIONs
+    (see below). The PubMed IDs returned from the ESearch request will then be
+    resubmitted as an ESummary request to obtain the corresponding citations.
 
-Download citations from a PubMed search. The TERM arguments will be
-collected together as a single search string directly supplied to
-PubMed. The options listed above can be used to designate specific
-search fields. To limit the request to matching PubMed IDs (i.e., an
-ESearch query only), use the --pmids-only option. To return only the
-unparsed json response from PubMed set --fmt=json.
+ADDITIONAL OPTIONS
+    --author=AUTHOR
+        Set the author field of the query to AUTHOR.
+
+    --title=TITLE
+        Set the title field of the query to TITLE.
+
+    --page=PAGE
+        Set the page field of the query to PAGE.
+
+    --doi=DOI
+        Set the doi field of the query to DOI.
+
+    --journal=NAME
+        Set the journal field of the query to NAME.
+
+    --pmid=PMID
+        Set the PubMed ID (pmid) field of the query to PMID.
+
+    --year=YEAR
+        Set the ppdat (publication date) field of the query to YEAR.
+
+    --issue=NUMBER
+        Set the issue field of the query to NUMBER.
+
+    --volume=NUMBER
+        Set the volume field of the query to NUMBER.
+
+    --pmids-only
+        Return only the PubMed IDs from the ESearch without submitting a
+        subsequent ESummary query.
+
+FORMATS
+    Text (txt, default), Markdown (mkd, md) and JSON (json). Use of the JSON
+    format will result in only the JSON object being returned unparsed.
+
+EXAMPLES
+    Return the first 100 citations queried with the phrase "Radical SAM enzymes"
+    and save as Markdown:
+       $ jsets query Radical SAM enzymes --max-results=100\
+                                         --output=results.md
+
+    A query for the just the PubMed IDs:
+       $ jsets query Radical SAM enzymes --max-result=100 --pmids-only
+
+    Return only the JSON object for the previous ESearch query:
+       $ jsets query Radical SAM enzymes --max-result=100 --pmids-only\
+                                         --output=result.json
+
+    Query for "kinetic isotope effect" by the authors Cleland and Cook in the
+    journal Biochemitry:
+       $ jsets query kinetic isotepe effect --author=Cleland --author=Cook\
+                                            --journal=Biochemistry

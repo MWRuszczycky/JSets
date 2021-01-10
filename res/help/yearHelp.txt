@@ -1,21 +1,30 @@
-Usage: jsets year YEAR [FREQ]
+SYNOPSIS
+    jsets year YEAR [WEEKS] [OPTION]...
 
-Distributes all issues for all configured journals in the specified
-YEAR (entered as an integer) into journal sets at a frequency of FREQ
-weeks. The default frequency is 2 weeks. The default output format is
-txt, and it is sent to standard-out. Other supported output formats
-are csv and Markdown. To choose another output format, use the
---output/-o option to specify a path with the desired extension.
+DESCRIPTION
+    Compute journal sets for all configured and followed journals in the
+    specified YEAR. The journal sets are computed at a frequency of every WEEKS
+    (default 2). The dates listed in a journal sets file computed using the
+    <year> command are for the user's information only. Therefore, the journal
+    sets file can be edited to move issues between journal sets as necessary.
+    The journal set dates can then be recomputed using the <read> command.
 
-For example, to generate 26 journal sets (2 week frequency) covering
-2019 and save them in csv format use
+ADDITIONAL OPTIONS
+    --by-date
+        Sort issues by date before grouping them into journal sets. This will
+        tend to make the journal sets become available sooner. In contrast, the
+        default behavior is to group the weekly journals separately from
+        non-weekly journals. The default behavior thus tries to get an equal
+        number of issues of each weekly journal in each journal set.
 
-    jsets year 2019 --output=jsets2019.csv
+FORMATS
+    Text (txt, default), Markdown (mkd, md) and CSV (csv). The text and CSV
+    formats can be read by other commands. The text format is equivalent to a
+    selection file with no selections.
 
-to generate 52 journal sets (1 week frequency) covering 2020 and
-save them in txt form use
+EXAMPLES
+    Generate 26 journal sets (2 week frequency) for 2019 and save as text:
+       $ jsets year 2019 --output=jsets2019.txt
 
-    jsets year 2020 1 --output=jsets2020.txt
-
-You can read the resulting file (in csv or txt) and convert it to
-other output formats using the <read> command.
+    Generate 52 journal sets (1 week frequency) for 2020 and save as csv:
+       $ jsets year 2020 1 --output=jsets2020.csv

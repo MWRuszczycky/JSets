@@ -1,24 +1,22 @@
-Usage: jsets read FILE [FILE]
+SYNOPSIS
+    jsets read FILE [FILE]...  [--key=NUMBER] [OPTION]...
 
-Reads one or more files containing one or more journal sets formatted
-as either csv or txt. These files can be first generated using the
-<year> command, and then edited. All journal sets are collected
-together between files by their journal set number, which must be a
-non-negative integer. The resulting journal sets are then output to
-standard-out as text. If only a single journal set is desired, you
-can use the --key/-k option to specify its journal set number.
+DESCRIPTION
+    Reads one or more FILEs containing one or more journal sets formatted as
+    either CSV or text. These files can be first generated using the year
+    command, and then edited. All journal sets are collected together between
+    FILEs by their journal set number. If only a single journal set is desired,
+    its set NUMBER can be specified with --key. The read command can be used to
+    convert journal set files between different formats.
 
-You can use the <read> command to convert journal set files between
-different formats. This is done by using the --output/-o option and
-specifying an output file name with the appropriate extension. For
-example, if you have a journal sets file <jsets2019.txt> in txt
-format and you want to convert it to csv, you can run the following
+FORMATS
+    The <read> command accepts journal set files as either text or CSV. The
+    supported output formats are text (default, txt), Markdown (md or mkd) and
+    CSV (csv).
 
-    jsets read jsets2019.txt --output=jsets2019.csv
+EXAMPLES
+    Print the issues in journal set 5 from the file jsets2019.txt:
+        $ jsets read jsets2019.txt --key=5
 
-If you want to output just journal set 5 in a csv file of journal
-sets using Markdown format, use
-
-    jsets read jsets2019.csv --key=5 --output=jsets2019.md
-
-The supported output formats are csv, Markdown (mkd or md) and txt.
+    Convert text-formatted journal sets in jsets2019.txt to a CSV-file:
+        $ jsets read jsets2019.txt --output=jsets2019.csv

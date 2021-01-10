@@ -1,0 +1,11 @@
+SYNOPSIS
+    jsets doi DOI [DOI]... [OPTION]...
+
+DESCRIPTION
+    Obtain citations via direct doi lookup. JSets primarily uses PubMed for
+    citation lookup (see the <query> and <pmid> commands); however, some
+    articles are not registered at PubMed. The <doi> command allows the
+    citations for these articles to be obtained directly.
+
+FORMATS
+    Text (txt, default) and Markdown (mkd, md).

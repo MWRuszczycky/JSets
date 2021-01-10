@@ -8,8 +8,10 @@ module View.Help
     , version
       -- Help strings
     , helpHelp
+    , doiHelp
     , issueHelp
     , matchHelp
+    , meetingsHelp
     , pmidHelp
     , queryHelp
     , ranksHelp
@@ -45,7 +47,7 @@ summary :: [T.Command] -> [Option] -> Text
 summary cmds opts = Tx.intercalate "\n" hs
     where hs = [ version
                , sep
-               , "Management of journal sets for lab meetings."
+               , "Management of journal sets for Literature Review."
                , "  (Run 'jsets help jsets' for more information.)\n"
                , optionsHelp opts
                , "Commands summary:"
@@ -91,6 +93,9 @@ sep = Tx.replicate 20 "-"
 helpHelp :: Text
 helpHelp = $(MT.embedFile "res/help/helpHelp.txt")
 
+doiHelp :: Text
+doiHelp = $(MT.embedFile "res/help/doiHelp.txt")
+
 issueHelp :: Text
 issueHelp = $(MT.embedFile "res/help/issueHelp.txt")
 
@@ -99,6 +104,9 @@ jsetsHelp = $(MT.embedFile "res/help/jsetsHelp.txt")
 
 matchHelp :: Text
 matchHelp = $(MT.embedFile "res/help/matchHelp.txt")
+
+meetingsHelp :: Text
+meetingsHelp = $(MT.embedFile "res/help/meetingsHelp.txt")
 
 pmidHelp :: Text
 pmidHelp = $(MT.embedFile "res/help/pmidHelp.txt")

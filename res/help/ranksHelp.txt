@@ -1,22 +1,21 @@
-Usage: jsets ranks FILE [FILE]
+SYNOPSIS
+    jsets ranks FILE [FILE]... [--key=NUMBER]
 
-Collect together selections in the FILE arguments and generate a list
-of citations/articles for ranking. The default output format is text.
-Alternative output formats can be selected using the --output/-o
-option and choosing the desired file extension.
+DESCRIPTION
+    Collect selection FILEs for a journal set together to into a document for
+    ranking. The selection files can be generated using the HTML output of the
+    <toc> command. If the selection files include more than one journal set,
+    then the --key option needs to be used to specify the journal set NUMBER.
+    The HTML output of the ranks command allows users to input their preferences
+    for each article in the selection and generate a ranking in the format
+    described for the <match> command.
 
-When the output format is html, the ranks output is a webpage that
-allows users to enter numerical ranks and create a simple rank-list
-string that can be emailed to the journal sets administrator. These
-can then be collected in a rank-lists file for use with the <match>
-command assigning papers to individuals. See help for the <match>
-command for more information.
+FORMATS
+    Text (txt, default) and Markdown (mkd, md). The ranks output with the HTML
+    format (html) is an interactive webpage that allows users to rank their
+    article preferences. The resulting preferences can the be used directly as
+    input to the <match> command.
 
-For example, if you have three selection files sel1.txt, sel2.txt and
-sel3.txt all for the same journal set, they can be collected and used
-to generate the corresponding ranks output in html format using
-
-    jsets ranks sel1.txt sel2.txt sel3.txt --output=ranks.html
-
-If the selections have more than one journal set, then the desired
-journal set can be selected using the --key/-k option.
+EXAMPLES
+    Collect a selection file together for article ranking by the presenters:
+        $ jsets ranks selection.txt --output=ranks.html

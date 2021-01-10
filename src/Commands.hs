@@ -82,7 +82,7 @@ issueCmd args = A.getIssue args >>= runQuery
 -- Directly download a citation via DOI (bypasses PubMed)
 
 doiHelp :: (Text, Text)
-doiHelp = (s, "I still need to write this.")
+doiHelp = (s, H.doiHelp)
     where s = "Directly download a citation via its DOI (bypasses PubMed)"
 
 doiCmd :: [String] -> T.AppMonad ()
@@ -97,7 +97,7 @@ doiCmd xs = do
 
 matchHelp :: (Text, Text)
 matchHelp = (s, H.matchHelp)
-    where s = "Perform matchings according to a rank-lists file."
+    where s = "Perform matchings according to a match file."
 
 matchCmd :: [String] -> T.AppMonad ()
 matchCmd xs = asks T.cMatchTemplate >>= \ x -> if x
@@ -122,7 +122,7 @@ runMatchCmd (fp:_) = do
 -- Schedule meetings
 
 meetingsHelp :: (Text, Text)
-meetingsHelp = (s, "I haven't written this yet.")
+meetingsHelp = (s, H.meetingsHelp)
     where s = "Schedule meetings."
 
 meetingsCmd :: [String] -> T.AppMonad ()

@@ -1,12 +1,20 @@
-Usage: jsets pmid PMID [PMID]
+SYNOPSIS
+    jsets pmid PMID...
 
-Download article citations from PubMed based on their PubMed ids.
-The downloaded citations will be ordered according to their PubMed
-ids and can be formatted as either text or Markdown. If the article
-is found in a configured journal after the date of the corresponding
-reference issue, then the issue will be resolved based on the issue
-calculated for the given volume number and issue number. Note that
-this may not work if multiple volumes are published each year as in
-the case of Nature and Science (in this case, JSets currently uses
-the year as the volume number). If the issue cannot be resolved from
-the configuration, then the issue will be directly read from PubMed.
+DESCRIPTION
+    Download one or more citations from PubMed according to their PubMed IDs.
+    The command composes all the listed PubMed IDs into a single ESearch request
+    that is sent to PubMed. The parsed citation results are returned in the
+    lexicographic order of the PubMed IDs.
+
+FORMATS
+    Text (txt, default), Markdown (mkd, md) and JSON (json). Use of the JSON
+    format will result in only the requested JSON object being returned
+    unparsed.
+
+EXAMPLES
+    Request citations as formatted text for the PubMed IDs 6626520 and 28874588:
+       $ jsets pmid 6626520 28874588
+
+    Same as above, but save as the composite ESearch JSON object:
+       $ jsets pmid 6626520 28874588 --output=result.json
