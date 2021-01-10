@@ -306,10 +306,6 @@ readConfigParam ("meet-size", s) =
     T.ConfigGen . configMeetingSize . Tx.unpack $ s
 readConfigParam ("meet-count", s) =
     T.ConfigGen . configMeetingCount . Tx.unpack $ s
-readConfigParam ("no-sort", x) =
-    T.ConfigGen $ \ c -> maybe ( throwError $ flagError "no-sort" )
-                         ( \ b -> pure $ c { T.cSortJSets = not b } )
-                         . readFlag $ x
 readConfigParam ("user",  u) =
     T.ConfigGen $ \ c -> pure $ c { T.cUser  = Just u }
 readConfigParam ("pattern", p) =

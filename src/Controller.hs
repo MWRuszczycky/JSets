@@ -329,11 +329,6 @@ options =
           ( T.ConfigGen $ \ c -> pure $ c { T.cMatchTemplate = True } )
       ) "Generate a template rank-lists file for the match command."
 
-    , Opt.Option "" [ "no-sort" ]
-      ( Opt.NoArg
-          ( T.ConfigGen $ \ c -> pure $ c { T.cSortJSets = False } )
-      ) "Do not sort journal set issues."
-
     , Opt.Option "" [ "pmids-only" ]
       ( Opt.NoArg
           ( T.ConfigGen $ \ c -> pure $ c { T.cOnlyPMIDs = True } )

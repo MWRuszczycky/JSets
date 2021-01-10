@@ -192,7 +192,6 @@ data Config = Config {
       -- Journal sets
     , cJSetKey       :: Maybe Int      -- journal set key
     , cReferences    :: [Issue]        -- reference issues
-    , cSortJSets     :: Bool           -- sort issues by Journal in output
     , cYearlyByDate  :: Bool           -- group issues by date with <year> cmd
       -- PubMed
     , cQuery         :: Query          -- arguments for PubMed queries
@@ -233,7 +232,6 @@ defaultConfig = Config {
       -- Default journal set parameters
     , cJSetKey       = Nothing
     , cReferences    = []
-    , cSortJSets     = True
     , cYearlyByDate  = False
       -- Default PubMed parameters
     , cQuery         = []

@@ -179,10 +179,7 @@ jsetsTxt = Vc.separate Vc.newLine . map jsetTxt . J.unpack
 
 jsetTxt :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
 jsetTxt jset = do
-    shouldSort <- asks T.cSortJSets
-    let xs = if shouldSort
-                then sortBy (comparing $ T.name . T.journal) . T.issues $ jset
-                else T.issues jset
+    let xs = sortBy (comparing $ T.abbr . T.journal) . T.issues $ jset
     Vc.writeLn $ Vc.jsetHeader jset
     Vc.separate Vc.newLine . map issueTxt $ xs
     Vc.newLine
@@ -195,8 +192,9 @@ jsetsMkd = Vc.separate Vc.newLine . map jsetMkd . J.unpack
 
 jsetMkd :: T.HasIssue a => T.JSet a -> T.ViewMonad ()
 jsetMkd jset = do
+    let xs = sortBy (comparing $ T.name . T.journal) . T.issues $ jset
     Vc.writeLn $ "## " <> Vc.jsetHeader jset
-    Vc.prepend (Vc.write "\n* ") . map issueMkd . T.issues $ jset
+    Vc.prepend (Vc.write "\n* ") . map issueMkd $ xs
     Vc.newLine
 
 -- =============================================================== --
