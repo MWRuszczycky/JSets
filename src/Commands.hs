@@ -214,7 +214,7 @@ ranksCmd fps = do
     citesDOIs  <- PM.getCitationsDOI  wreq selDOIs
     citesPMIDs <- PM.getCitationsPMID wreq selPMIDs
     let cites = Map.union citesPMIDs citesDOIs
-    V.runView ( V.viewRanks cites jset ) >>= display
+    V.runView ( V.viewRanks cites $ jset { T.selection = sel } ) >>= display
 
 ---------------------------------------------------------------------
 -- File reading and conversion
