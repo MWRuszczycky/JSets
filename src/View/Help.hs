@@ -50,7 +50,7 @@ summary cmds opts = Tx.intercalate "\n" hs
                , "Management of journal sets for Literature Review."
                , "  (Run 'jsets help jsets' for more information.)\n"
                , optionsHelp opts
-               , "Commands summary:"
+               , "COMMANDS SUMMARY"
                , Tx.intercalate "\n" . map (("  " <>) . cmdSummary) $ cmds
                ]
 
@@ -82,7 +82,7 @@ cmdHeader cmd = sep <> "\n  " <> cmdSummary cmd <> "\n"
 
 optionsHelp :: [Option] -> Text
 -- ^Construct a summary of all command line options.
-optionsHelp = Tx.pack . Opt.usageInfo "Options summary:"
+optionsHelp = Tx.pack . Opt.usageInfo "OPTIONS SUMMARY"
 
 sep :: Text
 sep = Tx.replicate 20 "-"

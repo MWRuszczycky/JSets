@@ -3,7 +3,7 @@
 JSets \- A utility to manage journal sets for Literature Review
 .SH SYNOPSIS
 .B jsets\fR
-[ \fBcommand\fR [\fIargument\fR]... [\fIoption\fR]...
+[ \fIcommand\fR [\fIargument\fR]... [\fIoption\fR]...
 | \fB\-\-help\fR
 | \fB\-\-version\fR ]
 .SH DESCRIPTION
@@ -73,12 +73,12 @@ Set the user email to \fIemail\fR.
 Select journal set \fInumber\fR when reading a journal sets file.
 .\"
 .TP
-.BR \-\-max-docsum =\fInumber\fR
+.BR \-\-max\-docsum =\fInumber\fR
 The maximum \fInumber\fR of PubMed IDs to send in a single ESummary request to PubMed.
 The default is 300.
 .\"
 .TP
-.BR \-\-max-results =\fInumber\fR
+.BR \-\-max\-results =\fInumber\fR
 The maximum \fInumber\fR of results to return from a PubMed ESearch request.
 The default is 200.
 .\"
@@ -96,8 +96,8 @@ Do not display messages or interactive requests accepting all defaults instead.
 JSets requires journals be configured with reference issues in order to compute and validate future issues.
 Many commands (e.g., \fByear\fR, \fBissue\fR & \fBread\fR) require journals to be configured with reference issues.
 This is done with a configuration file that can be specified with the \fB\-\-config\fR option.
-Alternatively, JSets will search for a default configuration file named \fBconfig\fR in the \fB.config/jsets/\fR directory of the user's home directory
-(i.e., \fB~/.config/jsets/config\fR).
+Alternatively, JSets will search for a default configuration file named \fIconfig\fR in the \fI.config/jsets/\fR directory of the user's home directory
+(i.e., \fI~/.config/jsets/config\fR).
 The configuration file can also be used to specify frequently used options so that they do not need to be repeatedly specified at the command line.
 However, command line options will always take precedence over any options read from a configuration file.
 .PP
@@ -113,7 +113,7 @@ assigns the \fIvalue\fR "Ms. Blue" to the parameter \fBuser\fR.
 General configuration parameters must be specified before the journal reference issues.
 .\"
 .TP
-.BR by-date ": " yes | no | true | false
+.BR by\-date ": " yes | no | true | false
 When computing yearly journal sets with the \fByear\fR command,
 sort all issues by date before grouping into journal sets (see \fByear\fR command).
 .\"
@@ -132,30 +132,30 @@ The email is not included in any web-requests.
 This parameter is overridden by the \fB\-\-email\fR command line option.
 .\"
 .TP
-.BR max-docsum ": " \fIcount\fR
+.BR max\-docsum ": " \fIcount\fR
 Do not include more than \fIcount\fR PubMed IDs in a single ESummary request to PubMed.
 Submitting too many PubMed IDs can lead to a blocked request.
 The default value is 300.
-This parameter is overridden by the \fB\-\-max-docsum\fR command line option.
+This parameter is overridden by the \fB\-\-max\-docsum\fR command line option.
 .\"
 .TP
-.BR max-results ": " \fIcount\fR
+.BR max\-results ": " \fIcount\fR
 Limit the number of results from a PubMed ESearch request to \fIcount\fR.
 This parameter affects the \fBquery\fR, \fBissue\fR and \fBtoc\fR commands.
 The default value is 200.
-This parameter is overridden by the \fB\-\-max-results\fR command line option.
+This parameter is overridden by the \fB\-\-max\-results\fR command line option.
 .\"
 .TP
-.BR meet-size ": " \fIcount\fR
+.BR meet\-size ": " \fIcount\fR
 The number of presenters to schedule for each meeting when using the \fBmeetings\fR command.
 The default value is 3.
-This parameter is overridden by the \fB\-\-meet-size\fR command line option.
+This parameter is overridden by the \fB\-\-meet\-size\fR command line option.
 .\"
 .TP
-.BR meet-count ": " \fIcount\fR
+.BR meet\-count ": " \fIcount\fR
 Number of meetings to schedule when using the \fBmeetings\fR command.
 The default value is 10.
-This parameter is overridden by the \fB\-\-meet-count\fR command line option.
+This parameter is overridden by the \fB\-\-meet\-count\fR command line option.
 .\"
 .TP
 .BR user ": " \fIname\fR
@@ -177,11 +177,11 @@ Add a meeting presenter for use with the \fBmeetings\fR command.
 This parameter can be specified multiple times to create an ordered list of presenters.
 .\"
 .TP
-.BR skip-day ": " \fIyyyy-mm-dd\fR | \fImm-dd\fR
+.BR skip\-day ": " \fIyyyy\-mm\-dd\fR | \fImm\-dd\fR
 Specify a date that should be skipped when scheduling meetings with the \fBmeetings\fR command.
 The current year is used when no year is specified.
 This parameter can be specified multiple times to create a list of skip-days.
-Additional skip-days can be specified with the \fB\-\-skip-day\fR command line option.
+Additional skip-days can be specified with the \fB\-\-skip\-day\fR command line option.
 .\"
 .SS Reference Issues
 Journal reference issues must be specified after the general configuration parameters in order for them to parse correctly.
@@ -190,7 +190,7 @@ Only the \fBfollowed\fR key-value pair is optional (all others must be provided)
 .\"
 .TP
 .BR journal ": " \fIname\fR/\fIabbreviation\fR
-Specifiy the \fIname\fR and \fIabbreviation\fR for the journal.
+Specify the \fIname\fR and \fIabbreviation\fR for the journal.
 Both are required separated by a forward-slash.
 The \fIname\fR and \fIabbreviation\fR can contain spaces and be the same;
 however, they must be unique to the configured journal.
@@ -207,15 +207,15 @@ This allows JSets the ability to work with issues from journals that are not reg
 This parameter is optional (default \fBtrue\fR).
 .\"
 .TP
-.BR frequency ": " weekly " " \fInumber\fR | \fBweekly-first\fR | \fBweekly-last\fR | \fBmonthly\fR | \fBmid-monthly\fR | \fBend-monthly\fR | \fBsemimonthly\fR
+.BR frequency ": " weekly " " \fInumber\fR | \fBweekly\-first\fR | \fBweekly\-last\fR | \fBmonthly\fR | \fBmid\-monthly\fR | \fBend\-monthly\fR | \fBsemimonthly\fR
 The publication frequency of the journal.
 A \fBweekly\fR journal is published every \fInumber\fR weeks with no exceptions.
-A \fBweekly-first\fR journal is published every week except for the first week of the year.
-A \fBweekly-last\fR journal is published every week except for the last week of the year.
+A \fBweekly\-first\fR journal is published every week except for the first week of the year.
+A \fBweekly\-last\fR journal is published every week except for the last week of the year.
 A \fBmonthly\fR journal is published 12 times a year every 28 or 35 days.
 These types of journals tend to publish early in the month.
-A \fBmid-monthly\fR journal publishes every 28 or 35 days but only after the 14-th of every month.
-A \fBend-monthly\fR journal is only assumed to be published by the end of every month.
+A \fBmid\-monthly\fR journal publishes every 28 or 35 days but only after the 14-th of every month.
+A \fBend\-monthly\fR journal is only assumed to be published by the end of every month.
 A \fBsemimonthly\fR journal is published 24 times a year every 14 or 21 days.
 .\"
 .TP
@@ -290,7 +290,7 @@ Text (\fBtxt\fR, default) and Markdown (\fBmkd\fR, \fBmd\fR).
 .SH COMMAND issue
 .SS Synopsis
 .B jsets issue\fR \fIabbreviation\fR \fIyear\fR \fInumber\fR
-[\fB\-\-pmids-only\fR]
+[\fB\-\-pmids\-only\fR]
 [\fIoption\fR]...
 .\"
 .SS Description
@@ -303,7 +303,7 @@ See also: \fBpmid\fR & \fBquery\fR.
 .\"
 .SS Additional Options
 .TP
-.BR \-\-pmids-only
+.BR \-\-pmids\-only
 Only perform an ESearch request returning just the PubMed IDs of the registered articles.
 .SS Formats
 Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and JSON (\fBjson\fR).
@@ -313,29 +313,29 @@ In the following examples, Proc. Natl. Acad. Sci. has been configured with abbre
 .PP
 Print all the PubMed IDs registered at PubMed for issue 3 of Proc. Natl. Acad. Sci. (2018):
 .RS 3
-$ jsets issue PNAS 2019 3 --pmids-only
+$ jsets issue PNAS 2019 3 \-\-pmids\-only
 .RE
 .PP
 Save all citations in issue 3 of Proc. Natl. Acad. Sci. (2018) as Markdown:
 .RS 3
-$ jsets issue PNAS 2018 3 --output=result.md
+$ jsets issue PNAS 2018 3 \-\-output=result.md
 .RE
 .PP
 Return the ESearch JSON object for issue 3 of Proc. Natl. Acad. Sci. (2018):
 .RS 3
-$ jsets issue PNAS 2018 3 --output=result.json --pmids-only
+$ jsets issue PNAS 2018 3 \-\-output=result.json \-\-pmids\-only
 .RE
 .PP
 Return the ESummary JSON object for issue 3 of Proc. Natl. Acad. Sci. (2018):
 .RS 3
-$ jsets issue PNAS 2018 3 --output=result.json
+$ jsets issue PNAS 2018 3 \-\-output=result.json
 .RE
 .\" -----------------------------------------------------------------
 .SH COMMAND match
 .SS Synopsis
 .B jsets match \fIfile\fR
-[ \fB\-\-match-details\fR
-| \fB\-\-match-template\fR [\fB\-\-key=\fInumber\fR] ]
+[ \fB\-\-match\-details\fR
+| \fB\-\-match\-template\fR [\fB\-\-key=\fInumber\fR] ]
 .\"
 .SS Description
 Match articles with presenters according to their preferences as specified in a match \fIfile\fR.
@@ -402,10 +402,10 @@ This can be mitigated by further subdividing the articles into separate matches.
 .\"
 .SS Additional Options
 .TP
-.BR \-\-match-details
+.BR \-\-match\-details
 Display the presenter scores assigned to each article during each match.
 .TP
-.BR \-\-match-template
+.BR \-\-match\-template
 Generate a dated template match file from a selection or journal set \fIfile\fR.
 If a file containing multiple selections or journal sets is used,
 then the corresponding journal set \fInumber\fR must also be provided.
@@ -421,22 +421,22 @@ If the \fB\-\-key=\fInumber\fR option is used,
 then the scheduled meetings will begin with that journal set.
 If no journal sets \fIfile\fR is provided,
 then meetings are scheduled as early as possible.
-The \fB\-\-meet-count\fR option can be used to set how many meetings to compute (default 10).
-The first possible meeting date is set with the \fB\-\-start-day\fR option,
+The \fB\-\-meet\-count\fR option can be used to set how many meetings to compute (default 10).
+The first possible meeting date is set with the \fB\-\-start\-day\fR option,
 with the default date being the day the command is run.
-Dates that should always be skipped are set with the \fB\-\-skip-day\fR option.
+Dates that should always be skipped are set with the \fB\-\-skip\-day\fR option.
 The meeting frequency is set using the \fB\-\-pattern\fR option and a two character pattern (see \fBAdditional Options\fR and \fBExamples\fR below).
 The presenters at each meeting are listed in the configuration file and cycled for each meeting.
-The number of presenters at each meeting can be set with the \fB\-\-meet-size\fR option.
+The number of presenters at each meeting can be set with the \fB\-\-meet\-size\fR option.
 The first presenter in the presenter cycle is always the first configured;
-however, the meetings can be initialized to start anywhere in the presenter list using the \fB\-\-first-presenter\fR option.
+however, the meetings can be initialized to start anywhere in the presenter list using the \fB\-\-first\-presenter\fR option.
 Many of the above options can be configured and do not need to be specified at the command line.
 .PP
 See also: \fBCONFIGURATION\fR.
 .SS Additional Options
 .\"
 .TP
-.BR \-\-first-presenter=\fIname\fR
+.BR \-\-first\-presenter=\fIname\fR
 Where in the list of configured presenters to start cycling the names.
 The first configured presenter is the default.
 .\"
@@ -445,18 +445,18 @@ The first configured presenter is the default.
 Start the meetings with journal set \fInumber\fR from the input file.
 .\"
 .TP
-.BR \-\-meet-count=\fInumber\fR
+.BR \-\-meet\-count=\fInumber\fR
 The number of meetings to schedule (default 10).
 .\"
 .TP
-.BR \-\-meet-size=\fInumber\fR
+.BR \-\-meet\-size=\fInumber\fR
 The \fInumber\fR of presenters at each meeting (default 3).
 If zero, then no presenters are scheduled.
 If the \fInumber\fR is greater than the number of presenters configured,
 then every configured presenter is assumed to present at every meeting.
 .\"
 .TP
-.BR \-\-patern=\fIpattern\fR
+.BR \-\-pattern=\fIpattern\fR
 The frequency pattern for the meetings beginning with the start day.
 The pattern indicates the maximum frequency at which the meetings will take place,
 because days may be skipped or incompatible with the one-week lead time when journal sets become available.
@@ -481,13 +481,13 @@ This is the default pattern.
 .RE
 .\"
 .TP
-.BR \-\-skip-day=\fIyyyy-mm-dd\fR ", " \fImm-dd\fR
+.BR \-\-skip\-day=\fIyyyy\-mm\-dd\fR ", " \fImm\-dd\fR
 A day when a meeting cannot take place.
 If no year is provided, then the current year is used.
 This option can be specified repeatedly.
 .\"
 .TP
-.BR \-\-start-day=\fIyyyy-mm-dd\fR ", " \fImm-dd\fR
+.BR \-\-start\-day=\fIyyyy\-mm\-dd\fR ", " \fImm\-dd\fR
 The first available meeting day.
 If no year is provided,
 then the current year is used.
@@ -497,12 +497,12 @@ Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and CSV (\fBcsv\fR).
 .PP
 Schedule 20 meetings with 2 presenters each, every other week beginning on January 11, 2021, skipping January 18, 2021:
 .RS 3
-$ jsets meetings --meet-count=20 --meet-size=2 --start-day=2021-01-11 --skip-day=2021-01-18
+$ jsets meetings \-\-meet\-count=20 \-\-meet\-size=2 \-\-start\-day=2021\-01\-11 \-\-skip\-day=2021\-01\-18
 .RE
 .PP
 Schedule meetings every three weeks for the journal sets in jsets2021.txt with 3 presenters each beginning with Ms. Green and the same start day as the previous example:
 .RS 3
-$ jsets meetings jsets2021.txt --first-presenter="Ms. Green" --start-day=2021-01-11 --pattern=xyy
+$ jsets meetings jsets2021.txt \-\-first\-presenter="Ms. Green" \-\-start\-day=2021\-01\-11 \-\-pattern=xyy
 .RE
 .\" -----------------------------------------------------------------
 .SH COMMAND pmid
@@ -523,7 +523,7 @@ $ jsets pmid 6626520 28874588
 .PP
 Same as above, but save as the composite ESearch JSON object:
 .RS 3
-$ jsets pmid 6626520 28874588 --output=result.json
+$ jsets pmid 6626520 28874588 \-\-output=result.json
 .RE
 .\" ----------------------------------------------------------------- 
 .SH COMMAND query
@@ -565,7 +565,7 @@ Set the issue field of the query to \fInumber\fR.
 .BR \-\-volume= \fInumber\fR
 Set the volume field of the query to \fInumber\fR.
 .TP
-.BR \-\-pmids-only
+.BR \-\-pmids\-only
 Return only the PubMed IDs from the ESearch without submitting a subsequent ESummary query.
 .SS Formats
 Text (\fBtxt\fR, default), Markdown (\fBmkd\fR, \fBmd\fR) and JSON (\fBjson\fR).
@@ -574,22 +574,22 @@ Use of the JSON format will result in only the requested JSON object being retur
 .PP
 Return the first 100 citations queried with the phrase "Radical SAM enzymes" and save as Markdown:
 .RS 3
-$ jsets query Radical SAM enzymes --max-results=100 --output=results.md
+$ jsets query Radical SAM enzymes \-\-max\-results=100 \-\-output=results.md
 .RE
 .PP
 A query for the just the PubMed IDs:
 .RS 3
-$ jsets query Radical SAM enzymes --max-result=100 --pmids-only
+$ jsets query Radical SAM enzymes \-\-max\-result=100 \-\-pmids\-only
 .RE
 .PP
 Return only the JSON object for the previous ESearch query:
 .RS 3
-$ jsets query Radical SAM enzymes --max-result=100 --pmids-only --output=result.json
+$ jsets query Radical SAM enzymes \-\-max\-result=100 \-\-pmids\-only \-\-output=result.json
 .RE
 .PP
-Query for "kinetic isotope effect" by the authors Cleland and Cook in the journal Biochemitry:
+Query for "kinetic isotope effect" by the authors Cleland and Cook in the journal Biochemistry:
 .RS 3
-$ jsets query kinetic isotepe effect --author=Cleland --author=Cook --journal=Biochemistry
+$ jsets query kinetic isotope effect \-\-author=Cleland \-\-author=Cook \-\-journal=Biochemistry
 .RE
 .\" ------------------------------------------------------------------
 .SH COMMAND ranks
@@ -605,12 +605,12 @@ The HTML output of the \fBranks\fR command allows users to input their preferenc
 See also: \fBtoc\fR & \fBmatch\fR.
 .SS Formats
 Text (\fBtxt\fR, default) and Markdown (\fBmkd\fR, \fBmd\fR).
-The \fBranks\fR output with the HTML format (\fBhtml\fR) is an interactive webpage that allows users to rank their article preferences.
+The \fBranks\fR output with the HTML format (\fBhtml\fR) is an interactive web page that allows users to rank their article preferences.
 The resulting preferences can the be used directly as input to the \fBmatch\fR command.
 .SS Examples
 Collect a selection file together for article ranking by the presenters:
 .RS 3
-$ jsets ranks selection.txt --output=ranks.html
+$ jsets ranks selection.txt \-\-output=ranks.html
 .RE
 .\" -----------------------------------------------------------------
 .SH COMMAND read
@@ -633,12 +633,12 @@ The supported output formats are text (default, \fBtxt\fR), Markdown (\fBmd\fR o
 .PP
 Print the issues in journal set 5 from the file jsets2019.txt:
 .RS 3
-$ jsets read jsets2019.txt --key=5
+$ jsets read jsets2019.txt \-\-key=5
 .RE
 .PP
-Convert the text-formatted journal sets in jsets2019.txt to a csv-formatted file:
+Convert the text-formatted journal sets in jsets2019.txt to a CSV-formatted file:
 .RS 3
-$ jsets read jsets2019.txt --output=jsets2019.csv
+$ jsets read jsets2019.txt \-\-output=jsets2019.csv
 .RE
 .\" -----------------------------------------------------------------
 .SH COMMAND refs
@@ -667,7 +667,7 @@ If there is only one journal set in the resulting collection, then no set number
 If there are multiple journal sets, then a journal set \fInumber\fR must be provided using the \fB\-\-key\fR option.
 .PP
 When the output format is HTML,
-the tables-of-contents output will be an interactive webpage that can be used to select articles for review and generate a selection file.
+the tables-of-contents output will be an interactive web page that can be used to select articles for review and generate a selection file.
 Selection files can also be used with the \fBtoc\fR command to generate tables-of-contents output.
 If tables-of-contents are generated as HTML from a selection file,
 then the selected articles will be highlighted.
@@ -680,17 +680,17 @@ Journal sets files can be read as either CSV or text.
 .SS Examples
 Generate an interactive tables-of-contents file from journal set 5 in the file jsets2020.txt:
 .RS 3
-$ jsets toc jsets2020.txt --key=5 --output=toc5.html
+$ jsets toc jsets2020.txt \-\-key=5 \-\-output=toc5.html
 .RE
 .PP
 Generate an interactive tables-of-contents from multiple selection files (selected articles will be highlighted):
 .RS 3
-$ jsets toc selection1.txt selection2.txt selection3.txt --output=toc.html
+$ jsets toc selection1.txt selection2.txt selection3.txt \-\-output=toc.html
 .RE
 .PP
 Same as above using a glob pattern
 .RS 3
-$ jsets toc selection?.txt --output=toc.html
+$ jsets toc selection?.txt \-\-output=toc.html
 .RE
 .\" -----------------------------------------------------------------
 .SH COMMAND year
@@ -706,7 +706,7 @@ The journal set dates can then be recomputed using the \fBread\fR command.
 See also: \fBread\fR & \fBCONFIGURATION\fR.
 .SS Additional Options
 .TP
-.BR \-\-by-date
+.BR \-\-by\-date
 Sort issues by date before grouping them into journal sets.
 This will tend to make the journal sets become available sooner.
 In contrast, the default behavior is to group the weekly journals separately from non-weekly journals.
@@ -718,12 +718,12 @@ The text format is equivalent to a selection file with no selections.
 .SS Examples
 Generate 26 journal sets (2 week frequency) covering 2019 and save as a text file:
 .RS 3
-$ jsets year 2019 --output=jsets2019.txt
+$ jsets year 2019 \-\-output=jsets2019.txt
 .RE
 .PP
 Generate 52 journal sets (1 week frequency) covering 2020 and save as a CSV file:
 .RS 3
-$ jsets year 2020 1 --output=jsets2020.csv
+$ jsets year 2020 1 \-\-output=jsets2020.csv
 .RE
 .\" -----------------------------------------------------------------
 .SH AUTHOR

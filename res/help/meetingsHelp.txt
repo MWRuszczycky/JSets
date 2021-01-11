@@ -38,7 +38,7 @@ ADDITIONAL OPTIONS
         presenters configured, then every configured presenter is assumed to
         present at every meeting.
 
-    --patern=PATTERN
+    --pattern=PATTERN
         The frequency PATTERN for the meetings beginning with the start day.
         The PATTERN indicates the maximum frequency at which the meetings will
         take place, because days may be skipped or incompatible with the

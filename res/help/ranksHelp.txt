@@ -12,7 +12,7 @@ DESCRIPTION
 
 FORMATS
     Text (txt, default) and Markdown (mkd, md). The ranks output with the HTML
-    format (html) is an interactive webpage that allows users to rank their
+    format (html) is an interactive web page that allows users to rank their
     article preferences. The resulting preferences can the be used directly as
     input to the <match> command.
 

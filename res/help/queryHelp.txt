@@ -58,6 +58,6 @@ EXAMPLES
                                          --output=result.json
 
     Query for "kinetic isotope effect" by the authors Cleland and Cook in the
-    journal Biochemitry:
-       $ jsets query kinetic isotepe effect --author=Cleland --author=Cook\
+    journal Biochemistry:
+       $ jsets query kinetic isotope effect --author=Cleland --author=Cook\
                                             --journal=Biochemistry

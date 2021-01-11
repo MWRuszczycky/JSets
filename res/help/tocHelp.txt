@@ -14,7 +14,7 @@ DESCRIPTION
     using the --key option.
 
     When the output format is HTML, the tables-of-contents output will be an
-    interactive webpage that can be used to select articles for review and
+    interactive web page that can be used to select articles for review and
     generate a selection file. Selection files can also be used with the <toc>
     command to generate tables-of-contents output. If tables-of-contents are
     generated as HTML from a selection file, then the selected articles will be

@@ -26,5 +26,5 @@ EXAMPLES
     Generate 26 journal sets (2 week frequency) for 2019 and save as text:
        $ jsets year 2019 --output=jsets2019.txt
 
-    Generate 52 journal sets (1 week frequency) for 2020 and save as csv:
+    Generate 52 journal sets (1 week frequency) for 2020 and save as CSV:
        $ jsets year 2020 1 --output=jsets2020.csv

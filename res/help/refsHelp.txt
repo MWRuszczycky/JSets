@@ -30,7 +30,7 @@ CONFIGURATION
 
     The 'followed' field indicates whether the journal should be included in the
     <year> command output. The 'mincount' field is the minimum number of
-    articles a table of contents hould contain before the user is offered the
+    articles a table of contents should contain before the user is offered the
     option of providing a URL link to the publisher's website when using the
     <toc> command with HTML output. The publication frequencies are defined as:
 
