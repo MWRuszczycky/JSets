@@ -44,6 +44,11 @@ Display a summary of options and commands.
 Display the current version and Git commit hash.
 .\"
 .TP
+.BR -a ", " \-\-ansi ", " \-\-color
+Use ansi control sequences to format output including colors.
+Does not work on Windows.
+.\"
+.TP
 .BR -c ", " \-\-config =\fIfile\fR
 Set the configuration file to \fIfile\fR.
 .\"
@@ -111,6 +116,11 @@ user: Ms. Blue
 assigns the \fIvalue\fR "Ms. Blue" to the parameter \fBuser\fR.
 .SS JSets Parameters
 General configuration parameters must be specified before the journal reference issues.
+.\"
+.TP
+.BR ansi " | " color ": " yes | no | true | false
+Use ansi control sequences to format output including color.
+Does not work on Windows.
 .\"
 .TP
 .BR by\-date ": " yes | no | true | false
