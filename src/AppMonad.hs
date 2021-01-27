@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE MultiWayIf        #-}
 
 module AppMonad
     ( -- Data structure construction & aquisition
@@ -156,15 +157,24 @@ meetingDays = do
 -- =============================================================== --
 -- Interactions and timing
 
+addANSIseq :: T.AppMonad Bool
+addANSIseq = do
+    isTerm <- asks T.cStdOutIsTerm
+    isANSI <- asks T.cUseANSI
+    pure $ isTerm && isANSI
+
 delay :: T.AppMonad ()
 -- ^Cause a delay of at least 1 second in a sequenced AppMonad action.
 -- The delay is specified by the cDelay configuration value.
 delay = do duration <- asks $ (* 10^12) . T.cDelay
+           useANSI  <- addANSIseq
            isTerm   <- asks T.cStdOutIsTerm
            when isTerm . logMessage $
-               "Delay " <> Vc.showPicoSec duration <> " between requests.."
+               "Delay " <> Vc.showPicoSec duration <> " between requests..."
            liftIO . D.wait $ duration
-           when isTerm . logMessage $ "\ESC[2K\ESC[0G"
+           if | useANSI   -> logMessage "\ESC[2K\ESC[0G"
+              | isTerm    -> logMessage "\n"
+              | otherwise -> pure ()
 
 request :: Text -> T.AppMonad Text
 request msg = do
@@ -180,13 +190,14 @@ request msg = do
 
 getPainter :: T.Color -> T.AppMonad (Text -> Text)
 getPainter color = do
-    isTerm <- asks T.cStdOutIsTerm
-    let go esc x = esc <> x <> "\ESC[0m"
-    case ( isTerm, color    ) of
-         ( False,  _        ) -> pure   id
-         ( _,      T.Red    ) -> pure $ go "\ESC[31m"
-         ( _,      T.Green  ) -> pure $ go "\ESC[32m"
-         ( _,      T.Yellow ) -> pure $ go "\ESC[33m"
+    useANSI <- addANSIseq
+    if not useANSI
+       then pure id
+       else let go esc x = esc <> x <> "\ESC[0m"
+            in  case color of
+                     T.Red    -> pure $ go "\ESC[31m"
+                     T.Green  -> pure $ go "\ESC[32m"
+                     T.Yellow -> pure $ go "\ESC[33m"
 
 -- =============================================================== --
 -- Logging messages and recoverable error information
@@ -196,10 +207,9 @@ logMessage msg = do
     let msgNoEsc = Tx.map ( \ x -> if x == '\ESC' then 'E' else x ) msg
     isTerse <- asks T.cTerse
     isTerm  <- asks T.cStdOutIsTerm
-    case ( isTerse, isTerm ) of
-         ( True,    _      ) -> pure ()
-         ( _,       True   ) -> C.putTxtMIO msg
-         ( _,       _      ) -> C.putTxtMIO msgNoEsc
+    if | isTerse   -> pure ()
+       | isTerm    -> C.putTxtMIO msg
+       | otherwise -> C.putTxtMIO msgNoEsc
 
 logError :: Text -> Text -> Text -> T.AppMonad ()
 logError msg hdr err = do

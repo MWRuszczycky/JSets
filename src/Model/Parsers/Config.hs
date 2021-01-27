@@ -290,10 +290,15 @@ prepString = Tx.map toLower . Tx.strip
 -- Reading configuration parameters from file
 
 readConfigParam :: KeyValPair -> T.ConfigStep
+readConfigParam ("ansi", x) =
+    T.ConfigGen $ \ c -> maybe ( throwError $ flagError "ansi/color" )
+                         ( \ y -> pure $ c { T.cUseANSI = y } )
+                         . readFlag $ x
 readConfigParam ("by-date", x) =
     T.ConfigGen $ \ c -> maybe ( throwError $ flagError "by-date" )
                          ( \ b -> pure $ c { T.cYearlyByDate = b } )
                          . readFlag $ x
+readConfigParam ("color", x) = readConfigParam ("ansi", x)
 readConfigParam ("delay", d) =
     T.ConfigGen . configDelay . Tx.unpack $ d
 readConfigParam ("email", e) =

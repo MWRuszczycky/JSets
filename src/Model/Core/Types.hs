@@ -178,6 +178,7 @@ data Config = Config {
       cArguments     :: [String]       -- command line arguments
     , cDate          :: Day            -- date when application started
     , cStdOutIsTerm  :: Bool           -- stdout is the terminal
+    , cUseANSI       :: Bool           -- use ANSI control sequences
     , cUser          :: Maybe Text     -- user's name
     , cEmail         :: Maybe Text     -- user's email
     , cFormat        :: Format         -- explicit output format
@@ -218,6 +219,7 @@ defaultConfig = Config {
       cArguments     = []
     , cDate          = fromGregorian 2020 1 1
     , cStdOutIsTerm  = True
+    , cUseANSI       = False
     , cUser          = Nothing
     , cEmail         = Nothing
     , cFormat        = TXT

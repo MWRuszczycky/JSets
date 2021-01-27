@@ -43,7 +43,8 @@ configureApp = do
     (ws,config) <- initialize >>= configure
     checkForDuplicateReferences config
     -- Configure the terminal if necessary
-    when (T.cStdOutIsTerm  config) . liftIO . putStr $ "\ESC[0m"
+    let useANSI = T.cStdOutIsTerm config && T.cUseANSI config
+    when useANSI . liftIO . putStr $ "\ESC[0m"
     when (not . T.cTerse $ config) . mapM_ warn $ ws
     pure config
 
@@ -303,6 +304,10 @@ options =
       ) "Add DATE (YYYY-MM-DD|MM-DD) as a meeting skip day"
 
     -- Flags
+    , Opt.Option "a" [ "ansi", "color" ]
+      ( Opt.NoArg
+          ( T.ConfigGen $ \ c -> pure $ c { T.cUseANSI = True } )
+      ) "Use ansi control sequence to generate colored output."
 
     , Opt.Option "h" [ "help" ]
       ( Opt.NoArg
