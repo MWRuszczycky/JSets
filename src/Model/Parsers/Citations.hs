@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase        #-}
+
 module Model.Parsers.Citations
     ( parseCitations
     , parsePMIDs
@@ -14,6 +16,7 @@ import qualified Model.Core.Types     as T
 import qualified Data.Text            as Tx
 import           Control.Monad                ( guard, replicateM  )
 import           Control.Applicative          ( (<|>), many, some  )
+import           Data.Bifunctor               ( bimap              )
 import           Data.Char                    ( isAlphaNum         )
 import           Data.Text                    ( Text               )
 import           Data.Time                    ( Day, fromGregorian )
@@ -129,12 +132,19 @@ parseDate = fromGregorian <$> P.unsigned <*> month <*> day
 type ParsedRIS = [(Text,Text)]
 
 parseCitationRIS :: Text -> Either T.ErrString T.Citation
-parseCitationRIS txt = let err = "Cannot Read parsed RIS:\n" <> Tx.unpack txt
-                        in  At.parseOnly parseRIS txt
-                            >>= maybe (Left err) pure . readRIS
+parseCitationRIS txt = bimap go id $ parseRIS txt >>= readRIS
+    where go err = unlines [ "Cannot parse Research Info Systems (RIS) format"
+                           , err
+                           , "Downloaded RIS:"
+                           , Tx.unpack txt
+                           ]
 
-parseRIS :: At.Parser ParsedRIS
-parseRIS = do
+parseRIS :: Text -> Either T.ErrString ParsedRIS
+parseRIS txt = bimap go id . At.parseOnly risParser $ txt
+    where go err = "Parse Error: " <> err
+
+risParser :: At.Parser ParsedRIS
+risParser = do
     At.string "TY"
     risHyphen
     At.skipWhile $ not . At.isEndOfLine
@@ -160,13 +170,17 @@ risHyphen = At.skipSpace *> At.char '-' *> P.horizontalSpaces
 -- ------------------------------------------------------------------
 -- Reading the RIS data into a citation
 
-readRIS :: ParsedRIS -> Maybe T.Citation
-readRIS ris = T.Citation <$> risTitle   ris
-                         <*> risAuthors ris
-                         <*> risIssue   ris
-                         <*> risPages   ris
-                         <*> risDOI     ris
-                         <*> risPMID    ris
+readRIS :: ParsedRIS -> Either T.ErrString T.Citation
+readRIS ris = maybe err pure . risReader $ ris
+    where err = Left $ "Unable to read parsed RIS:\n" <> concatMap show ris
+
+risReader :: ParsedRIS -> Maybe T.Citation
+risReader ris = T.Citation <$> risTitle   ris
+                           <*> risAuthors ris
+                           <*> risIssue   ris
+                           <*> risPages   ris
+                           <*> risDOI     ris
+                           <*> risPMID    ris
 
 risTitle :: ParsedRIS -> Maybe Text
 risTitle = lookup "TI"
