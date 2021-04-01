@@ -144,27 +144,26 @@ parseRIS txt = bimap go id . At.parseOnly risParser $ txt
 
 risParser :: At.Parser ParsedRIS
 risParser = do
-    At.string "TY"
-    risHyphen
-    At.skipWhile $ not . At.isEndOfLine
-    At.endOfLine
+    (start,_) <- risPair
+    guard $ start == "TY"
     pairs <- some risPair
-    At.string "ER"
-    risHyphen
+    stop <- risKey
+    guard $ stop == "ER"
     At.skipSpace
     pure pairs
 
 risPair :: At.Parser (Text,Text)
 risPair = do
-    key <- fmap Tx.pack . replicateM 2 $ At.satisfy isAlphaNum
+    key <- risKey
     guard $ key /= "ER"
-    risHyphen
     val <- At.takeTill At.isEndOfLine
     At.endOfLine
     pure (key, val)
 
-risHyphen :: At.Parser ()
-risHyphen = At.skipSpace *> At.char '-' *> P.horizontalSpaces
+risKey :: At.Parser Text
+risKey = key <* hyphen
+    where key    = fmap Tx.pack . replicateM 2 $ At.satisfy isAlphaNum
+          hyphen = At.skipSpace *> At.char '-' *> P.horizontalSpaces
 
 -- ------------------------------------------------------------------
 -- Reading the RIS data into a citation
