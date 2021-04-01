@@ -14,13 +14,14 @@ import qualified Data.Map.Strict      as Map
 import qualified Model.Parsers.Core   as P
 import qualified Model.Core.Types     as T
 import qualified Data.Text            as Tx
-import           Control.Monad                ( guard, replicateM  )
-import           Control.Applicative          ( (<|>), many, some  )
-import           Data.Bifunctor               ( bimap              )
-import           Data.Char                    ( isAlphaNum         )
-import           Data.Text                    ( Text               )
-import           Data.Time                    ( Day, fromGregorian )
-import           Model.Journals               ( fakePMID           )
+import           Control.Monad                ( guard, replicateM   )
+import           Control.Applicative          ( (<|>), many, some   )
+import           Data.Bifunctor               ( bimap               )
+import           Data.Char                    ( isAlphaNum, isSpace )
+import           Data.List                    ( foldl'              )
+import           Data.Text                    ( Text                )
+import           Data.Time                    ( Day, fromGregorian  )
+import           Model.Journals               ( fakePMID            )
 
 -- =============================================================== --
 -- Parsing PubMed Entrez ESearch results
@@ -139,8 +140,15 @@ parseCitationRIS txt = bimap go id $ parseRIS txt >>= readRIS
                            ]
 
 parseRIS :: Text -> Either T.ErrString ParsedRIS
-parseRIS txt = bimap go id . At.parseOnly risParser $ txt
-    where go err = "Parse Error: " <> err
+-- ^If the parse is successful, then we need to remove any line
+-- breaks and leading white space. If the parsed RIS starts with a
+-- linebreak then it will get dropped. See the risPair parser.
+parseRIS txt = bimap msg unbreak . At.parseOnly risParser $ txt
+    where msg err                = "Parse Error: " <> err
+          unbreak                = reverse . foldl' go []
+          go []         ("br",_) = []
+          go ((k,v):xs) ("br",x) = (k, v <> Tx.dropWhile isSpace x):xs
+          go xs         x        = x:xs
 
 risParser :: At.Parser ParsedRIS
 risParser = do
@@ -153,8 +161,16 @@ risParser = do
     pure pairs
 
 risPair :: At.Parser (Text,Text)
+-- ^RIS is supposed to have every key-value pair on a single line
+-- with no line breaks. However, some doi lookups return RIS with
+-- fields that contain extra spaces and line breaks. As of this
+-- comment (040121) the doi: 10.1002/anie.202014337 has this problem.
+-- To handle this, any error in parsing a RIS key is assumed to be a
+-- continuation of the value from the previous key-value pair. This
+-- is indicated by the "br" key, which is not a standard RIS key.
+-- The line break is removed in the process.
 risPair = do
-    key <- risKey
+    key <- risKey <|> pure "br"
     guard $ key /= "ER"
     val <- At.takeTill At.isEndOfLine
     At.endOfLine
