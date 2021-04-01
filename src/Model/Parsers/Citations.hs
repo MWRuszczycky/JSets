@@ -82,11 +82,10 @@ getJournal json = JS.lookupWith [ "source" ] JS.str json >>= pure . go
 
 getDoi :: JS.JSON -> Maybe Text
 getDoi json = JS.lookupWith [ "elocationid" ] JS.str json >>= go
-    where prefix = "https://www.doi.org/"
-          go x   = case Tx.take 4 x of
-                        ""     -> pure Tx.empty
-                        "doi:" -> pure . (prefix <>) . Tx.drop 5 $ x
-                        _      -> go . Tx.tail $ x
+    where go x = case Tx.take 4 x of
+                      ""     -> pure Tx.empty
+                      "doi:" -> pure . Tx.drop 5 $ x
+                      _      -> go . Tx.tail $ x
 
 getPages :: JS.JSON -> Maybe T.PageRange
 getPages json = do

@@ -1,3 +1,3 @@
-**[@{title}](@{doi})**\
+**[@{title}](https://doi.org/@{doi})**\
 @{authors}\
 *@{journal}* (@{year}) @{volIss}, @{pages}, PMID: @{pmid}
