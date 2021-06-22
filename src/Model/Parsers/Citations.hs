@@ -152,13 +152,13 @@ parseRIS txt = bimap msg unbreak . At.parseOnly risParser $ txt
 
 risParser :: At.Parser ParsedRIS
 risParser = do
-    (start,_) <- risPair
-    guard $ start == "TY"
+    risStart <- risPair
+    guard $ fst risStart == "TY"
     pairs <- some risPair
     stop <- risKey
     guard $ stop == "ER"
     At.skipSpace
-    pure pairs
+    pure $ risStart : pairs
 
 risPair :: At.Parser (Text,Text)
 -- ^RIS is supposed to have every key-value pair on a single line
@@ -230,8 +230,16 @@ risIssue ris = T.Issue <$> risDate ris
                        <*> risJournal ris
 
 risJournal :: ParsedRIS -> Maybe T.Journal
-risJournal = fmap go . lookup "T2"
-    where go j = T.Journal j j j T.UnknownFreq True 20 False
+-- "T2" is the journal; however, if there is no journal, then replace
+-- it with the publisher if available and annotate with the RIS type,
+-- which is provided by the "TY" key that should always be present.
+risJournal ris = go useJournal "T2" <|> go useType "TY"
+    where go f key     = fmap f . lookup key $ ris
+          genName    n = Tx.unwords [ publisher, "(RIS-type:", n <> ")" ]
+          publisher    = maybe "No Publisher" id . lookup "PB" $ ris
+          useJournal j = T.Journal j j j T.UnknownFreq True 20 False
+          useType    t = T.Journal t (genName t) publisher
+                                   T.UnknownFreq True 20 False
 
 risDate :: ParsedRIS -> Maybe Day
 -- "PY" publication year, but may contain a date
