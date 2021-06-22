@@ -143,8 +143,8 @@ citationLength :: T.Citation -> Text
 -- ^View citation length as short or long and the number of pages.
 citationLength c
     | diff < 0  = " (online)"
-    | diff < 6  = " (short: " <> C.tshow diff <> "p)"
-    | otherwise = " (long: "  <> C.tshow diff <> "p)"
+    | diff < 2  = " (1+ pg)"
+    | otherwise = " (" <> C.tshow diff <> " pgs)"
     where diff = case T.pages c of
                       T.InPrint (T.PageNo _ d0) (T.PageNo _ d1) -> d1 - d0 + 1
                       T.Online                                  -> -1

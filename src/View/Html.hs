@@ -262,7 +262,7 @@ rankListElement n c = fill (rankCitationDict n c) Temp.citationHtml
 rankCitationDict :: Int -> T.Citation -> Map.Map Text Text
 -- ^html template dictionary for rank list element.
 rankCitationDict index c = Map.union m . citationDict [] $ c
-    where m = Map.fromList [ ( "index", C.tshow index        )
+    where m = Map.fromList [ ( "index",  C.tshow index       )
                            , ( "length", Vc.citationLength c )
                            , ( "type",   "text"              )
                            , ( "class",  "_citation"         )

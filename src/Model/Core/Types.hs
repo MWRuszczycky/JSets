@@ -534,8 +534,9 @@ data PageRange =
      deriving ( Eq )
 
 instance Show PageRange where
-    show (InPrint p1 p2) = show p1 <> "-" <> show p2
     show Online          = "online"
+    show (InPrint p1 p2) | p1 == p2  = show p1
+                         | otherwise = show p1 <> "-" <> show p2
 
 instance Ord PageRange where
     compare Online         Online         = EQ
