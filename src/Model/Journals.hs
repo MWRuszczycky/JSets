@@ -106,6 +106,9 @@ updateToC :: [T.Selection] -> T.ToC -> T.ToC
 updateToC sel x = x { T.contents = foldl' go (T.contents x) sel }
     where go ps (T.ByBndPMID i p) | i == T.issue x && (not . elem p ) ps = p:ps
                                   | otherwise                            = ps
+          go ps (T.ByBndDOI  i d) = let p = fakePMID d
+                                    in  if i == T.issue x && (not . elem p) ps
+                                           then p:ps else ps
           go ps _                 = ps
 
 correctCitation :: T.References -> [T.ToC] -> T.Citation -> T.Citation
