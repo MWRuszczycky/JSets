@@ -54,7 +54,7 @@ import qualified Data.Text             as Tx
 import           Control.Monad.Except        ( ExceptT           )
 import           Control.Monad.Reader        ( ReaderT, Reader   )
 import           Control.Monad.Writer        ( WriterT           )
-import           Data.List                   ( foldl', nub       )
+import           Data.List                   ( nub               )
 import           Data.Map.Strict             ( Map               )
 import           Data.Monoid                 ( Endo              )
 import           Data.Text                   ( Text              )

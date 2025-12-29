@@ -48,7 +48,7 @@ import qualified Model.Core.Types     as T
 import qualified Data.Time            as Tm
 import qualified Data.Text            as Tx
 import           Data.Maybe                  ( mapMaybe       )
-import           Data.List                   ( find, foldl'   )
+import           Data.List                   ( find           )
 import           Data.Time                   ( Day            )
 import           Data.Text                   ( Text           )
 import           Data.List                   ( sortOn, sortBy )

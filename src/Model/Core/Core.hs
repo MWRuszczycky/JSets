@@ -23,7 +23,6 @@ import qualified Data.Text           as Tx
 import qualified Model.Core.Types    as T
 import           Control.Applicative        ( (<|>), Alternative (..) )
 import           Data.Char                  ( toLower                 )
-import           Data.List                  ( foldl'                  )
 import           Data.Text                  ( Text                    )
 import           Text.Read                  ( readMaybe               )
 

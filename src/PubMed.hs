@@ -46,9 +46,10 @@ import           Data.List                       ( nub        )
 import           Data.Maybe                      ( catMaybes  )
 import           Lens.Micro                      ( (.~), (&)  )
 import           Network.Wreq.Session            ( newSession )
-import           Control.Monad.Reader            ( when, asks )
-import           Control.Monad.Except            ( liftIO
-                                                 , runExceptT )
+import           Control.Monad                   ( when       )
+import           Control.Monad.Reader            ( asks       )
+import           Control.Monad.IO.Class          ( liftIO     )
+import           Control.Monad.Except            ( runExceptT )
 
 -- =============================================================== --
 -- PubMed interface

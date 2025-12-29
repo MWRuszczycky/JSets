@@ -10,7 +10,6 @@ import           Data.Map.Strict                    ( (!)          )
 import           Data.List                          ( (\\)
                                                     , nub
                                                     , sort
-                                                    , foldl'
                                                     , intersect
                                                     , partition
                                                     , delete       )

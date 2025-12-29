@@ -19,15 +19,16 @@ import qualified Model.Parsers.Rankings    as P
 import qualified PubMed                    as PM
 import qualified View.View                 as V
 import qualified View.Help                 as H
-import           Data.Text                          ( Text           )
-import           Data.List                          ( find           )
-import           Data.Maybe                         ( catMaybes      )
-import           Text.Read                          ( readMaybe      )
-import           Control.Monad                      ( when           )
-import           Control.Monad.Reader               ( asks           )
-import           Control.Monad.Except               ( liftIO, lift
-                                                    , liftEither
-                                                    , throwError     )
+import           Data.Text                          ( Text       )
+import           Data.List                          ( find       )
+import           Data.Maybe                         ( catMaybes  )
+import           Text.Read                          ( readMaybe  )
+import           Control.Monad                      ( when       )
+import           Control.Monad.Trans                ( lift       )
+import           Control.Monad.IO.Class             ( liftIO     )
+import           Control.Monad.Reader               ( asks       )
+import           Control.Monad.Except               ( liftEither
+                                                    , throwError )
 
 -- =============================================================== --
 -- Commands

@@ -37,9 +37,10 @@ import qualified View.Core                 as Vc
 import           Data.Text                          ( Text         )
 import           Text.Read                          ( readMaybe    )
 import           Control.Monad                      ( when         )
+import           Control.Monad.Trans                ( lift         )
+import           Control.Monad.IO.Class             ( liftIO       )
 import           Control.Monad.Reader               ( asks         )
-import           Control.Monad.Except               ( lift, liftIO
-                                                    , throwError   )
+import           Control.Monad.Except               ( throwError   )
 
 -- =============================================================== --
 -- Data structure construction & acquisition

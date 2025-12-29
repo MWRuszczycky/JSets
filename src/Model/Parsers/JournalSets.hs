@@ -25,7 +25,7 @@ import           Model.Core.Core              ( readMaybeTxt         )
 parseJSets :: [T.Issue] -> Text -> Either T.ErrString (T.JSets T.Issue)
 -- ^Parse JSets from a csv or text file. First attempts to parse from
 -- csv and if that fails then tries to parse from text.
-parseJSets refs x = parseCsv refs x <|> parseTxt refs x
+parseJSets refs x = parseCsv refs x <> parseTxt refs x
 
 parseCsv :: [T.Issue] -> Text -> Either T.ErrString (T.JSets T.Issue)
 -- ^Parse a properly formatted csv file to a collection of JSets.
